@@ -1,0 +1,232 @@
+import { useMemo, useState } from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import BottomNav from '../../components/navigation/BottomNav';
+import HomeHeader from '../../components/home/HomeHeader';
+import HomePromoCard from '../../components/home/HomePromoCard';
+import HomeSectionCta from '../../components/home/HomeSectionCta';
+import PlotCard from '../../components/home/PlotCard';
+import NotificationScreen from '../notifications/NotificationScreen';
+import PlansScreen from '../plans/PlansScreen';
+import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
+
+const PROFILE_IMAGE = require('../../images/tuinzoeker_pfp.png');
+
+const PLOTS = [
+  {
+    id: 'plot-1',
+    image: require('../../images/overdekt_perceel_met_serre.png'),
+    location: 'Kessel-Lo',
+    rating: '4,5',
+    title: 'Overdekt perceel met serre',
+    size: '30m²',
+    chips: ['Water', 'Materiaal', '2,8km'],
+  },
+  {
+    id: 'plot-2',
+    image: require('../../images/perceel_onder_de_bomen.png'),
+    location: 'Heverlee',
+    rating: '4,1',
+    title: 'Perceel onder de bomen',
+    size: '20m²',
+    chips: ['Water', 'Zaden', '2,1km'],
+  },
+  {
+    id: 'plot-3',
+    image: require('../../images/rustig_perceel_in_het_groen.png'),
+    location: 'Wilsele Dorp',
+    rating: '4,0',
+    title: 'Rustig perceel in het groen',
+    size: '55m²',
+    chips: ['Water', 'Materiaal', '2,5km'],
+  },
+];
+
+export default function HomeScreen() {
+  const [activeTab, setActiveTab] = useState('start');
+  const [activeDot, setActiveDot] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredPlots = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return PLOTS;
+    }
+
+    return PLOTS.filter((plot) => {
+      const searchableText = [plot.location, plot.title, plot.size, ...plot.chips].join(' ').toLowerCase();
+      return searchableText.includes(normalizedQuery);
+    });
+  }, [searchQuery]);
+
+  const visibleDotIndex = Math.max(0, Math.min(filteredPlots.length - 1, activeDot));
+
+  if (activeTab === 'berichten') {
+    return (
+      <NotificationScreen
+        onBack={() => setActiveTab('start')}
+        onPrimaryAction={() => setActiveTab('start')}
+      />
+    );
+  }
+
+  if (activeTab === 'pro-plan') {
+    return <PlansScreen onBack={() => setActiveTab('start')} />;
+  }
+
+  return (
+    <View style={styles.safeArea}>
+      <StatusBar style="light" />
+      <View style={styles.mobileFrame}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          nestedScrollEnabled
+          scrollEnabled
+          bounces
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <HomeHeader
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onPressNotifications={() => setActiveTab('berichten')}
+          />
+
+          <View style={styles.contentWrap}>
+            <HomePromoCard onPressUpgrade={() => setActiveTab('pro-plan')} />
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Tijd om te beginnen!</Text>
+              <Text style={styles.sectionBody}>
+                Je hebt nog geen perceel gematched. Bekijk wat er beschikbaar is
+              </Text>
+
+              <HomeSectionCta />
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Aanbevolen percelen</Text>
+
+              <ScrollView
+                horizontal
+                nestedScrollEnabled
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.plotsScroller}
+                onMomentumScrollEnd={(event) => {
+                  const cardWidth = SIZES.plotCardWidth;
+                  const nextDot = Math.round(event.nativeEvent.contentOffset.x / cardWidth);
+                  setActiveDot(Math.max(0, Math.min(filteredPlots.length - 1, nextDot)));
+                }}
+              >
+                {filteredPlots.map((plot) => (
+                  <PlotCard key={plot.id} plot={plot} />
+                ))}
+              </ScrollView>
+
+              {filteredPlots.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateText}>Geen percelen gevonden voor "{searchQuery}".</Text>
+                </View>
+              ) : null}
+
+              <View style={styles.dotRow}>
+                {filteredPlots.map((plot, index) => (
+                  <View
+                    key={`dot-${plot.id}`}
+                    style={[styles.dot, index === visibleDotIndex && styles.dotActive]}
+                  />
+                ))}
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+
+        <BottomNav
+          activeKey={activeTab}
+          onTabPress={(item) => setActiveTab(item.key)}
+          profileImageSource={PROFILE_IMAGE}
+          style={styles.bottomNav}
+        />
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  mobileFrame: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: COLORS.background,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    backgroundColor: COLORS.background,
+    paddingBottom: SIZES.bottomNavClearance,
+  },
+  contentWrap: {
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: SPACING.xl,
+    gap: SPACING.xl,
+  },
+  section: {
+    gap: SPACING.md,
+  },
+  sectionTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 20,
+    lineHeight: 22,
+    fontFamily: FONTS.displaySemiBold,
+    fontWeight: '600',
+  },
+  sectionBody: {
+    color: COLORS.textSecondary,
+    fontSize: 16,
+    lineHeight: 24,
+    fontFamily: FONTS.body,
+    marginTop: -6,
+  },
+  plotsScroller: {
+    gap: SPACING.md,
+    paddingBottom: SPACING.xxs,
+  },
+  dotRow: {
+    marginTop: -4,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  dot: {
+    width: SIZES.dot,
+    height: SIZES.dot,
+    borderRadius: RADIUS.xs,
+    backgroundColor: COLORS.indicatorMuted,
+  },
+  dotActive: {
+    backgroundColor: COLORS.brand,
+  },
+  emptyState: {
+    paddingVertical: 6,
+  },
+  emptyStateText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: FONTS.body,
+  },
+  bottomNav: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+});
