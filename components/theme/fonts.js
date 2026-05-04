@@ -3,6 +3,7 @@ export const FONT_FAMILIES = {
   satoshiMedium: 'Satoshi-Medium',
   kanitMedium: 'Kanit-Medium',
   kanitSemiBold: 'Kanit-SemiBold',
+  kanitBold: 'Kanit-Bold',
 };
 
 export const FONT_ASSETS = {
@@ -18,4 +19,5 @@ export const FONT_ASSETS = {
   'Satoshi-LightItalic': require('../../assets/fonts/satoshi/Satoshi-LightItalic.otf'),
   [FONT_FAMILIES.kanitMedium]: require('../../assets/fonts/kanit/Kanit-Medium.ttf'),
   [FONT_FAMILIES.kanitSemiBold]: require('../../assets/fonts/kanit/Kanit-SemiBold.ttf'),
+  [FONT_FAMILIES.kanitBold]: require('../../assets/fonts/kanit/Kanit-Bold.ttf'),
 };

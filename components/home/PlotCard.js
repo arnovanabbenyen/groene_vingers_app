@@ -7,11 +7,11 @@ import { ShovelIcon } from '../../node_modules/phosphor-react-native/lib/commonj
 import { StarIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Star.js';
 import { COLORS, FONTS, LAYOUT, RADIUS, SHADOWS, SIZES } from '../theme/tokens';
 
-export default function PlotCard({ plot }) {
+export default function PlotCard({ plot, onPress }) {
   const imageSource = typeof plot.image === 'string' ? { uri: plot.image } : plot.image;
 
   return (
-    <Pressable style={styles.card}>
+    <Pressable style={styles.card} onPress={onPress}>
       <ImageBackground source={imageSource} style={styles.image} imageStyle={styles.imageRounded}>
         <View style={styles.badgesRow}>
           <View style={[styles.pill, styles.locationPill]}>

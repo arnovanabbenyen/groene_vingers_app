@@ -78,6 +78,7 @@ export const LAYOUT = {
 export const FONTS = {
   displayMedium: FONT_FAMILIES.kanitMedium,
   displaySemiBold: FONT_FAMILIES.kanitSemiBold,
+  displayBold: FONT_FAMILIES.kanitBold,
   body: FONT_FAMILIES.satoshiRegular,
   bodyMedium: FONT_FAMILIES.satoshiMedium,
 };

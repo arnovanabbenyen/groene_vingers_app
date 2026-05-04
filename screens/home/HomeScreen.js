@@ -8,6 +8,7 @@ import HomeSectionCta from '../../components/home/HomeSectionCta';
 import PlotCard from '../../components/home/PlotCard';
 import NotificationScreen from '../notifications/NotificationScreen';
 import PlansScreen from '../plans/PlansScreen';
+import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
 import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 
 const PROFILE_IMAGE = require('../../images/tuinzoeker_pfp.png');
@@ -46,6 +47,7 @@ export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState('start');
   const [activeDot, setActiveDot] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPlot, setSelectedPlot] = useState(null);
 
   const filteredPlots = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -61,6 +63,15 @@ export default function HomeScreen() {
   }, [searchQuery]);
 
   const visibleDotIndex = Math.max(0, Math.min(filteredPlots.length - 1, activeDot));
+
+  if (selectedPlot) {
+    return (
+      <ParcelDetailScreen
+        onBack={() => setSelectedPlot(null)}
+        onRequest={() => setSelectedPlot(null)}
+      />
+    );
+  }
 
   if (activeTab === 'berichten') {
     return (
@@ -121,7 +132,7 @@ export default function HomeScreen() {
                 }}
               >
                 {filteredPlots.map((plot) => (
-                  <PlotCard key={plot.id} plot={plot} />
+                  <PlotCard key={plot.id} plot={plot} onPress={() => setSelectedPlot(plot)} />
                 ))}
               </ScrollView>
 
