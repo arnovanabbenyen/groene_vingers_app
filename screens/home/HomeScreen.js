@@ -23,15 +23,7 @@ const PLOTS = [
     size: '30m²',
     chips: ['Water', 'Materiaal', '2,8km'],
   },
-  {
-    id: 'plot-2',
-    image: require('../../images/perceel_onder_de_bomen.png'),
-    location: 'Heverlee',
-    rating: '4,1',
-    title: 'Perceel onder de bomen',
-    size: '20m²',
-    chips: ['Water', 'Zaden', '2,1km'],
-  },
+
   {
     id: 'plot-3',
     image: require('../../images/rustig_perceel_in_het_groen.png'),
