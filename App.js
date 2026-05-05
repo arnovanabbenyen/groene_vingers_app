@@ -8,6 +8,7 @@ import InfoScreen3 from './screens/auth/InfoScreen3';
 import RoleSelectionScreen from './screens/auth/RoleSelectionScreen';
 import AccountDetailsScreen from './screens/auth/AccountDetailsScreen';
 import PhotoScreen from './screens/auth/PhotoScreen';
+import BioScreen from './screens/auth/BioScreen';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -60,7 +61,19 @@ export default function App() {
         <PhotoScreen
           onBack={() => setScreen('account')}
           onSkip={() => setScreen('intro')}
-          onContinue={() => setIsLoggedIn(true)}
+          onContinue={() => setScreen('bio')}
+        />
+      ) : screen === 'bio' ? (
+        <BioScreen
+          onBack={() => setScreen('photo')}
+          onSkip={() => setScreen('intro')}
+          onContinue={(bio) => {
+            setProfileDraft((currentDraft) => ({
+              ...(currentDraft || {}),
+              bio,
+            }));
+            setIsLoggedIn(true);
+          }}
         />
       ) : (
         <IntroScreen
