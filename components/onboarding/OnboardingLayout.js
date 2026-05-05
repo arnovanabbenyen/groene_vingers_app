@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, FONTS, SPACING, RADIUS } from '../theme/tokens';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { COLORS, FONTS, SPACING } from '../theme/tokens';
 import AuthButton from '../buttons/AuthButton';
 
 export default function OnboardingLayout({
@@ -16,9 +16,9 @@ export default function OnboardingLayout({
   return (
     <View style={styles.container}>
       <View style={styles.skipRow}>
-        <Text onPress={onSkip} style={styles.skipText}>
-          Overslaan
-        </Text>
+        <Pressable onPress={onSkip} hitSlop={8} accessibilityRole="button">
+          <Text style={styles.skipText}>Overslaan</Text>
+        </Pressable>
       </View>
 
       <View style={styles.illustrationWrap}>{illustration}</View>

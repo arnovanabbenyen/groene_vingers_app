@@ -12,7 +12,6 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [screen, setScreen] = useState('intro');
   const [selectedRole, setSelectedRole] = useState('tuinzoeker');
-  const [accountDraft, setAccountDraft] = useState(null);
 
   return (
     <AppProviders>
@@ -42,17 +41,15 @@ export default function App() {
         <RoleSelectionScreen
           selectedRole={selectedRole}
           onSelectRole={setSelectedRole}
-          onLogin={() => setIsLoggedIn(true)}
+          onLogin={() => setScreen('intro')}
           onContinue={() => setScreen('account')}
         />
       ) : screen === 'account' ? (
         <AccountDetailsScreen
           role={selectedRole}
           onBack={() => setScreen('role')}
-          onContinue={(data) => {
-            setAccountDraft(data);
-            setIsLoggedIn(true);
-          }}
+          onLogin={() => setScreen('intro')}
+          onContinue={() => setIsLoggedIn(true)}
         />
       ) : (
         <IntroScreen

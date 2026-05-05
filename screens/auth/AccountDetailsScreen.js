@@ -6,7 +6,7 @@ import AuthButton from '../../components/buttons/AuthButton';
 import AuthTextField from '../../components/auth/AuthTextField';
 import AuthCheckbox from '../../components/auth/AuthCheckbox';
 
-export default function AccountDetailsScreen({ onBack, onContinue, role }) {
+export default function AccountDetailsScreen({ onBack, onContinue, onLogin, role }) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -81,7 +81,7 @@ export default function AccountDetailsScreen({ onBack, onContinue, role }) {
         <AuthButton label="Volgende" onPress={handleContinue} variant="primary" />
         <View style={styles.loginRow}>
           <Text style={styles.loginText}>Al een account? </Text>
-          <Pressable onPress={onBack}>
+          <Pressable onPress={onLogin || onBack}>
             <Text style={styles.loginLink}>Inloggen</Text>
           </Pressable>
         </View>
