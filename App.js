@@ -3,6 +3,7 @@ import AppProviders from './providers/AppProviders';
 import IntroScreen from './screens/intro/IntroScreen';
 import HomeScreen from './screens/home/HomeScreen';
 import InfoScreen from './screens/auth/InfoScreen';
+import InfoScreen2 from './screens/auth/InfoScreen2';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -20,10 +21,12 @@ export default function App() {
       ) : screen === 'info' ? (
         <InfoScreen
           onSkip={() => setScreen('intro')}
-          onContinue={() => {
-            // Signup step not implemented yet — proceed to intro for now
-            setScreen('intro');
-          }}
+          onContinue={() => setScreen('info2')}
+        />
+      ) : screen === 'info2' ? (
+        <InfoScreen2
+          onSkip={() => setScreen('intro')}
+          onContinue={() => setScreen('info3')}
         />
       ) : (
         <IntroScreen
