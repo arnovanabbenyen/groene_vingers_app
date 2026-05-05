@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { COLORS, FONTS, SPACING, RADIUS } from '../../components/theme/tokens';
+import AuthButton from '../../components/buttons/AuthButton';
 
 export default function IntroScreen({ onCreateAccount, onSignIn }) {
   return (
@@ -39,29 +40,16 @@ export default function IntroScreen({ onCreateAccount, onSignIn }) {
 
         {/* Buttons */}
         <View style={styles.buttonContainer}>
-          {/* Primary Button */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.button,
-              styles.buttonPrimary,
-              pressed && styles.buttonPrimaryPressed,
-            ]}
+          <AuthButton
+            label="Maak een account aan"
+            variant="primary"
             onPress={onCreateAccount}
-          >
-            <Text style={styles.buttonTextPrimary}>Maak een account aan</Text>
-          </Pressable>
-
-          {/* Secondary Button */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.button,
-              styles.buttonSecondary,
-              pressed && styles.buttonSecondaryPressed,
-            ]}
+          />
+          <AuthButton
+            label="Ik heb al een account"
+            variant="secondary"
             onPress={onSignIn}
-          >
-            <Text style={styles.buttonTextSecondary}>Ik heb al een account</Text>
-          </Pressable>
+          />
         </View>
       </View>
     </View>
@@ -136,47 +124,5 @@ const styles = StyleSheet.create({
 
   buttonContainer: {
     gap: SPACING.md,
-  },
-
-  button: {
-    height: 44,
-    borderRadius: RADIUS.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  buttonPrimary: {
-    backgroundColor: COLORS.brand,
-  },
-
-  buttonPrimaryPressed: {
-    opacity: 0.85,
-  },
-
-  buttonSecondary: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 2,
-    borderColor: COLORS.brand,
-  },
-
-  buttonSecondaryPressed: {
-    backgroundColor: COLORS.background,
-    opacity: 0.9,
-  },
-
-  buttonTextPrimary: {
-    fontSize: 16,
-    fontFamily: FONTS.displaySemiBold,
-    fontWeight: '600',
-    color: COLORS.textInverse,
-    textAlign: 'center',
-  },
-
-  buttonTextSecondary: {
-    fontSize: 16,
-    fontFamily: FONTS.displaySemiBold,
-    fontWeight: '600',
-    color: COLORS.brand,
-    textAlign: 'center',
   },
 });
