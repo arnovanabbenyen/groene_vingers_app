@@ -5,10 +5,12 @@ import HomeScreen from './screens/home/HomeScreen';
 import InfoScreen from './screens/auth/InfoScreen';
 import InfoScreen2 from './screens/auth/InfoScreen2';
 import InfoScreen3 from './screens/auth/InfoScreen3';
+import RoleSelectionScreen from './screens/auth/RoleSelectionScreen';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [screen, setScreen] = useState('intro');
+  const [selectedRole, setSelectedRole] = useState('tuinzoeker');
 
   return (
     <AppProviders>
@@ -32,6 +34,13 @@ export default function App() {
       ) : screen === 'info3' ? (
         <InfoScreen3
           onSkip={() => setScreen('intro')}
+          onContinue={() => setScreen('role')}
+        />
+      ) : screen === 'role' ? (
+        <RoleSelectionScreen
+          selectedRole={selectedRole}
+          onSelectRole={setSelectedRole}
+          onLogin={() => setIsLoggedIn(true)}
           onContinue={() => setScreen('intro')}
         />
       ) : (
