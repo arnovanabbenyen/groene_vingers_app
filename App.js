@@ -4,6 +4,7 @@ import IntroScreen from './screens/intro/IntroScreen';
 import HomeScreen from './screens/home/HomeScreen';
 import InfoScreen from './screens/auth/InfoScreen';
 import InfoScreen2 from './screens/auth/InfoScreen2';
+import InfoScreen3 from './screens/auth/InfoScreen3';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -27,6 +28,11 @@ export default function App() {
         <InfoScreen2
           onSkip={() => setScreen('intro')}
           onContinue={() => setScreen('info3')}
+        />
+      ) : screen === 'info3' ? (
+        <InfoScreen3
+          onSkip={() => setScreen('intro')}
+          onContinue={() => setScreen('intro')}
         />
       ) : (
         <IntroScreen
