@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, ImageBackground } from 'react-native';
 import { COLORS, FONTS, SPACING, RADIUS } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 
@@ -9,18 +9,24 @@ export default function IntroScreen({ onCreateAccount, onSignIn }) {
       {/* Logo */}
       <View style={styles.logoContainer}>
         <Image
-          source={require('../../images/tuineigenaar_pfp.png')}
+          source={require('../../images/logo.png')}
           style={styles.logo}
         />
       </View>
 
-      {/* Plant Image */}
+      {/* Plant with vegetables pattern background */}
       <View style={styles.plantContainer}>
-        <Image
-          source={require('../../images/perceel_onder_de_bomen.png')}
-          style={styles.plant}
-          resizeMode="contain"
-        />
+        <ImageBackground
+          source={require('../../images/groenten_patroon.png')}
+          style={styles.patternBackground}
+          imageStyle={styles.patternImage}
+        >
+          <Image
+            source={require('../../images/plant_in_aarde.png')}
+            style={styles.plant}
+            resizeMode="contain"
+          />
+        </ImageBackground>
       </View>
 
       {/* Content */}
@@ -60,38 +66,59 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     paddingHorizontal: SPACING.screenX,
-    paddingTop: SPACING.xl,
     paddingBottom: SPACING.xl,
   },
 
   logoContainer: {
-    alignItems: 'center',
-    marginTop: SPACING.md,
+    position: 'absolute',
+    top: 80,
+    left: SPACING.screenX,
+    zIndex: 10,
   },
 
   logo: {
-    width: 120,
-    height: 50,
+    width: 145,
+    height: 51,
     resizeMode: 'contain',
   },
 
   plantContainer: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: SPACING.lg,
+    top: 0,
+    zIndex: 5,
+  },
+
+  patternBackground: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  patternImage: {
+    resizeMode: 'cover',
+    opacity: 0.2,
   },
 
   plant: {
-    width: 200,
-    height: 280,
+    width: '90%',
+    height: '85%',
+    position: 'absolute',
   },
 
   contentContainer: {
     gap: SPACING.lg,
     marginBottom: SPACING.md,
+    backgroundColor: COLORS.background,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.lg,
+    borderTopLeftRadius: RADIUS.xl,
+    borderTopRightRadius: RADIUS.xl,
+    zIndex: 20,
   },
 
   textContainer: {

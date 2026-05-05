@@ -31,7 +31,7 @@ export default function AuthButton({
 const styles = StyleSheet.create({
   button: {
     height: 44,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.sm,
     justifyContent: 'center',
     alignItems: 'center',
   },
