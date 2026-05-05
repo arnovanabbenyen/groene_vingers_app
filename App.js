@@ -7,11 +7,13 @@ import InfoScreen2 from './screens/auth/InfoScreen2';
 import InfoScreen3 from './screens/auth/InfoScreen3';
 import RoleSelectionScreen from './screens/auth/RoleSelectionScreen';
 import AccountDetailsScreen from './screens/auth/AccountDetailsScreen';
+import PhotoScreen from './screens/auth/PhotoScreen';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [screen, setScreen] = useState('intro');
   const [selectedRole, setSelectedRole] = useState('tuinzoeker');
+  const [profileDraft, setProfileDraft] = useState(null);
 
   return (
     <AppProviders>
@@ -49,6 +51,15 @@ export default function App() {
           role={selectedRole}
           onBack={() => setScreen('role')}
           onLogin={() => setScreen('intro')}
+          onContinue={(data) => {
+            setProfileDraft(data);
+            setScreen('photo');
+          }}
+        />
+      ) : screen === 'photo' ? (
+        <PhotoScreen
+          onBack={() => setScreen('account')}
+          onSkip={() => setScreen('intro')}
           onContinue={() => setIsLoggedIn(true)}
         />
       ) : (
