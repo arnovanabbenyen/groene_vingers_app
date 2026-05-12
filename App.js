@@ -53,21 +53,6 @@ export default function App() {
         throw new Error('Account kon niet worden aangemaakt. Probeer opnieuw.');
       }
 
-      const { error: profileError } = await supabase.from('profiles').upsert(
-        {
-          id: createdUser.id,
-          first_name: metadata.first_name,
-          last_name: metadata.last_name,
-          role: metadata.role,
-          bio: metadata.bio,
-        },
-        { onConflict: 'id' },
-      );
-
-      if (profileError) {
-        throw profileError;
-      }
-
       setProfileDraft(null);
 
       setRequiresEmailVerification(!data.session);
