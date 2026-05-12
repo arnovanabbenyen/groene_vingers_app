@@ -6,10 +6,9 @@ import AuthButton from '../../components/buttons/AuthButton';
 import AuthTextField from '../../components/auth/AuthTextField';
 import { supabase } from '../../services/supabase';
 
-export default function PasswordResetScreen({ onBack }) {
-  const [email, setEmail] = useState('');
+export default function PasswordResetScreen({ onBack, onSent, initialEmail }) {
+  const [email, setEmail] = useState(initialEmail || '');
   const [isLoading, setIsLoading] = useState(false);
-  const [isEmailSent, setIsEmailSent] = useState(false);
 
   async function handleSendReset() {
     if (!email) {
@@ -26,12 +25,8 @@ export default function PasswordResetScreen({ onBack }) {
         throw error;
       }
 
-      setIsEmailSent(true);
-      Alert.alert(
-        'Reset-link verstuurd',
-        'Controleer je e-mail voor instructies om je wachtwoord opnieuw in te stellen.'
-      );
-      setTimeout(() => onBack?.(), 2000);
+      // notify parent that email was sent
+      onSent?.(email);
     } catch (resetError) {
       Alert.alert(
         'Fout bij het versturen',
@@ -69,7 +64,7 @@ export default function PasswordResetScreen({ onBack }) {
           label="Stuur reset-link"
           onPress={handleSendReset}
           variant="primary"
-          disabled={isLoading || isEmailSent}
+          disabled={isLoading}
         />
       </View>
     </ScrollView>

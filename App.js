@@ -5,6 +5,7 @@ import IntroScreen from './screens/intro/IntroScreen';
 import HomeScreen from './screens/home/HomeScreen';
 import LoginScreen from './screens/auth/LoginScreen';
 import PasswordResetScreen from './screens/auth/PasswordResetScreen';
+import PasswordResetSentScreen from './screens/auth/PasswordResetSentScreen';
 import InfoScreen from './screens/auth/InfoScreen';
 import InfoScreen2 from './screens/auth/InfoScreen2';
 import InfoScreen3 from './screens/auth/InfoScreen3';
@@ -22,6 +23,7 @@ export default function App() {
   const [profileDraft, setProfileDraft] = useState(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [requiresEmailVerification, setRequiresEmailVerification] = useState(false);
+  const [lastResetEmail, setLastResetEmail] = useState('');
 
   async function handleCompleteSignUp(bio) {
     if (!profileDraft?.email || !profileDraft?.password) {
@@ -79,6 +81,17 @@ export default function App() {
       ) : screen === 'passwordReset' ? (
         <PasswordResetScreen
           onBack={() => setScreen('login')}
+          initialEmail={lastResetEmail}
+          onSent={(email) => {
+            setLastResetEmail(email || '');
+            setScreen('passwordResetSent');
+          }}
+        />
+      ) : screen === 'passwordResetSent' ? (
+        <PasswordResetSentScreen
+          email={lastResetEmail}
+          onBack={() => setScreen('login')}
+          onResend={() => setScreen('passwordReset')}
         />
       ) : screen === 'intro' ? (
         <IntroScreen
