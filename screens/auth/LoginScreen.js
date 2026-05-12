@@ -4,12 +4,15 @@ import { EnvelopeSimple, LockKey } from 'phosphor-react-native';
 import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 import AuthTextField from '../../components/auth/AuthTextField';
+import ErrorAlert from '../../components/auth/ErrorAlert';
 import { supabase } from '../../services/supabase';
 
 export default function LoginScreen({ onCreateAccount, onLoginSuccess, onForgotPassword }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({ email: false, password: false });
 
   async function handleLogin() {
     if (!email || !password) {
@@ -33,10 +36,8 @@ export default function LoginScreen({ onCreateAccount, onLoginSuccess, onForgotP
         onLoginSuccess?.();
       }
     } catch (loginError) {
-      Alert.alert(
-        'Inloggen mislukt',
-        loginError.message || 'Je e-mailadres of wachtwoord klopt niet.'
-      );
+      setError('E-mailadres of wachtwoord is onjuist.');
+      setFieldErrors({ email: true, password: true });
     } finally {
       setIsLoading(false);
     }
@@ -46,13 +47,20 @@ export default function LoginScreen({ onCreateAccount, onLoginSuccess, onForgotP
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>Login</Text>
 
+      <ErrorAlert message={error} />
+
       <AuthTextField
         label="E-mailadres"
         value={email}
-        onChangeText={setEmail}
+          onChangeText={(newEmail) => {
+            setEmail(newEmail);
+            setError('');
+            setFieldErrors(prev => ({ ...prev, email: false }));
+          }}
         placeholder="jouw@email.be"
         keyboardType="email-address"
         autoCapitalize="none"
+          error={fieldErrors.email}
         icon={<EnvelopeSimple size={18} color={COLORS.border} weight="regular" />}
       />
 
@@ -60,9 +68,14 @@ export default function LoginScreen({ onCreateAccount, onLoginSuccess, onForgotP
         <AuthTextField
           label="Wachtwoord"
           value={password}
-          onChangeText={setPassword}
+            onChangeText={(newPassword) => {
+              setPassword(newPassword);
+              setError('');
+              setFieldErrors(prev => ({ ...prev, password: false }));
+            }}
           placeholder="••••••••••"
           secureTextEntry
+            error={fieldErrors.password}
           icon={<LockKey size={18} color={COLORS.border} weight="regular" />}
         />
         <Pressable style={styles.forgotPasswordContainer} onPress={onForgotPassword}>

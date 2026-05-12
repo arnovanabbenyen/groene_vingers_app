@@ -12,11 +12,12 @@ export default function AuthTextField({
   autoCapitalize,
   secureTextEntry,
   halfWidth = false,
+  error = false,
 }) {
   return (
     <View style={[styles.fieldWrap, halfWidth && styles.fieldHalf]}>
       <Text style={styles.label}>{label}</Text>
-      <View style={styles.inputShell}>
+      <View style={[styles.inputShell, error && styles.inputShellError]}>
         {icon ? <View style={styles.iconWrap}>{icon}</View> : null}
         <TextInput
           value={value}
@@ -56,6 +57,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  inputShellError: {
+    borderColor: COLORS.negative,
+    backgroundColor: COLORS.negativeSoft,
   },
   iconWrap: {
     width: 18,
