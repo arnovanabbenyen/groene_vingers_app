@@ -5,7 +5,7 @@ import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 import AuthTextArea from '../../components/auth/AuthTextArea';
 
-export default function BioScreen({ onBack, onContinue, onSkip }) {
+export default function BioScreen({ onBack, onContinue, onSkip, isSubmitting = false }) {
   const [bio, setBio] = useState('');
 
   return (
@@ -37,7 +37,12 @@ export default function BioScreen({ onBack, onContinue, onSkip }) {
       </View>
 
       <View style={styles.footer}>
-        <AuthButton label="Volgende" onPress={() => onContinue?.(bio)} variant="primary" />
+        <AuthButton
+          label={isSubmitting ? 'Bezig...' : 'Volgende'}
+          onPress={() => onContinue?.(bio)}
+          variant="primary"
+          disabled={isSubmitting}
+        />
         <View style={styles.loginRow}>
           <Text style={styles.loginText}>Al een account? </Text>
           <Pressable onPress={onSkip}>
