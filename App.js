@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import AppProviders from './providers/AppProviders';
 import IntroScreen from './screens/intro/IntroScreen';
 import HomeScreen from './screens/home/HomeScreen';
+import LoginScreen from './screens/auth/LoginScreen';
 import InfoScreen from './screens/auth/InfoScreen';
 import InfoScreen2 from './screens/auth/InfoScreen2';
 import InfoScreen3 from './screens/auth/InfoScreen3';
@@ -68,10 +69,15 @@ export default function App() {
     <AppProviders>
       {isLoggedIn ? (
         <HomeScreen onLogout={() => setIsLoggedIn(false)} />
+      ) : screen === 'login' ? (
+        <LoginScreen
+          onCreateAccount={() => setScreen('info')}
+          onLoginSuccess={() => setIsLoggedIn(true)}
+        />
       ) : screen === 'intro' ? (
         <IntroScreen
           onCreateAccount={() => setScreen('info')}
-          onSignIn={() => setIsLoggedIn(true)}
+          onSignIn={() => setScreen('login')}
         />
       ) : screen === 'info' ? (
         <InfoScreen
@@ -99,7 +105,7 @@ export default function App() {
         <AccountDetailsScreen
           role={selectedRole}
           onBack={() => setScreen('role')}
-          onLogin={() => setScreen('intro')}
+          onLogin={() => setScreen('login')}
           onContinue={(data) => {
             setProfileDraft(data);
             setScreen('photo');
