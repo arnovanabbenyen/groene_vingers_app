@@ -4,6 +4,7 @@ import AppProviders from './providers/AppProviders';
 import IntroScreen from './screens/intro/IntroScreen';
 import HomeScreen from './screens/home/HomeScreen';
 import LoginScreen from './screens/auth/LoginScreen';
+import PasswordResetScreen from './screens/auth/PasswordResetScreen';
 import InfoScreen from './screens/auth/InfoScreen';
 import InfoScreen2 from './screens/auth/InfoScreen2';
 import InfoScreen3 from './screens/auth/InfoScreen3';
@@ -73,6 +74,11 @@ export default function App() {
         <LoginScreen
           onCreateAccount={() => setScreen('info')}
           onLoginSuccess={() => setIsLoggedIn(true)}
+          onForgotPassword={() => setScreen('passwordReset')}
+        />
+      ) : screen === 'passwordReset' ? (
+        <PasswordResetScreen
+          onBack={() => setScreen('login')}
         />
       ) : screen === 'intro' ? (
         <IntroScreen

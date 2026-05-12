@@ -6,7 +6,7 @@ import AuthButton from '../../components/buttons/AuthButton';
 import AuthTextField from '../../components/auth/AuthTextField';
 import { supabase } from '../../services/supabase';
 
-export default function LoginScreen({ onCreateAccount, onLoginSuccess }) {
+export default function LoginScreen({ onCreateAccount, onLoginSuccess, onForgotPassword }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -65,7 +65,7 @@ export default function LoginScreen({ onCreateAccount, onLoginSuccess }) {
           secureTextEntry
           icon={<LockKey size={18} color={COLORS.border} weight="regular" />}
         />
-        <Pressable style={styles.forgotPasswordContainer}>
+        <Pressable style={styles.forgotPasswordContainer} onPress={onForgotPassword}>
           <Text style={styles.forgotPassword}>Wachtwoord vergeten?</Text>
         </Pressable>
       </View>
