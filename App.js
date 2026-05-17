@@ -75,17 +75,17 @@ export default function App() {
         />
       ) : screen === 'info' ? (
         <InfoScreen
-          onSkip={() => setScreen('intro')}
+          onSkip={() => setScreen('role')}
           onContinue={() => setScreen('info2')}
         />
       ) : screen === 'info2' ? (
         <InfoScreen2
-          onSkip={() => setScreen('intro')}
+          onSkip={() => setScreen('role')}
           onContinue={() => setScreen('info3')}
         />
       ) : screen === 'info3' ? (
         <InfoScreen3
-          onSkip={() => setScreen('intro')}
+          onSkip={() => setScreen('role')}
           onContinue={() => setScreen('role')}
         />
       ) : screen === 'role' ? (
