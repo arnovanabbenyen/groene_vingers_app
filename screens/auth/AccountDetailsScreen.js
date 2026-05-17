@@ -5,6 +5,7 @@ import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 import AuthTextField from '../../components/auth/AuthTextField';
 import AuthCheckbox from '../../components/auth/AuthCheckbox';
+import ErrorState from '../../components/notifications/ErrorState';
 
 export default function AccountDetailsScreen({ onBack, onContinue, onLogin, role }) {
   const [firstName, setFirstName] = useState('');
@@ -12,12 +13,15 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin, role
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   function handleContinue() {
+    setAttemptedSubmit(true);
     if (!acceptedTerms) {
-      Alert.alert('Bevestig de voorwaarden', 'Je moet akkoord gaan met de gebruiksvoorwaarden en het privacybeleid.');
       return;
     }
+
+    if (attemptedSubmit) setAttemptedSubmit(false);
 
     onContinue?.({
       role,
@@ -73,9 +77,25 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin, role
         icon={<LockKey size={18} color={COLORS.border} weight="regular" />}
       />
 
-      <AuthCheckbox checked={acceptedTerms} onToggle={() => setAcceptedTerms((value) => !value)}>
+      <AuthCheckbox
+        checked={acceptedTerms}
+        onToggle={() => setAcceptedTerms((value) => {
+          const next = !value;
+          if (next) setAttemptedSubmit(false);
+          return next;
+        })}
+      >
         Ik ga akkoord met de <Text style={styles.termsLink}>Gebruiksvoorwaarden</Text> en het <Text style={styles.termsLink}>Privacybeleid</Text>
       </AuthCheckbox>
+      {!acceptedTerms && attemptedSubmit ? (
+        <View style={{ marginTop: 8 }}>
+          <ErrorState
+            mode="inline"
+            title="Bevestig de voorwaarden"
+            message="Je moet akkoord gaan met de gebruiksvoorwaarden en het privacybeleid."
+          />
+        </View>
+      ) : null}
 
       <View style={styles.footer}>
         <AuthButton label="Volgende" onPress={handleContinue} variant="primary" />
