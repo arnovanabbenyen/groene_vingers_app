@@ -15,7 +15,7 @@ export default function RoleSelectionScreen({ selectedRole, onSelectRole, onCont
         <RoleOptionCard
           title="Tuinzoeker"
           subtitle="Ik zoek een tuin om in te tuinieren"
-          icon={<MagnifyingGlass size={22} color={COLORS.textPrimary} weight="regular" />}
+          icon={<MagnifyingGlass size={24} color={COLORS.textPrimary} weight="regular" />}
           selected={selectedRole === 'tuinzoeker'}
           onPress={() => onSelectRole('tuinzoeker')}
         />
@@ -23,7 +23,7 @@ export default function RoleSelectionScreen({ selectedRole, onSelectRole, onCont
         <RoleOptionCard
           title="Tuineigenaar"
           subtitle="Ik wil mijn tuin delen met anderen"
-          icon={<House size={22} color={COLORS.textPrimary} weight="regular" />}
+          icon={<House size={24} color={COLORS.textPrimary} weight="regular" />}
           selected={selectedRole === 'tuineigenaar'}
           onPress={() => onSelectRole('tuineigenaar')}
         />
