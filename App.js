@@ -6,6 +6,7 @@ import HomeScreen from './screens/home/HomeScreen';
 import LoginScreen from './screens/auth/LoginScreen';
 import PasswordResetScreen from './screens/auth/PasswordResetScreen';
 import PasswordResetSentScreen from './screens/auth/PasswordResetSentScreen';
+import TuineigenaarHomeScreen from './screens/home/TuineigenaarHomeScreen';
 import InfoScreen from './screens/auth/InfoScreen';
 import InfoScreen2 from './screens/auth/InfoScreen2';
 import InfoScreen3 from './screens/auth/InfoScreen3';
@@ -15,7 +16,7 @@ import PhotoScreen from './screens/auth/PhotoScreen';
 import BioScreen from './screens/auth/BioScreen';
 import WelcomeScreen from './screens/auth/WelcomeScreen';
 import { supabase } from './services/supabase';
-
+ 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [screen, setScreen] = useState('intro');
@@ -24,41 +25,41 @@ export default function App() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [requiresEmailVerification, setRequiresEmailVerification] = useState(false);
   const [lastResetEmail, setLastResetEmail] = useState('');
-
+ 
   async function handleCompleteSignUp(bio) {
     if (!profileDraft?.email || !profileDraft?.password) {
       Alert.alert('Ontbrekende gegevens', 'Vul eerst je accountgegevens in.');
       setScreen('account');
       return;
     }
-
+ 
     try {
       setIsSavingProfile(true);
-
+ 
       const metadata = {
         first_name: profileDraft.firstName || '',
         last_name: profileDraft.lastName || '',
         role: selectedRole,
         bio: bio || '',
       };
-
+ 
       const { data, error } = await supabase.auth.signUp({
         email: profileDraft.email,
         password: profileDraft.password,
         options: { data: metadata },
       });
-
+ 
       if (error) {
         throw error;
       }
-
+ 
       const createdUser = data?.user;
       if (!createdUser) {
         throw new Error('Account kon niet worden aangemaakt. Probeer opnieuw.');
       }
-
+ 
       setProfileDraft(null);
-
+ 
       setRequiresEmailVerification(!data.session);
       setScreen('welcome');
     } catch (saveError) {
@@ -67,11 +68,15 @@ export default function App() {
       setIsSavingProfile(false);
     }
   }
-
+ 
   return (
     <AppProviders>
       {isLoggedIn ? (
-        <HomeScreen onLogout={() => setIsLoggedIn(false)} />
+        selectedRole === 'tuineigenaar' ? (
+          <TuineigenaarHomeScreen onLogout={() => setIsLoggedIn(false)} />
+        ) : (
+          <HomeScreen onLogout={() => setIsLoggedIn(false)} />
+        )
       ) : screen === 'login' ? (
         <LoginScreen
           onCreateAccount={() => setScreen('info')}
