@@ -33,7 +33,28 @@ export default function LoginScreen({ onCreateAccount, onLoginSuccess, onForgotP
       }
 
       if (data?.user) {
-        onLoginSuccess?.();
+        // Try to get role from user metadata first
+        const user = data.user;
+        let role = user?.user_metadata?.role || null;
+
+        // Fallback: try to read from profiles table
+        if (!role) {
+          try {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', user.id)
+              .single();
+
+            if (!profileError && profileData?.role) {
+              role = profileData.role;
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+
+        onLoginSuccess?.(role);
       }
     } catch (loginError) {
       setError('E-mailadres of wachtwoord is onjuist.');

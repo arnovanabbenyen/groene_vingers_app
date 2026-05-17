@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Alert } from 'react-native';
 import AppProviders from './providers/AppProviders';
 import IntroScreen from './screens/intro/IntroScreen';
@@ -25,6 +25,70 @@ export default function App() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [requiresEmailVerification, setRequiresEmailVerification] = useState(false);
   const [lastResetEmail, setLastResetEmail] = useState('');
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function restoreSession() {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          console.log('supabase getSession error', error);
+          return;
+        }
+
+        const session = data?.session;
+        const user = session?.user;
+        if (user) {
+          let role = user.user_metadata?.role;
+
+          if (!role) {
+            try {
+              const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
+              if (profileError) console.log('profile fetch error', profileError);
+              if (profile?.role) role = profile.role;
+            } catch (e) {
+              console.log('error fetching profile role', e);
+            }
+          }
+
+          if (mounted) {
+            if (role) setSelectedRole(role);
+            setIsLoggedIn(true);
+          }
+        }
+      } catch (err) {
+        console.log('restoreSession error', err);
+      }
+    }
+
+    restoreSession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
+        const user = session?.user;
+        const role = user?.user_metadata?.role;
+        if (role) setSelectedRole(role);
+        setIsLoggedIn(true);
+      } else if (event === 'SIGNED_OUT') {
+        setIsLoggedIn(false);
+        setSelectedRole('tuinzoeker');
+      }
+    });
+
+    return () => {
+      mounted = false;
+      try {
+        listener?.subscription?.unsubscribe?.();
+      } catch (e) {
+        // ignore
+      }
+    };
+  }, []);
  
   async function handleCompleteSignUp(bio) {
     if (!profileDraft?.email || !profileDraft?.password) {
@@ -80,7 +144,10 @@ export default function App() {
       ) : screen === 'login' ? (
         <LoginScreen
           onCreateAccount={() => setScreen('info')}
-          onLoginSuccess={() => setIsLoggedIn(true)}
+          onLoginSuccess={(role) => {
+            if (role) setSelectedRole(role);
+            setIsLoggedIn(true);
+          }}
           onForgotPassword={() => setScreen('passwordReset')}
         />
       ) : screen === 'passwordReset' ? (
