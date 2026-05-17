@@ -12,21 +12,28 @@ export default function AuthTextField({
   autoCapitalize,
   secureTextEntry,
   halfWidth = false,
+  error = false,
+  onBlur,
+  accessibilityLabel,
+  accessibilityHint,
 }) {
   return (
     <View style={[styles.fieldWrap, halfWidth && styles.fieldHalf]}>
       <Text style={styles.label}>{label}</Text>
-      <View style={styles.inputShell}>
+      <View style={[styles.inputShell, error && styles.inputShellError]}>
         {icon ? <View style={styles.iconWrap}>{icon}</View> : null}
         <TextInput
           value={value}
           onChangeText={onChangeText}
+          onBlur={onBlur}
           placeholder={placeholder}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           secureTextEntry={secureTextEntry}
           style={styles.input}
           placeholderTextColor={COLORS.border}
+          accessibilityLabel={accessibilityLabel}
+          accessibilityHint={accessibilityHint}
         />
       </View>
     </View>
@@ -56,6 +63,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  inputShellError: {
+    borderColor: COLORS.negative,
   },
   iconWrap: {
     width: 18,
