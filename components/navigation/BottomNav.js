@@ -3,6 +3,7 @@ import { ChatsCircleIcon } from '../../node_modules/phosphor-react-native/lib/co
 import { HouseIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/House.js';
 import { MapTrifoldIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/MapTrifold.js';
 import { PlusCircleIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/PlusCircle.js';
+import { EnvelopeSimpleIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/EnvelopeSimple.js';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 
@@ -13,6 +14,14 @@ const DEFAULT_ITEMS = [
   { key: 'start', label: 'Start', icon: 'home' },
   { key: 'kaart', label: 'Kaart', icon: 'map' },
   { key: 'loggen', label: 'Loggen', icon: 'plus' },
+  { key: 'berichten', label: 'Berichten', icon: 'chat' },
+  { key: 'profiel', label: 'Profiel', type: 'avatar' },
+];
+
+const TUINEIGENAAR_ITEMS = [
+  { key: 'start', label: 'Start', icon: 'home' },
+  { key: 'verzoeken', label: 'Verzoeken', icon: 'envelope' },
+  { key: 'perceel', label: 'Perceel', icon: 'plus' },
   { key: 'berichten', label: 'Berichten', icon: 'chat' },
   { key: 'profiel', label: 'Profiel', type: 'avatar' },
 ];
@@ -37,6 +46,10 @@ function NavIcon({ item, isActive, profileImageSource }) {
     return <MapTrifoldIcon size={NAV_ICON_SIZE} color={color} weight={isActive ? 'fill' : 'regular'} />;
   }
 
+  if (item.icon === 'envelope') {
+    return <EnvelopeSimpleIcon size={NAV_ICON_SIZE} color={color} weight={isActive ? 'fill' : 'regular'} />;
+  }
+
   if (item.icon === 'plus') {
     return <PlusCircleIcon size={NAV_ICON_SIZE} color={color} weight={isActive ? 'fill' : 'regular'} />;
   }
@@ -45,19 +58,21 @@ function NavIcon({ item, isActive, profileImageSource }) {
 }
 
 export default function BottomNav({
-  items = DEFAULT_ITEMS,
+  items,
   activeKey = 'start',
   onTabPress,
   profileImageUri = DEFAULT_PROFILE_IMAGE,
   profileImageSource,
   style,
+  role = 'tuinzoeker',
 }) {
   const insets = useSafeAreaInsets();
   const resolvedProfileImageSource = profileImageSource ?? profileImageUri;
+  const navItems = items ?? (role === 'tuineigenaar' ? TUINEIGENAAR_ITEMS : DEFAULT_ITEMS);
 
   return (
     <View style={[styles.container, { paddingBottom: Math.max(14, insets.bottom + 8) }, style]}>
-      {items.map((item) => {
+      {navItems.map((item) => {
         const isActive = item.key === activeKey;
 
         return (

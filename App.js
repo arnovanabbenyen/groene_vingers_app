@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import AppProviders from './providers/AppProviders';
 import IntroScreen from './screens/intro/IntroScreen';
 import HomeScreen from './screens/home/HomeScreen';
+import TuineigenaarHomeScreen from './screens/home/TuineigenaarHomeScreen';
 import InfoScreen from './screens/auth/InfoScreen';
 import InfoScreen2 from './screens/auth/InfoScreen2';
 import InfoScreen3 from './screens/auth/InfoScreen3';
@@ -67,7 +68,11 @@ export default function App() {
   return (
     <AppProviders>
       {isLoggedIn ? (
-        <HomeScreen onLogout={() => setIsLoggedIn(false)} />
+        selectedRole === 'tuineigenaar' ? (
+          <TuineigenaarHomeScreen onLogout={() => setIsLoggedIn(false)} />
+        ) : (
+          <HomeScreen onLogout={() => setIsLoggedIn(false)} />
+        )
       ) : screen === 'intro' ? (
         <IntroScreen
           onCreateAccount={() => setScreen('info')}
