@@ -1,11 +1,69 @@
-import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { ArrowLeft } from 'phosphor-react-native';
 import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 import PhotoPickerCircle from '../../components/auth/PhotoPickerCircle';
 
 export default function PhotoScreen({ onBack, onContinue, onSkip }) {
+  const [imageUri, setImageUri] = useState(null);
+
+  async function pickFromLibrary() {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Toegang nodig', 'Geef toegang tot je fotobibliotheek om een afbeelding te kiezen.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.9,
+      });
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setImageUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert('Galerij kon niet openen', 'Probeer het opnieuw.');
+    }
+  }
+
+  async function takePhoto() {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Toegang nodig', 'Geef camera-toegang om een nieuwe foto te nemen.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.9,
+      });
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setImageUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert('Camera kon niet openen', 'Probeer het opnieuw.');
+    }
+  }
+
+  function handlePhotoButtonPress() {
+    Alert.alert('Foto toevoegen', 'Kies hoe je een foto wilt toevoegen.', [
+      { text: 'Foto nemen', onPress: takePhoto },
+      { text: 'Kies uit galerij', onPress: pickFromLibrary },
+      imageUri ? { text: 'Verwijder foto', style: 'destructive', onPress: () => setImageUri(null) } : null,
+      { text: 'Annuleer', style: 'cancel' },
+    ].filter(Boolean));
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
@@ -27,7 +85,11 @@ export default function PhotoScreen({ onBack, onContinue, onSkip }) {
       </View>
 
       <View style={styles.pickerWrap}>
-        <PhotoPickerCircle onPress={onContinue} />
+        <PhotoPickerCircle
+          imageUri={imageUri}
+          onPress={handlePhotoButtonPress}
+          onDelete={imageUri ? () => setImageUri(null) : undefined}
+        />
       </View>
 
       <View style={styles.footer}>
