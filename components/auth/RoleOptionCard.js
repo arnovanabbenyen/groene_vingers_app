@@ -15,10 +15,10 @@ export default function RoleOptionCard({ title, subtitle, icon, selected, onPres
 const styles = StyleSheet.create({
   card: {
     width: '100%',
-    minHeight: 168,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(54,57,43,0.12)',
+    minHeight: 165,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#faf9f5',
     backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -32,7 +32,8 @@ const styles = StyleSheet.create({
   },
   cardSelected: {
     borderColor: COLORS.brand,
-    backgroundColor: 'rgba(87,98,56,0.04)',
+    borderWidth: 2,
+    backgroundColor: '#eaf0d8',
   },
   iconWrap: {
     width: 36,

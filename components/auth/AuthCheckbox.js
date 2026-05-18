@@ -1,11 +1,17 @@
 import React from 'react';
 import { Pressable, View, Text, StyleSheet } from 'react-native';
-import { COLORS, FONTS } from '../theme/tokens';
+import { COLORS, FONTS, SPACING } from '../theme/tokens';
 
-export default function AuthCheckbox({ checked, onToggle, children }) {
+export default function AuthCheckbox({ checked, onToggle, children, error, accessibilityRole, accessibilityState, ...rest }) {
   return (
-    <Pressable style={styles.row} onPress={onToggle}>
-      <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+    <Pressable
+      style={styles.row}
+      onPress={onToggle}
+      accessibilityRole={accessibilityRole}
+      accessibilityState={accessibilityState}
+      {...rest}
+    >
+      <View style={[styles.checkbox, checked && styles.checkboxChecked, error && styles.checkboxError]}>
         {checked ? <View style={styles.checkboxTick} /> : null}
       </View>
       <Text style={styles.text}>{children}</Text>
@@ -18,7 +24,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    marginTop: 4,
+    marginTop: SPACING.xs,
   },
   checkbox: {
     width: 18,
@@ -34,6 +40,9 @@ const styles = StyleSheet.create({
   checkboxChecked: {
     borderColor: COLORS.brand,
     backgroundColor: 'rgba(87,98,56,0.08)',
+  },
+  checkboxError: {
+    borderColor: COLORS.negative,
   },
   checkboxTick: {
     width: 8,

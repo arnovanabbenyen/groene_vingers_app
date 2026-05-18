@@ -13,6 +13,9 @@ export default function AuthTextField({
   secureTextEntry,
   halfWidth = false,
   error = false,
+  onBlur,
+  accessibilityLabel,
+  accessibilityHint,
 }) {
   return (
     <View style={[styles.fieldWrap, halfWidth && styles.fieldHalf]}>
@@ -22,12 +25,15 @@ export default function AuthTextField({
         <TextInput
           value={value}
           onChangeText={onChangeText}
+          onBlur={onBlur}
           placeholder={placeholder}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           secureTextEntry={secureTextEntry}
           style={styles.input}
           placeholderTextColor={COLORS.border}
+          accessibilityLabel={accessibilityLabel}
+          accessibilityHint={accessibilityHint}
         />
       </View>
     </View>
