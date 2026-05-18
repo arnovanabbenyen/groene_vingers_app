@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View, Image, Pressable } from 'react-nati
 import { Bell, Heart, Eye } from 'phosphor-react-native';
 import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
 import BottomNav from '../../components/navigation/BottomNav';
+import PerceelToevoegenScreen from '../parcel/PerceelToevoegenScreen';
 
 const PROFILE_IMAGE = require('../../images/tuineigenaar_pfp.png');
 const GARDEN_IMAGE = require('../../images/overdekt_perceel_met_serre.png');
@@ -130,7 +131,11 @@ export default function TuineigenaarHomeScreen({ onLogout }) {
       </ScrollView>
 
       {/* Bottom Navigation */}
-      <BottomNav activeKey={activeTab} onTabPress={(item) => setActiveTab(item.key)} role="tuineigenaar" />
+      {activeTab === 'perceel' ? (
+        <PerceelToevoegenScreen onBack={() => setActiveTab('start')} onSaved={() => setActiveTab('start')} />
+      ) : (
+        <BottomNav activeKey={activeTab} onTabPress={(item) => setActiveTab(item.key)} role="tuineigenaar" />
+      )}
     </View>
   );
 }
