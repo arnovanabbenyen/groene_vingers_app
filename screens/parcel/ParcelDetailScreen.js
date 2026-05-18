@@ -9,7 +9,7 @@ import { COLORS, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 
 const HERO_IMAGE = require('../../images/overdekt_perceel_met_serre.png');
 
-export default function ParcelDetailScreen({ onBack, onRequest = () => {}, onMorePress = () => {} }) {
+export default function ParcelDetailScreen({ onBack, onRequest = () => {}, onMorePress = () => {}, perceel = {} }) {
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
@@ -21,16 +21,16 @@ export default function ParcelDetailScreen({ onBack, onRequest = () => {}, onMor
         showsVerticalScrollIndicator={false}
       >
         <ParcelOverviewSection
-          heroImage={HERO_IMAGE}
-          title="Overdekt perceel met serre"
-          location="Kessel-Lo"
-          distance="2,8km"
-          ownerName="Arthur De Klerck"
-          rating="4,5"
-          stats={[
-            { value: '30m²', label: 'Grootte' },
+          heroImage={perceel.image || HERO_IMAGE}
+          title={perceel.title || 'Perceel'}
+          location={perceel.location || ''}
+          distance={perceel.distance || ''}
+          ownerName={perceel.ownerName || ''}
+          rating={perceel.rating || ''}
+          stats={perceel.stats || [
+            { value: perceel.size ? `${perceel.size}m²` : '30m²', label: 'Grootte' },
             { value: 'Nu vrij', label: 'Beschikbaar' },
-            { value: '4.5', label: 'Score' },
+            { value: perceel.rating || '4.5', label: 'Score' },
           ]}
         />
 
@@ -39,7 +39,7 @@ export default function ParcelDetailScreen({ onBack, onRequest = () => {}, onMor
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Beschrijving</Text>
           <Text style={styles.description}>
-            Een rustige, groene tuin met een serre waar vooral groenten en kruiden worden gekweekt. Ideaal voor wie graag praktisch meehelpt en graag in het groen werkt.
+            {perceel.description || 'Geen beschrijving'}
           </Text>
         </View>
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { COLORS, FONTS, RADIUS } from '../theme/tokens';
 
-export default function AuthTextField({
+const AuthTextField = React.forwardRef(function AuthTextField({
   label,
   value,
   onChangeText,
@@ -16,13 +16,14 @@ export default function AuthTextField({
   onBlur,
   accessibilityLabel,
   accessibilityHint,
-}) {
+}, ref) {
   return (
     <View style={[styles.fieldWrap, halfWidth && styles.fieldHalf]}>
       <Text style={styles.label}>{label}</Text>
       <View style={[styles.inputShell, error && styles.inputShellError]}>
         {icon ? <View style={styles.iconWrap}>{icon}</View> : null}
         <TextInput
+          ref={ref}
           value={value}
           onChangeText={onChangeText}
           onBlur={onBlur}
@@ -38,7 +39,9 @@ export default function AuthTextField({
       </View>
     </View>
   );
-}
+});
+
+export default AuthTextField;
 
 const styles = StyleSheet.create({
   fieldWrap: {
@@ -66,7 +69,6 @@ const styles = StyleSheet.create({
   },
   inputShellError: {
     borderColor: COLORS.negative,
-    backgroundColor: COLORS.negativeSoft,
   },
   iconWrap: {
     width: 18,
