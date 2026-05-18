@@ -9,6 +9,8 @@ import PlotCard from '../../components/home/PlotCard';
 import NotificationScreen from '../notifications/NotificationScreen';
 import PlansScreen from '../plans/PlansScreen';
 import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
+import AanvraagDoenScreen from '../aanvraag/AanvraagDoenScreen';
+import AanvraagBevestigingScreen from '../aanvraag/AanvraagBevestigingScreen';
 import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 
 const PROFILE_IMAGE = require('../../images/tuinzoeker_pfp.png');
@@ -40,6 +42,8 @@ export default function HomeScreen() {
   const [activeDot, setActiveDot] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlot, setSelectedPlot] = useState(null);
+  const [requestPlot, setRequestPlot] = useState(null);
+  const [requestSuccessPerceel, setRequestSuccessPerceel] = useState(null);
 
   const filteredPlots = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -56,11 +60,39 @@ export default function HomeScreen() {
 
   const visibleDotIndex = Math.max(0, Math.min(filteredPlots.length - 1, activeDot));
 
+  if (requestPlot) {
+    const perceelToRequest = requestPlot;
+    return (
+      <AanvraagDoenScreen
+        onBack={() => setRequestPlot(null)}
+        onContinue={(res) => {
+          setRequestPlot(null);
+          if (res?.success) setRequestSuccessPerceel(perceelToRequest);
+        }}
+        perceel={requestPlot}
+      />
+    );
+  }
+
+  if (requestSuccessPerceel) {
+    return (
+      <AanvraagBevestigingScreen
+        perceel={requestSuccessPerceel}
+        onBackToListings={() => setRequestSuccessPerceel(null)}
+        onBackToMessages={() => {
+          setRequestSuccessPerceel(null);
+          setActiveTab('berichten');
+        }}
+      />
+    );
+  }
+
   if (selectedPlot) {
     return (
       <ParcelDetailScreen
+        perceel={selectedPlot}
         onBack={() => setSelectedPlot(null)}
-        onRequest={() => setSelectedPlot(null)}
+        onRequest={() => setRequestPlot(selectedPlot)}
       />
     );
   }
