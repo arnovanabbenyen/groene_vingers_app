@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Alert } from 'react-native';
 import AppProviders from './providers/AppProviders';
 import IntroScreen from './screens/intro/IntroScreen';
 import HomeScreen from './screens/home/HomeScreen';
+import LoginScreen from './screens/auth/LoginScreen';
+import PasswordResetScreen from './screens/auth/PasswordResetScreen';
+import PasswordResetSentScreen from './screens/auth/PasswordResetSentScreen';
 import TuineigenaarHomeScreen from './screens/home/TuineigenaarHomeScreen';
 import InfoScreen from './screens/auth/InfoScreen';
 import InfoScreen2 from './screens/auth/InfoScreen2';
@@ -13,7 +16,7 @@ import PhotoScreen from './screens/auth/PhotoScreen';
 import BioScreen from './screens/auth/BioScreen';
 import WelcomeScreen from './screens/auth/WelcomeScreen';
 import { supabase } from './services/supabase';
-
+ 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [screen, setScreen] = useState('intro');
@@ -21,41 +24,106 @@ export default function App() {
   const [profileDraft, setProfileDraft] = useState(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [requiresEmailVerification, setRequiresEmailVerification] = useState(false);
+  const [lastResetEmail, setLastResetEmail] = useState('');
 
+  useEffect(() => {
+    let mounted = true;
+
+    async function restoreSession() {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          console.log('supabase getSession error', error);
+          return;
+        }
+
+        const session = data?.session;
+        const user = session?.user;
+        if (user) {
+          let role = user.user_metadata?.role;
+
+          if (!role) {
+            try {
+              const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
+              if (profileError) console.log('profile fetch error', profileError);
+              if (profile?.role) role = profile.role;
+            } catch (e) {
+              console.log('error fetching profile role', e);
+            }
+          }
+
+          if (mounted) {
+            if (role) setSelectedRole(role);
+            setIsLoggedIn(true);
+          }
+        }
+      } catch (err) {
+        console.log('restoreSession error', err);
+      }
+    }
+
+    restoreSession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
+        const user = session?.user;
+        const role = user?.user_metadata?.role;
+        if (role) setSelectedRole(role);
+        setIsLoggedIn(true);
+      } else if (event === 'SIGNED_OUT') {
+        setIsLoggedIn(false);
+        setSelectedRole('tuinzoeker');
+      }
+    });
+
+    return () => {
+      mounted = false;
+      try {
+        listener?.subscription?.unsubscribe?.();
+      } catch (e) {
+        // ignore
+      }
+    };
+  }, []);
+ 
   async function handleCompleteSignUp(bio) {
     if (!profileDraft?.email || !profileDraft?.password) {
       Alert.alert('Ontbrekende gegevens', 'Vul eerst je accountgegevens in.');
       setScreen('account');
       return;
     }
-
+ 
     try {
       setIsSavingProfile(true);
-
+ 
       const metadata = {
         first_name: profileDraft.firstName || '',
         last_name: profileDraft.lastName || '',
         role: selectedRole,
         bio: bio || '',
       };
-
+ 
       const { data, error } = await supabase.auth.signUp({
         email: profileDraft.email,
         password: profileDraft.password,
         options: { data: metadata },
       });
-
+ 
       if (error) {
         throw error;
       }
-
+ 
       const createdUser = data?.user;
       if (!createdUser) {
         throw new Error('Account kon niet worden aangemaakt. Probeer opnieuw.');
       }
-
+ 
       setProfileDraft(null);
-
+ 
       setRequiresEmailVerification(!data.session);
       setScreen('welcome');
     } catch (saveError) {
@@ -64,7 +132,7 @@ export default function App() {
       setIsSavingProfile(false);
     }
   }
-
+ 
   return (
     <AppProviders>
       {isLoggedIn ? (
@@ -73,10 +141,34 @@ export default function App() {
         ) : (
           <HomeScreen onLogout={() => setIsLoggedIn(false)} />
         )
+      ) : screen === 'login' ? (
+        <LoginScreen
+          onCreateAccount={() => setScreen('info')}
+          onLoginSuccess={(role) => {
+            if (role) setSelectedRole(role);
+            setIsLoggedIn(true);
+          }}
+          onForgotPassword={() => setScreen('passwordReset')}
+        />
+      ) : screen === 'passwordReset' ? (
+        <PasswordResetScreen
+          onBack={() => setScreen('login')}
+          initialEmail={lastResetEmail}
+          onSent={(email) => {
+            setLastResetEmail(email || '');
+            setScreen('passwordResetSent');
+          }}
+        />
+      ) : screen === 'passwordResetSent' ? (
+        <PasswordResetSentScreen
+          email={lastResetEmail}
+          onBack={() => setScreen('login')}
+          onResend={() => setScreen('passwordReset')}
+        />
       ) : screen === 'intro' ? (
         <IntroScreen
           onCreateAccount={() => setScreen('info')}
-          onSignIn={() => setIsLoggedIn(true)}
+          onSignIn={() => setScreen('login')}
         />
       ) : screen === 'info' ? (
         <InfoScreen
@@ -104,7 +196,7 @@ export default function App() {
         <AccountDetailsScreen
           role={selectedRole}
           onBack={() => setScreen('role')}
-          onLogin={() => setScreen('intro')}
+          onLogin={() => setScreen('login')}
           onContinue={(data) => {
             setProfileDraft(data);
             setScreen('photo');

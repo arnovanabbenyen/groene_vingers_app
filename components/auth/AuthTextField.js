@@ -66,6 +66,7 @@ const styles = StyleSheet.create({
   },
   inputShellError: {
     borderColor: COLORS.negative,
+    backgroundColor: COLORS.negativeSoft,
   },
   iconWrap: {
     width: 18,
