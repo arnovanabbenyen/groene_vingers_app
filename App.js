@@ -16,8 +16,28 @@ import PhotoScreen from './screens/auth/PhotoScreen';
 import BioScreen from './screens/auth/BioScreen';
 import WelcomeScreen from './screens/auth/WelcomeScreen';
 import { supabase } from './services/supabase';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: 'https://d8fc870ac9007d41df932389b752f3ea@o4511415962763264.ingest.de.sentry.io/4511415966564432',
+
+  // Adds more context data to events (IP address, cookies, user, etc.)
+  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
+  sendDefaultPii: true,
+
+  // Enable Logs
+  enableLogs: true,
+
+  // Configure Session Replay
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1,
+  integrations: [Sentry.mobileReplayIntegration(), Sentry.feedbackIntegration()],
+
+  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
+  // spotlight: __DEV__,
+});
  
-export default function App() {
+export default Sentry.wrap(function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [screen, setScreen] = useState('intro');
   const [selectedRole, setSelectedRole] = useState('tuinzoeker');
@@ -235,4 +255,4 @@ export default function App() {
       )}
     </AppProviders>
   );
-}
+});

@@ -33,6 +33,16 @@
       "eas": {
         "projectId": "3070b3ab-76a9-441b-8ccd-fc602f871aae"
       }
-    }
+    },
+    "plugins": [
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "react-native",
+          "organization": "arno-van-abbenyen"
+        }
+      ]
+    ]
   }
 }
