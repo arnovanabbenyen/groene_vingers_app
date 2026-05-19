@@ -16,7 +16,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.arnovan.groenevingers",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Groene Vingers gebruikt je camera om foto's van je perceel te maken.",
+        "NSPhotoLibraryUsageDescription": "Groene Vingers heeft toegang tot je foto's nodig om perceelfoto's en profielfoto's te kunnen kiezen."
       }
     },
     "android": {

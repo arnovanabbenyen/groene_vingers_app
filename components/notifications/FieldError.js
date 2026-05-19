@@ -8,7 +8,11 @@ export default function FieldError({ message }) {
   const multiLine = String(message).includes('\n');
 
   return (
-    <View style={[styles.container, multiLine && styles.containerMulti]} accessibilityLiveRegion="polite">
+    <View
+      style={[styles.container, multiLine && styles.containerMulti]}
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+    >
       <XCircleIcon size={16} color={COLORS.negative} accessibilityLabel="fout" />
       <Text style={styles.text}>{message}</Text>
     </View>

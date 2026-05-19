@@ -47,6 +47,11 @@ export default Sentry.wrap(function App() {
   const [lastResetEmail, setLastResetEmail] = useState('');
 
   useEffect(() => {
+    if (!supabase) {
+      console.warn('Supabase is not configured; skipping auth session restore on startup.');
+      return undefined;
+    }
+
     let mounted = true;
 
     async function restoreSession() {
@@ -114,6 +119,11 @@ export default Sentry.wrap(function App() {
     if (!profileDraft?.email || !profileDraft?.password) {
       Alert.alert('Ontbrekende gegevens', 'Vul eerst je accountgegevens in.');
       setScreen('account');
+      return;
+    }
+
+    if (!supabase) {
+      Alert.alert('Supabase ontbreekt', 'Stel de Supabase omgeving in voordat je een account maakt.');
       return;
     }
  

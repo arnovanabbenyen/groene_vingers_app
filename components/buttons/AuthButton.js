@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, Text, StyleSheet } from 'react-native';
+import { ActivityIndicator, Pressable, Text, StyleSheet, View } from 'react-native';
 import { COLORS, FONTS, SPACING, RADIUS } from '../theme/tokens';
 
 export default function AuthButton({
@@ -7,8 +7,10 @@ export default function AuthButton({
   onPress,
   variant = 'primary',
   disabled = false,
+  loading = false,
 }) {
   const isPrimary = variant === 'primary';
+  const isDisabled = disabled || loading;
 
   return (
     <Pressable
@@ -16,14 +18,25 @@ export default function AuthButton({
         styles.button,
         isPrimary ? styles.buttonPrimary : styles.buttonSecondary,
         pressed && (isPrimary ? styles.buttonPrimaryPressed : styles.buttonSecondaryPressed),
-        disabled && styles.buttonDisabled,
+        isDisabled && styles.buttonDisabled,
       ]}
       onPress={onPress}
-      disabled={disabled}
+      disabled={isDisabled}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
     >
-      <Text style={isPrimary ? styles.buttonTextPrimary : styles.buttonTextSecondary}>
-        {label}
-      </Text>
+      <View style={styles.content}>
+        {loading ? (
+          <ActivityIndicator
+            size="small"
+            color={isPrimary ? COLORS.textInverse : COLORS.brand}
+            style={styles.spinner}
+          />
+        ) : null}
+        <Text style={isPrimary ? styles.buttonTextPrimary : styles.buttonTextSecondary}>
+          {label}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -34,6 +47,15 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.sm,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  spinner: {
+    marginRight: -2,
   },
 
   buttonPrimary: {

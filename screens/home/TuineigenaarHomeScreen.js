@@ -27,6 +27,15 @@ export default function TuineigenaarHomeScreen({ onLogout }) {
     onLogout();
   };
 
+  if (activeTab === 'perceel') {
+    return (
+      <PerceelToevoegenScreen
+        onBack={() => setActiveTab('start')}
+        onSaved={() => setActiveTab('start')}
+      />
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* Green Header */}
@@ -131,11 +140,7 @@ export default function TuineigenaarHomeScreen({ onLogout }) {
       </ScrollView>
 
       {/* Bottom Navigation */}
-      {activeTab === 'perceel' ? (
-        <PerceelToevoegenScreen onBack={() => setActiveTab('start')} onSaved={() => setActiveTab('start')} />
-      ) : (
-        <BottomNav activeKey={activeTab} onTabPress={(item) => setActiveTab(item.key)} role="tuineigenaar" />
-      )}
+      <BottomNav activeKey={activeTab} onTabPress={(item) => setActiveTab(item.key)} role="tuineigenaar" />
     </View>
   );
 }
