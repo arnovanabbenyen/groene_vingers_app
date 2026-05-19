@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile-app",
-    "slug": "mobile-app",
+    "name": "Groene Vingers",
+    "slug": "groene-vingers",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,7 +13,13 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.arnovan.groenevingers",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Groene Vingers gebruikt je camera om foto's van je perceel te maken.",
+        "NSPhotoLibraryUsageDescription": "Groene Vingers heeft toegang tot je foto's nodig om perceelfoto's en profielfoto's te kunnen kiezen."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,6 +30,21 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3070b3ab-76a9-441b-8ccd-fc602f871aae"
+      }
+    },
+    "plugins": [
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "react-native",
+          "organization": "arno-van-abbenyen"
+        }
+      ]
+    ]
   }
 }

@@ -1,0 +1,31 @@
+{
+  "cli": {
+    "version": ">= 18.13.1",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://txqrvdnurrkyishcbtcx.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_efryAJOG4JCSWNq6Mn8fhg_hnUbKE-o"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "arnovanabbenyen@gmail.com",
+        "ascAppId": "6770873201",
+        "appleTeamId": "APLS264W5J"
+      }
+    }
+  }
+}

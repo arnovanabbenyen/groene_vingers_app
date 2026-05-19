@@ -16,7 +16,13 @@ const AuthTextField = React.forwardRef(function AuthTextField({
   onBlur,
   accessibilityLabel,
   accessibilityHint,
+  accessibilityState,
 }, ref) {
+  const resolvedAccessibilityState = {
+    ...(accessibilityState || {}),
+    invalid: error || accessibilityState?.invalid || undefined,
+  };
+
   return (
     <View style={[styles.fieldWrap, halfWidth && styles.fieldHalf]}>
       <Text style={styles.label}>{label}</Text>
@@ -35,6 +41,7 @@ const AuthTextField = React.forwardRef(function AuthTextField({
           placeholderTextColor={COLORS.border}
           accessibilityLabel={accessibilityLabel}
           accessibilityHint={accessibilityHint}
+          accessibilityState={resolvedAccessibilityState}
         />
       </View>
     </View>
