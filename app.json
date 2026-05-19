@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile-app",
-    "slug": "mobile-app",
+    "name": "Groene Vingers",
+    "slug": "groene-vingers",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
