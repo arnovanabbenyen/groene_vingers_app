@@ -16,6 +16,12 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "arnovanabbenyen@gmail.com",
+        "ascAppId": "6770873201",
+        "appleTeamId": "APLS264W5J"
+      }
+    }
   }
 }
