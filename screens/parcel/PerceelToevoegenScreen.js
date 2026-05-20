@@ -17,6 +17,7 @@ import AuthButton from '../../components/buttons/AuthButton';
 import AuthTextArea from '../../components/auth/AuthTextArea';
 import AuthTextField from '../../components/auth/AuthTextField';
 import FieldError from '../../components/notifications/FieldError';
+import ScreenHeader from '../../components/headers/ScreenHeader';
 import { supabase } from '../../services/supabase';
 
 const IMG_NAME = 'http://localhost:3845/assets/2422f9647122cae6826d11ffbc68897a6ace853b.svg';
@@ -350,19 +351,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.header}>
-        <Pressable
-          onPress={onBack}
-          style={styles.backButton}
-          accessibilityRole="button"
-          accessibilityLabel="Terug"
-          accessibilityHint="Ga terug naar het vorige scherm"
-        >
-          <Image source={{ uri: IMG_ARROW_LEFT }} style={styles.backIcon} />
-          <Text style={styles.backText}>Terug</Text>
-        </Pressable>
-        <Text accessibilityRole="header" style={styles.headerTitle}>Perceel toevoegen</Text>
-      </View>
+      <ScreenHeader title="Perceel toevoegen" onBack={onBack} />
 
       <ScrollView
         style={styles.scroll}
@@ -616,40 +605,6 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: COLORS.background,
-  },
-  header: {
-    backgroundColor: COLORS.brand,
-    height: 129,
-    paddingTop: 16,
-    paddingHorizontal: SPACING.screenX,
-    justifyContent: 'flex-end',
-    paddingBottom: 12,
-    ...SHADOWS.header,
-  },
-  backButton: {
-    position: 'absolute',
-    left: SPACING.screenX,
-    top: 57,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-    minHeight: 44,
-    minWidth: 44,
-  },
-  backIcon: {
-    width: 24,
-    height: 24,
-  },
-  backText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: 16,
-    color: COLORS.textInverse,
-  },
-  headerTitle: {
-    color: COLORS.textInverse,
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
-    textAlign: 'center',
   },
   scroll: {
     flex: 1,

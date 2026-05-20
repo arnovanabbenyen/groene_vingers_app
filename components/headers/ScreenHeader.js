@@ -28,17 +28,18 @@ const styles = StyleSheet.create({
     minHeight: 129,
   },
   headerContent: {
+    position: 'relative',
     paddingHorizontal: SPACING.screenX,
     paddingTop: 30,
     paddingBottom: 35,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
+    zIndex: 2,
   },
   backText: {
     color: COLORS.textInverse,
@@ -48,15 +49,19 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   headerTitle: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 30,
     color: COLORS.textInverse,
     fontSize: 20,
     lineHeight: 20,
     fontFamily: FONTS.displaySemiBold,
     fontWeight: '600',
     textAlign: 'center',
-    flex: 1,
   },
   headerSpacer: {
     width: 96,
+    opacity: 0,
   },
 });
