@@ -13,7 +13,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { decode as decodeBase64 } from 'base64-arraybuffer';
@@ -374,7 +374,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
 
         // Read local file as base64 (reliable on RN, unlike fetch().blob())
         const base64 = await FileSystem.readAsStringAsync(photo.localUri, {
-          encoding: FileSystem.EncodingType.Base64,
+          encoding: 'base64',
         });
 
         // Decode to ArrayBuffer for Supabase upload
