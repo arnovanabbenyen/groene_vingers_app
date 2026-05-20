@@ -20,7 +20,7 @@ import AuthTextField from '../../components/auth/AuthTextField';
 import FieldError from '../../components/notifications/FieldError';
 import ScreenHeader from '../../components/headers/ScreenHeader';
 import { supabase } from '../../services/supabase';
-import { BinocularsIcon, CalendarIcon, CameraIcon, DropIcon, FrameCornersIcon, LeafIcon, PaintBrushIcon, PlusCircleIcon, XCircleIcon, ToolboxIcon } from 'phosphor-react-native';
+import { BinocularsIcon, CalendarIcon, CameraIcon, DropIcon, FrameCornersIcon, LeafIcon, PaintBrushIcon, PlusCircleIcon, XCircleIcon, ToolboxIcon, ShovelIcon, PlantIcon, RecycleIcon, TreeIcon } from 'phosphor-react-native';
 
 const IMG_ARROW_LEFT = 'http://localhost:3845/assets/823f067bbf1763ad90d2dac8f9d3bad9ec4cf79f.svg';
 
@@ -31,11 +31,10 @@ const PHOTO_TILE_HEIGHT = Math.round((PHOTO_TILE_WIDTH * 121) / 141);
 
 const AMENITY_OPTIONS = [
   { label: 'Water', icon: DropIcon },
-  { label: 'Materiaal', icon: PaintBrushIcon },
-  { label: 'Zaden', icon: LeafIcon },
-  { label: 'Compost', icon: DropIcon },
-  { label: 'Gereedschap', icon: PaintBrushIcon },
-  { label: 'Schaduw', icon: LeafIcon },
+  { label: 'Tools', icon: ShovelIcon },
+  { label: 'Zaden', icon: PlantIcon },
+  { label: 'Compost', icon: RecycleIcon },
+  { label: 'Bomen', icon: TreeIcon },
 ];
 
 function uid(prefix) {
@@ -71,7 +70,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
   const [beschrijving, setBeschrijving] = useState('');
   const [extraInfoDraft, setExtraInfoDraft] = useState('');
   const [extraInfoItems, setExtraInfoItems] = useState([]);
-  const [selectedAmenities, setSelectedAmenities] = useState(['Water', 'Materiaal', 'Zaden']);
+  const [selectedAmenities, setSelectedAmenities] = useState(['Water', 'Tools', 'Zaden']);
   const [photos, setPhotos] = useState(() => createEmptyPhotoSlots());
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
@@ -491,7 +490,17 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
 
           <View style={styles.amenityRow}>
             {selectedAmenities.map((amenity) => {
-              const IconComponent = amenity === 'Water' ? DropIcon : amenity === 'Materiaal' ? PaintBrushIcon : LeafIcon;
+              const IconComponent = amenity === 'Water'
+                ? DropIcon
+                : amenity === 'Tools'
+                ? ShovelIcon
+                : amenity === 'Zaden'
+                ? PlantIcon
+                : amenity === 'Compost'
+                ? RecycleIcon
+                : amenity === 'Bomen'
+                ? TreeIcon
+                : TreeIcon;
 
               return (
                 <View key={amenity} style={styles.amenityItem}>
