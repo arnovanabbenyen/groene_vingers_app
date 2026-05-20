@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { HeartIcon, DropIcon, LeafIcon, MapPinIcon, ShovelIcon, StarIcon, PlantIcon, TreeIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, LAYOUT, RADIUS, SHADOWS, SIZES } from '../theme/tokens';
 
@@ -36,12 +36,16 @@ export default function PlotCard({ plot, onPress }) {
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.imageWrap}>
         {canShowImage ? (
-          <ImageBackground
-            source={imageSource}
-            style={styles.image}
-            imageStyle={styles.imageRounded}
-            onError={() => setImageError(true)}
-          >
+          <View style={styles.image}>
+            <Image
+              source={imageSource}
+              style={styles.imageEl}
+              onError={(e) => {
+                console.warn('Image failed to load:', imageSource, e.nativeEvent);
+                setImageError(true);
+              }}
+              onLoad={() => console.log('Image loaded:', imageSource?.uri)}
+            />
             <View style={styles.badgesRow}>
               <View style={[styles.pill, styles.locationPill]}>
                 <MapPinIcon size={18} color={COLORS.textPrimary} weight="regular" />
@@ -59,7 +63,7 @@ export default function PlotCard({ plot, onPress }) {
             <Pressable style={styles.heartButton}>
               <HeartIcon size={19} color={COLORS.textPrimary} weight="regular" />
             </Pressable>
-          </ImageBackground>
+          </View>
         ) : (
           <View style={[styles.image, styles.placeholderImage]}>
             <View style={styles.placeholderContent}>
@@ -118,16 +122,24 @@ const styles = StyleSheet.create({
     ...SHADOWS.card,
   },
   imageWrap: {
+    width: '100%',
     borderRadius: RADIUS.sm,
     overflow: 'hidden',
   },
   image: {
+    width: '100%',
     height: SIZES.plotCardImageHeight,
-    overflow: 'hidden',
-    padding: LAYOUT.plot.badgeInset,
+    position: 'relative',
   },
-  imageRounded: {
-    borderRadius: RADIUS.sm,
+  imageEl: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   placeholderImage: {
     backgroundColor: COLORS.surfaceMuted,
