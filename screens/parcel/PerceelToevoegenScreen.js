@@ -476,7 +476,56 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
           {errors.naam ? <FieldError message={errors.naam} /> : null}
         </View>
 
-        {/* Address input is rendered after the Grootte card (see below) */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <MapPinIcon size={32} color={COLORS.accent} weight="regular" />
+            <Text style={styles.sectionTitle}>Adres</Text>
+          </View>
+
+          <View>
+            <View style={styles.addressShellWrapper}>
+              <AuthTextField
+                label=""
+                value={adres}
+                onChangeText={(t) => {
+                  setAdres(t);
+                  setAdresCoords(null);
+                }}
+                placeholder="Straat, nummer, postcode en gemeente"
+                placeholderTextColor={COLORS.textMuted}
+                accessibilityRole="combobox"
+                accessibilityLabel="Adres van het perceel"
+                accessibilityHint="Begin te typen om suggesties te zien"
+                ref={adresRef}
+                variant="soft"
+                shellStyle={styles.softInputShell}
+                inputStyle={[styles.softInputText, styles.addressTextInput]}
+              />
+
+              {isAddressLoading ? (
+                <ActivityIndicator style={styles.suggestionLoading} size="small" color={COLORS.accent} />
+              ) : null}
+            </View>
+
+            {addressSuggestions && addressSuggestions.length > 0 ? (
+              <View style={styles.suggestionsContainer}>
+                {addressSuggestions.map((s, i) => (
+                  <Pressable
+                    key={s.place_id || `${i}`}
+                    onPress={() => selectAddressSuggestion(s)}
+                    style={styles.suggestionItem}
+                    accessibilityRole="button"
+                    accessibilityLabel={s.display_name}
+                  >
+                    <Text style={styles.suggestionText}>{s.display_name}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : adres && !isAddressLoading ? (
+              <Text style={styles.suggestionHelperText}>Geen adressen gevonden</Text>
+            ) : null}
+          </View>
+        </View>
 
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
@@ -506,53 +555,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
           </View>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.sectionHeader}>
-            <MapPinIcon size={32} color={COLORS.accent} weight="regular" />
-            <Text style={styles.sectionTitle}>Adres</Text>
-          </View>
-
-          <View>
-            <View style={[styles.softInputShell, styles.addressShell]}>
-              <TextInput
-                ref={adresRef}
-                value={adres}
-                onChangeText={(t) => {
-                  setAdres(t);
-                  setAdresCoords(null);
-                }}
-                placeholder="Straat, nummer, postcode en gemeente"
-                placeholderTextColor={COLORS.textMuted}
-                accessibilityRole="combobox"
-                accessibilityLabel="Adres van het perceel"
-                accessibilityHint="Begin te typen om suggesties te zien"
-                style={[styles.softInputText, styles.addressTextInput]}
-                returnKeyType="done"
-              />
-
-              {isAddressLoading ? <ActivityIndicator style={styles.suggestionLoading} size="small" color={COLORS.accent} /> : null}
-            </View>
-
-            {addressSuggestions && addressSuggestions.length > 0 ? (
-              <View style={styles.suggestionsContainer}>
-                {addressSuggestions.map((s, i) => (
-                  <Pressable
-                    key={s.place_id || `${i}`}
-                    onPress={() => selectAddressSuggestion(s)}
-                    style={styles.suggestionItem}
-                    accessibilityRole="button"
-                    accessibilityLabel={s.display_name}
-                  >
-                    <Text style={styles.suggestionText}>{s.display_name}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            ) : adres && !isAddressLoading ? (
-              <Text style={styles.suggestionHelperText}>Geen adressen gevonden</Text>
-            ) : null}
-          </View>
-
-        </View>
+        {/* Address card moved above Grootte (see earlier) */}
 
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
@@ -1013,6 +1016,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingRight: 12,
   },
+  addressShellWrapper: {
+    position: 'relative',
+  },
   addressTextInput: {
     flex: 1,
     fontFamily: FONTS.body,
@@ -1044,7 +1050,10 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
   },
   suggestionLoading: {
-    marginLeft: SPACING.sm,
+    position: 'absolute',
+    right: 12,
+    top: '50%',
+    transform: [{ translateY: -10 }],
   },
   extraInfoBulletWrap: {
     width: 5,
