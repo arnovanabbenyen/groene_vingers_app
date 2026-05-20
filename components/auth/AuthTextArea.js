@@ -13,6 +13,9 @@ export default function AuthTextArea({
   accessibilityLabel,
   accessibilityHint,
   accessibilityState,
+  shellStyle,
+  inputStyle,
+  labelStyle,
 }) {
   const resolvedAccessibilityState = {
     ...(accessibilityState || {}),
@@ -21,8 +24,8 @@ export default function AuthTextArea({
 
   return (
     <View style={styles.fieldWrap}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
-      <View style={[styles.inputShell, error && styles.inputShellError, { height }]}>
+      {label ? <Text style={[styles.label, labelStyle]}>{label}</Text> : null}
+      <View style={[styles.inputShell, error && styles.inputShellError, { height }, shellStyle]}>
         <TextInput
           value={value}
           onChangeText={onChangeText}
@@ -30,7 +33,7 @@ export default function AuthTextArea({
           placeholder={placeholder}
           multiline
           textAlignVertical="top"
-          style={styles.input}
+          style={[styles.input, inputStyle]}
           placeholderTextColor={COLORS.indicatorMuted}
           accessibilityLabel={accessibilityLabel}
           accessibilityHint={accessibilityHint}

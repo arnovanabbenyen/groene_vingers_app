@@ -2,22 +2,33 @@ import React from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { COLORS, FONTS, RADIUS } from '../theme/tokens';
 
-const AuthTextField = React.forwardRef(function AuthTextField({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  icon,
-  keyboardType,
-  autoCapitalize,
-  secureTextEntry,
-  halfWidth = false,
-  error = false,
-  onBlur,
-  accessibilityLabel,
-  accessibilityHint,
-  accessibilityState,
-}, ref) {
+const AuthTextField = React.forwardRef(function AuthTextField(
+  {
+    label,
+    value,
+    onChangeText,
+    placeholder,
+    icon,
+    keyboardType,
+    autoCapitalize,
+    secureTextEntry,
+    halfWidth = false,
+    error = false,
+    onBlur,
+    accessibilityLabel,
+    accessibilityHint,
+    accessibilityState,
+    returnKeyType,
+    onSubmitEditing,
+    blurOnSubmit,
+    maxLength,
+    variant = 'default',
+    shellStyle,
+    inputStyle,
+    labelStyle,
+  },
+  ref,
+) {
   const resolvedAccessibilityState = {
     ...(accessibilityState || {}),
     invalid: error || accessibilityState?.invalid || undefined,
@@ -25,8 +36,16 @@ const AuthTextField = React.forwardRef(function AuthTextField({
 
   return (
     <View style={[styles.fieldWrap, halfWidth && styles.fieldHalf]}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={[styles.inputShell, error && styles.inputShellError]}>
+      {label ? <Text style={[styles.label, labelStyle]}>{label}</Text> : null}
+      <View
+        style={[
+          styles.inputShell,
+          variant === 'soft' && styles.inputShellSoft,
+          error && styles.inputShellError,
+          variant === 'soft' && error && styles.inputShellErrorSoft,
+          shellStyle,
+        ]}
+      >
         {icon ? <View style={styles.iconWrap}>{icon}</View> : null}
         <TextInput
           ref={ref}
@@ -37,11 +56,15 @@ const AuthTextField = React.forwardRef(function AuthTextField({
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           secureTextEntry={secureTextEntry}
-          style={styles.input}
+          style={[styles.input, variant === 'soft' && styles.inputSoft, inputStyle]}
           placeholderTextColor={COLORS.border}
           accessibilityLabel={accessibilityLabel}
           accessibilityHint={accessibilityHint}
           accessibilityState={resolvedAccessibilityState}
+          returnKeyType={returnKeyType}
+          onSubmitEditing={onSubmitEditing}
+          blurOnSubmit={blurOnSubmit}
+          maxLength={maxLength}
         />
       </View>
     </View>
@@ -74,8 +97,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  inputShellSoft: {
+    borderWidth: 0,
+    backgroundColor: 'rgba(87,98,56,0.05)',
+  },
   inputShellError: {
     borderColor: COLORS.negative,
+  },
+  inputShellErrorSoft: {
+    borderWidth: 1,
+    backgroundColor: 'rgba(87,98,56,0.05)',
   },
   iconWrap: {
     width: 18,
@@ -87,5 +118,8 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     color: COLORS.textPrimary,
     paddingVertical: 0,
+  },
+  inputSoft: {
+    fontSize: 16,
   },
 });
