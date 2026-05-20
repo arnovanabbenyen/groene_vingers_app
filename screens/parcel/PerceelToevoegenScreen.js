@@ -613,6 +613,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
 
             {AMENITY_OPTIONS.map((option) => {
               const selected = selectedAmenities.includes(option.label);
+              const IconComponent = option.icon;
               return (
                 <Pressable
                   key={option.label}
@@ -622,7 +623,9 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
                   accessibilityState={{ selected }}
                   accessibilityLabel={option.label}
                 >
-                  <Image source={{ uri: option.icon }} style={styles.modalOptionIcon} />
+                  <View style={styles.modalOptionIconWrap}>
+                    <IconComponent size={24} color={selected ? COLORS.brand : COLORS.textSecondary} weight="regular" />
+                  </View>
                   <Text style={styles.modalOptionLabel}>{option.label}</Text>
                   <Text style={styles.modalOptionState}>{selected ? 'Verwijderen' : 'Toevoegen'}</Text>
                 </Pressable>
@@ -930,6 +933,11 @@ const styles = StyleSheet.create({
   modalOptionIcon: {
     width: 28,
     height: 28,
+  },
+  modalOptionIconWrap: {
+    width: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalOptionLabel: {
     flex: 1,
