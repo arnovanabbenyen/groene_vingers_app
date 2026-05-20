@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    top: 30,
+    top: 35,
     color: COLORS.textInverse,
     fontSize: 20,
     lineHeight: 20,
