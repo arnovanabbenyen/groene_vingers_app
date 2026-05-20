@@ -20,10 +20,11 @@ import AuthTextField from '../../components/auth/AuthTextField';
 import FieldError from '../../components/notifications/FieldError';
 import ScreenHeader from '../../components/headers/ScreenHeader';
 import { supabase } from '../../services/supabase';
-import { BinocularsIcon, CalendarIcon, CameraIcon, DropIcon, FrameCornersIcon, LeafIcon, PaintBrushIcon, PlusCircleIcon, XCircleIcon, ToolboxIcon, ShovelIcon, PlantIcon, RecycleIcon, TreeIcon } from 'phosphor-react-native';
+import { BinocularsIcon, InfoIcon, CalendarIcon, CameraIcon, DropIcon, FrameCornersIcon, LeafIcon, PaintBrushIcon, PlusCircleIcon, XCircleIcon, ToolboxIcon, ShovelIcon, PlantIcon, RecycleIcon, TreeIcon } from 'phosphor-react-native';
 
 const IMG_ARROW_LEFT = 'http://localhost:3845/assets/823f067bbf1763ad90d2dac8f9d3bad9ec4cf79f.svg';
 const IMG_POPUP_ICON = 'http://localhost:3845/assets/4c6187f5874a7cc596bcee028d8ed521433957b7.svg';
+const IMG_POPUP_FRAME_SMALL = 'http://localhost:3845/assets/db775ac6fdc7f1baf0dcdeb5e9eba827734a3827.svg';
 
 const PHOTO_TILE_WIDTH = Math.round(
   (Dimensions.get('window').width - (SPACING.screenX * 2) - (SPACING.md * 2) - SPACING.md) / 2,
@@ -431,7 +432,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
                       accessibilityLabel="Foto verwijderen"
                       accessibilityHint="Verwijder deze foto uit het perceel"
                     >
-                      <XCircleIcon size={20} color={COLORS.negative} weight="regular" />
+                      <XCircleIcon size={24} color={COLORS.negative} weight="regular" />
                     </Pressable>
                   </View>
                 );
@@ -528,7 +529,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
                         accessibilityLabel={`${amenity} verwijderen`}
                         accessibilityHint={`Verwijder ${amenity} uit de voorzieningen`}
                       >
-                        <XCircleIcon size={16} color={COLORS.negative} weight="regular" />
+                        <XCircleIcon size={24} color={COLORS.negative} weight="regular" />
                       </Pressable>
                     </View>
                     <Text style={styles.amenityLabel}>{amenity}</Text>
@@ -541,7 +542,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
 
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
-            <CalendarIcon size={32} color={COLORS.accent} weight="regular" />
+            <InfoIcon size={32} color={COLORS.accent} weight="regular" />
             <Text style={styles.sectionTitle}>Extra informatie</Text>
           </View>
 
@@ -564,34 +565,41 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
           />
 
           <View style={styles.extraInfoList}>
-            {extraInfoItems.map((item, index) => (
-              <View key={`${item}-${index}`} style={styles.extraInfoRow}>
-                <View style={styles.extraInfoBulletWrap}>
-                  <View style={styles.extraInfoBullet} />
+            {extraInfoItems.map((item, index) => {
+              const isGrootte = item.toLowerCase().startsWith('grootte:');
+              const [label, ...rest] = item.split(':');
+              const value = rest.join(':').trim();
+
+              return (
+                <View key={`${item}-${index}`} style={styles.extraInfoRow}>
+                  <View style={styles.extraInfoBulletWrap}>
+                    <View style={styles.extraInfoBulletCircle} />
+                  </View>
+
+                  {isGrootte ? (
+                    <Text style={styles.extraInfoText}>
+                      <Text style={styles.extraInfoLabelBold}>{`${label}: `}</Text>
+                      <Text style={styles.extraInfoText}>{value}</Text>
+                    </Text>
+                  ) : (
+                    <Text style={styles.extraInfoText}>{item}</Text>
+                  )}
+
+                  <Pressable
+                    onPress={() => removeExtraInfoItem(index)}
+                    style={styles.extraInfoRemoveWrap}
+                    accessibilityRole="button"
+                    accessibilityLabel="Extra informatie verwijderen"
+                    accessibilityHint="Verwijder dit extra informatie-item"
+                  >
+                    <XCircleIcon size={24} color={COLORS.negative} weight="regular" />
+                  </Pressable>
                 </View>
-                <Text style={styles.extraInfoText}>{item}</Text>
-                <Pressable
-                  onPress={() => removeExtraInfoItem(index)}
-                  style={styles.extraInfoRemove}
-                  accessibilityRole="button"
-                  accessibilityLabel="Extra informatie verwijderen"
-                  accessibilityHint="Verwijder dit extra informatie-item"
-                >
-                  <Image source={{ uri: IMG_POPUP_ICON }} style={styles.extraInfoRemoveIcon} />
-                </Pressable>
-              </View>
-            ))}
+              );
+            })}
           </View>
 
-          <Pressable
-            onPress={addExtraInfoItem}
-            style={styles.extraInfoAddButton}
-            accessibilityRole="button"
-            accessibilityLabel="Extra informatie toevoegen"
-            accessibilityHint="Voeg de getypte extra informatie toe aan de lijst"
-          >
-            <PlusCircleIcon size={24} color={COLORS.brand} weight="regular" />
-          </Pressable>
+          {/* Extra-info is added by pressing Enter; inline add button removed to match design */}
         </View>
 
         {submitError ? <FieldError message={submitError} /> : null}
@@ -750,9 +758,9 @@ const styles = StyleSheet.create({
   photoRemove: {
     position: 'absolute',
     top: -10,
-    right: -10,
-    width: 28,
-    height: 28,
+    right: -5,
+    width: 17,
+    height: 17,
     borderRadius: 999,
     backgroundColor: COLORS.surface,
     alignItems: 'center',
@@ -803,9 +811,9 @@ const styles = StyleSheet.create({
   amenityRemove: {
     position: 'absolute',
     right: 0,
-    top: 0,
-    width: 12,
-    height: 12,
+    top: -5,
+    width: 17,
+    height: 17,
     borderRadius: 999,
     backgroundColor: COLORS.surface,
     alignItems: 'center',
@@ -858,10 +866,29 @@ const styles = StyleSheet.create({
   extraInfoBulletWrap: {
     width: 5,
     height: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  extraInfoBullet: {
-    width: 5,
-    height: 22,
+  extraInfoBulletCircle: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: COLORS.accent,
+  },
+  extraInfoLabelBold: {
+    fontFamily: FONTS.displayMedium,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
+  extraInfoRemoveWrap: {
+    minWidth: 28,
+    minHeight: 28,
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   extraInfoText: {
     flex: 1,
