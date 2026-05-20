@@ -153,8 +153,56 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
     });
   }
 
+  async function createPhotoFromAsset(asset) {
+    const manipulated = await ImageManipulator.manipulateAsync(
+      asset.uri,
+      asset.width && asset.width > 1920 ? [{ resize: { width: 1920 } }] : [],
+      {
+        compress: 0.8,
+        format: ImageManipulator.SaveFormat.JPEG,
+      },
+    );
+
+    return createPhoto(manipulated.uri, manipulated.uri);
+  }
+
+  async function addGalleryAssetsToSlots(assets, startIndex = 0) {
+    const processedPhotos = [];
+
+    for (const asset of assets.slice(0, 4 - startIndex)) {
+      processedPhotos.push(await createPhotoFromAsset(asset));
+    }
+
+    setPhotos((current) => {
+      const next = current.slice(0, 4);
+      let slotIndex = startIndex;
+
+      for (const photo of processedPhotos) {
+        while (slotIndex < 4 && next[slotIndex]) {
+          slotIndex += 1;
+        }
+
+        if (slotIndex >= 4) {
+          break;
+        }
+
+        next[slotIndex] = photo;
+        slotIndex += 1;
+      }
+
+      return next;
+    });
+  }
+
   async function requestLibraryPhoto(index) {
     try {
+      const currentPhotoCount = photos.filter(Boolean).length;
+      if (currentPhotoCount >= 4) {
+        setSubmitError('Je kan maximaal 4 foto’s toevoegen.');
+        AccessibilityInfo.announceForAccessibility('Je kan maximaal 4 foto’s toevoegen.');
+        return;
+      }
+
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
         throw new Error('Geef toegang tot je fotobibliotheek om een perceelfoto te kiezen.');
@@ -164,29 +212,16 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
         mediaTypes: ['images'],
         allowsEditing: false,
         quality: 1,
-        selectionLimit: 1,
+        allowsMultipleSelection: true,
+        selectionLimit: Math.max(1, 4 - currentPhotoCount),
       });
 
-      if (result.canceled || !result.assets?.[0]?.uri) {
+      if (result.canceled || !result.assets?.length) {
         return;
       }
 
-      const asset = result.assets[0];
-      const manipulated = await ImageManipulator.manipulateAsync(
-        asset.uri,
-        asset.width && asset.width > 1920 ? [{ resize: { width: 1920 } }] : [],
-        {
-          compress: 0.8,
-          format: ImageManipulator.SaveFormat.JPEG,
-        },
-      );
-
-      const nextPhoto = createPhoto(manipulated.uri, manipulated.uri);
-      if (typeof index === 'number') {
-        setPhotoAtIndex(index, nextPhoto);
-      } else {
-        addPhotoToFirstEmptySlot(nextPhoto);
-      }
+      const startIndex = typeof index === 'number' ? index : 0;
+      await addGalleryAssetsToSlots(result.assets, startIndex);
     } catch (error) {
       const message = error.message || 'Foto kiezen mislukt.';
       setSubmitError(message);
