@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
 import { HeartStraightIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/HeartStraight.js';
 import { MapPinIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/MapPin.js';
 import { StarIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Star.js';
 import { UserCircleIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/UserCircle.js';
+import { LeafIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Leaf.js';
 import { COLORS, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
 function StatCard({ value, label, valueSuffix, showStar }) {
@@ -33,11 +35,26 @@ export default function ParcelOverviewSection({
   ],
   onFavoritePress,
 }) {
+  const [imageError, setImageError] = useState(false);
+  const heroImageSource = typeof heroImage === 'string' ? { uri: heroImage } : heroImage;
+  const canShowHeroImage = Boolean(heroImageSource?.uri) && !imageError;
+
   return (
     <View style={styles.container}>
       <View style={styles.contentBlock}>
         <View style={styles.heroBlock}>
-          <ImageBackground source={heroImage} style={styles.heroImage} imageStyle={styles.heroImageRounded} />
+          {canShowHeroImage ? (
+            <ImageBackground
+              source={heroImageSource}
+              style={styles.heroImage}
+              imageStyle={styles.heroImageRounded}
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <View style={[styles.heroImage, styles.heroPlaceholder]}>
+              <LeafIcon size={40} color={COLORS.brand} weight="regular" />
+            </View>
+          )}
           <View style={styles.paginationRow}>
             <View style={[styles.paginationDot, styles.paginationDotActive]} />
             <View style={styles.paginationDot} />
@@ -57,13 +74,21 @@ export default function ParcelOverviewSection({
             <MapPinIcon size={16} color={COLORS.brand} weight="regular" />
             <Text style={styles.pillText}>{location}</Text>
           </View>
-          <View style={styles.dotSeparator} />
-          <Text style={styles.metaText}>{distance}</Text>
-          <View style={styles.dotSeparator} />
-          <View style={styles.pill}>
-            <UserCircleIcon size={16} color={COLORS.brand} weight="regular" />
-            <Text style={styles.pillText}>{ownerName}</Text>
-          </View>
+          {distance ? (
+            <>
+              <View style={styles.dotSeparator} />
+              <Text style={styles.metaText}>{distance}</Text>
+            </>
+          ) : null}
+          {ownerName ? (
+            <>
+              <View style={styles.dotSeparator} />
+              <View style={styles.pill}>
+                <UserCircleIcon size={16} color={COLORS.brand} weight="regular" />
+                <Text style={styles.pillText}>{ownerName}</Text>
+              </View>
+            </>
+          ) : null}
         </View>
       </View>
 
@@ -97,6 +122,11 @@ const styles = StyleSheet.create({
     height: 201,
     borderRadius: RADIUS.sm,
     overflow: 'hidden',
+  },
+  heroPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surfaceMuted,
   },
   heroImageRounded: {
     borderRadius: RADIUS.sm,

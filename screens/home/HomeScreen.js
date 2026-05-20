@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import BottomNav from '../../components/navigation/BottomNav';
@@ -6,6 +6,7 @@ import HomeHeader from '../../components/home/HomeHeader';
 import HomePromoCard from '../../components/home/HomePromoCard';
 import HomeSectionCta from '../../components/home/HomeSectionCta';
 import PlotCard from '../../components/home/PlotCard';
+import { supabase } from '../../services/supabase';
 import NotificationScreen from '../notifications/NotificationScreen';
 import PlansScreen from '../plans/PlansScreen';
 import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
@@ -15,7 +16,7 @@ import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/to
 
 const PROFILE_IMAGE = require('../../images/tuinzoeker_pfp.png');
 
-const PLOTS = [
+const FALLBACK_PLOTS = [
   {
     id: 'plot-1',
     image: require('../../images/overdekt_perceel_met_serre.png'),
@@ -44,19 +45,53 @@ export default function HomeScreen() {
   const [selectedPlot, setSelectedPlot] = useState(null);
   const [requestPlot, setRequestPlot] = useState(null);
   const [requestSuccessPerceel, setRequestSuccessPerceel] = useState(null);
+  const [plots, setPlots] = useState(null); // null = loading not attempted
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadPercelen() {
+      if (!supabase) return setPlots([]);
+      const { data, error } = await supabase.from('percelen').select('*');
+      if (error) {
+        console.warn('Failed to load percelen', error);
+        if (mounted) setPlots([]);
+        return;
+      }
+
+      const mapped = (data || []).map((row) => ({
+        id: row.id,
+        image: row.fotos && row.fotos[0] ? row.fotos[0] : null,
+        location: row.plaats || 'Locatie nog niet beschikbaar',
+        rating: null,
+        title: row.naam,
+        size: row.grootte ? `${row.grootte}m²` : null,
+        chips: row.voorzieningen || [],
+        raw: row,
+      }));
+
+      if (mapped[0]?.image) {
+        console.log('Perceel foto URL:', mapped[0].image);
+      }
+
+      if (mounted) setPlots(mapped);
+    }
+
+    loadPercelen();
+    return () => { mounted = false; };
+  }, []);
 
   const filteredPlots = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
+    const source = plots && plots.length > 0 ? plots : FALLBACK_PLOTS;
 
-    if (!normalizedQuery) {
-      return PLOTS;
-    }
+    if (!normalizedQuery) return source;
 
-    return PLOTS.filter((plot) => {
-      const searchableText = [plot.location, plot.title, plot.size, ...plot.chips].join(' ').toLowerCase();
+    return source.filter((plot) => {
+      const searchableText = [plot.location, plot.title, plot.size, ...(plot.chips || [])].join(' ').toLowerCase();
       return searchableText.includes(normalizedQuery);
     });
-  }, [searchQuery]);
+  }, [searchQuery, plots]);
 
   const visibleDotIndex = Math.max(0, Math.min(filteredPlots.length - 1, activeDot));
 

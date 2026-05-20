@@ -23,7 +23,7 @@ export default function ParcelDetailScreen({ onBack, onRequest = () => {}, onMor
         <ParcelOverviewSection
           heroImage={perceel.image || HERO_IMAGE}
           title={perceel.title || 'Perceel'}
-          location={perceel.location || ''}
+          location={perceel.plaats || 'Locatie nog niet beschikbaar'}
           distance={perceel.distance || ''}
           ownerName={perceel.ownerName || ''}
           rating={perceel.rating || ''}

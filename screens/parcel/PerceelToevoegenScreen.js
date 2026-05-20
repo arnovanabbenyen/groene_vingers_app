@@ -73,6 +73,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
   const [naam, setNaam] = useState('');
   const [beschrijving, setBeschrijving] = useState('');
   const [adres, setAdres] = useState('');
+  const [plaats, setPlaats] = useState('');
   const [grootteInput, setGrootteInput] = useState('');
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [isAddressLoading, setIsAddressLoading] = useState(false);
@@ -141,7 +142,13 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
 
   function selectAddressSuggestion(suggestion) {
     const formatted = suggestion.display_name || suggestion.label || '';
+    const parsedPlaats = suggestion.address?.city
+      || suggestion.address?.town
+      || suggestion.address?.village
+      || suggestion.address?.suburb
+      || null;
     setAdres(formatted);
+    setPlaats(parsedPlaats || '');
     setAdresCoords({ lat: parseFloat(suggestion.lat), lng: parseFloat(suggestion.lon) });
     setAddressSuggestions([]);
     AccessibilityInfo.announceForAccessibility('Adres geselecteerd');
@@ -410,6 +417,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
         beschrijving: beschrijving.trim() || null,
         grootte: grootte || null,
         adres: adres && adres.trim() ? adres.trim() : null,
+        plaats: plaats && plaats.trim() ? plaats.trim() : null,
         lat: adresCoords?.lat ?? null,
         lng: adresCoords?.lng ?? null,
         extra_info: extraInfoItems,
