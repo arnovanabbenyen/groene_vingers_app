@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   AccessibilityInfo,
   Alert,
@@ -56,11 +56,6 @@ function createPhoto(previewUri, localUri) {
   };
 }
 
-function parseGrootte(extraInfoItems) {
-  const item = extraInfoItems.find((entry) => entry.toLowerCase().startsWith('grootte:'));
-  return item ? item.split(':').slice(1).join(':').trim() : '';
-}
-
 function normalizeExtraInfo(input) {
   const trimmed = input.trim();
   if (!trimmed) return null;
@@ -93,22 +88,6 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
   const extraInfoRef = useRef(null);
   const adresRef = useRef(null);
   const grootteRef = useRef(null);
-
-  const grootte = useMemo(() => parseGrootte(extraInfoItems), [extraInfoItems]);
-
-  useEffect(() => {
-    setGrootteInput(grootte || '');
-  }, [grootte]);
-
-  function saveGrootteInput() {
-    const cleaned = (grootteInput || '').replace(/m²|m2/gi, '').trim();
-    const normalized = normalizeExtraInfo(cleaned);
-    setExtraInfoItems((current) => {
-      const filtered = current.filter((it) => !it.toLowerCase().startsWith('grootte:'));
-      if (!normalized) return filtered;
-      return [`Grootte: ${normalized}`, ...filtered];
-    });
-  }
 
   useEffect(() => {
     if (!adres || adres.trim().length === 0) {
@@ -401,6 +380,10 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
         // Decode to ArrayBuffer for Supabase upload
         const arrayBuffer = decodeBase64(base64);
 
+        if (arrayBuffer.byteLength === 0) {
+          throw new Error('Foto kon niet worden gelezen (0 bytes). Probeer een andere foto.');
+        }
+
         console.log(`Uploading photo ${index}: ${arrayBuffer.byteLength} bytes`);
 
         const { error: uploadError } = await supabase.storage
@@ -425,7 +408,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
         owner_id: ownerId,
         naam: naam.trim(),
         beschrijving: beschrijving.trim() || null,
-        grootte: grootte || null,
+        grootte: grootteInput.trim() ? grootteInput.replace(/m²|m2/gi, '').trim() : null,
         adres: adres && adres.trim() ? adres.trim() : null,
         plaats: plaats && plaats.trim() ? plaats.trim() : null,
         lat: adresCoords?.lat ?? null,
@@ -436,6 +419,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
       };
 
       // TODO: keep this insert in sync if the percelen schema changes.
+      console.log('Saving perceel with row:', row);
       const { error: insertError } = await supabase.from('percelen').insert(row);
       if (insertError) {
         throw insertError;
@@ -561,8 +545,6 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
                 placeholderTextColor={COLORS.textMuted}
                 keyboardType="number-pad"
                 returnKeyType="done"
-                onBlur={saveGrootteInput}
-                onSubmitEditing={saveGrootteInput}
                 style={styles.grootteTextInput}
               />
 
@@ -731,24 +713,13 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
 
           <View style={styles.extraInfoList}>
             {extraInfoItems.map((item, index) => {
-              const isGrootte = item.toLowerCase().startsWith('grootte:');
-              const [label, ...rest] = item.split(':');
-              const value = rest.join(':').trim();
-
               return (
                 <View key={`${item}-${index}`} style={styles.extraInfoRow}>
                   <View style={styles.extraInfoBulletWrap}>
                     <View style={styles.extraInfoBulletCircle} />
                   </View>
 
-                  {isGrootte ? (
-                    <Text style={styles.extraInfoText}>
-                      <Text style={styles.extraInfoLabelBold}>{`${label}: `}</Text>
-                      <Text style={styles.extraInfoText}>{value}</Text>
-                    </Text>
-                  ) : (
-                    <Text style={styles.extraInfoText}>{item}</Text>
-                  )}
+                  <Text style={styles.extraInfoText}>{item}</Text>
 
                   <Pressable
                     onPress={() => removeExtraInfoItem(index)}
