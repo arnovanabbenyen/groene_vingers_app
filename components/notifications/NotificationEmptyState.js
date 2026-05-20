@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { BellSlashIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/BellSlash.js';
+import { BellSlashIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, SPACING } from '../theme/tokens';
 
 export default function NotificationEmptyState() {

@@ -1,5 +1,5 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { StarIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Star.js';
+import { StarIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS } from '../theme/tokens';
 
 const OWNER_IMAGE = require('../../images/tuineigenaar_pfp.png');

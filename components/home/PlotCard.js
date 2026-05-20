@@ -1,13 +1,6 @@
 import { useState } from 'react';
 import { ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
-import { HeartIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Heart.js';
-import { DropIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Drop.js';
-import { LeafIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Leaf.js';
-import { MapPinIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/MapPin.js';
-import { ShovelIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Shovel.js';
-import { StarIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Star.js';
-import { PlantIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Plant.js';
-import { TreeIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Tree.js';
+import { HeartIcon, DropIcon, LeafIcon, MapPinIcon, ShovelIcon, StarIcon, PlantIcon, TreeIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, LAYOUT, RADIUS, SHADOWS, SIZES } from '../theme/tokens';
 
 function AmenityIcon({ label }) {
@@ -35,7 +28,8 @@ function AmenityIcon({ label }) {
 export default function PlotCard({ plot, onPress }) {
   const [imageError, setImageError] = useState(false);
   const imageSource = typeof plot.image === 'string' ? { uri: plot.image } : plot.image;
-  const canShowImage = Boolean(imageSource?.uri) && !imageError;
+  const hasImage = plot.image != null && plot.image !== '';
+  const canShowImage = hasImage && !imageError;
   const amenities = (plot.chips || []).slice(0, 4);
 
   return (

@@ -1,10 +1,6 @@
 import { useState } from 'react';
 import { ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
-import { HeartStraightIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/HeartStraight.js';
-import { MapPinIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/MapPin.js';
-import { StarIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Star.js';
-import { UserCircleIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/UserCircle.js';
-import { LeafIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Leaf.js';
+import { HeartStraightIcon, MapPinIcon, StarIcon, UserCircleIcon, LeafIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
 function StatCard({ value, label, valueSuffix, showStar }) {

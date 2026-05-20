@@ -1,6 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ArrowLeftIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/ArrowLeft.js';
-import { DotsThreeIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/DotsThree.js';
+import { ArrowLeftIcon, DotsThreeIcon } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING } from '../theme/tokens';
 

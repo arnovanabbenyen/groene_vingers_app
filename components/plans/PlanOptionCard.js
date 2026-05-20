@@ -1,6 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { LeafIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Leaf.js';
-import { TreeEvergreenIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/TreeEvergreen.js';
+import { LeafIcon, TreeEvergreenIcon } from 'phosphor-react-native';
 import PlanFeatureItem from './PlanFeatureItem';
 import { COLORS, FONTS, RADIUS, SPACING } from '../theme/tokens';
 

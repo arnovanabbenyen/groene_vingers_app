@@ -1,9 +1,5 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { ChatsCircleIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/ChatsCircle.js';
-import { HouseIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/House.js';
-import { MapTrifoldIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/MapTrifold.js';
-import { PlusCircleIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/PlusCircle.js';
-import { EnvelopeSimpleIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/EnvelopeSimple.js';
+import { ChatsCircleIcon, HouseIcon, MapTrifoldIcon, PlusCircleIcon, EnvelopeSimpleIcon } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 
