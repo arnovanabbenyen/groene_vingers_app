@@ -19,9 +19,8 @@ import AuthTextField from '../../components/auth/AuthTextField';
 import FieldError from '../../components/notifications/FieldError';
 import ScreenHeader from '../../components/headers/ScreenHeader';
 import { supabase } from '../../services/supabase';
-import { FrameCornersIcon } from 'phosphor-react-native';
+import { CameraIcon, FrameCornersIcon } from 'phosphor-react-native';
 
-const IMG_PHOTOS = 'http://localhost:3845/assets/e29a99922ff13b29ecc9237b089b72cd33ec56c1.svg';
 const IMG_DESCRIPTION = 'http://localhost:3845/assets/c22d2bb0423ebd02d9ca24f2984ddd36b5d104e3.svg';
 const IMG_AMENITIES = 'http://localhost:3845/assets/55b0d5050ea94d4478f0d4a274cea6ce992889fe.svg';
 const IMG_AMENITIES_ADD = 'http://localhost:3845/assets/768b60194f299d8a06eaad029408ee8deabd0667.svg';
@@ -30,12 +29,14 @@ const IMG_ARROW_LEFT = 'http://localhost:3845/assets/823f067bbf1763ad90d2dac8f9d
 const IMG_SAMPLE_PHOTO = 'http://localhost:3845/assets/857199f83e6ee66097c2acbb287412099fc7b745.png';
 const IMG_PHOTO_REMOVE = 'http://localhost:3845/assets/08e59dfaafacb1cc679c9adbfca7fa56f6f8e5f6.svg';
 const IMG_EMPTY_PLUS = 'http://localhost:3845/assets/8cf5c500f73c04c90540fb5d290d8a5ae12a9977.svg';
-const IMG_EMPTY_PLUS_ALT = 'http://localhost:3845/assets/c1866c4d3876072edd205eee3481f749f25757b4.svg';
 const IMG_WATER = 'http://localhost:3845/assets/063801bb394747a450dc2eb31a860de553e409c7.svg';
 const IMG_MATERIAAL = 'http://localhost:3845/assets/2f5dfb33af36eac04d4c671a125c2b9a8715ed88.svg';
 const IMG_ZADEN = 'http://localhost:3845/assets/4eca3e172c3c8d9b87324a1cdd847cb1b1af0ada.svg';
 const IMG_EXTRA_BULLET = 'http://localhost:3845/assets/db775ac6fdc7f1baf0dcdeb5e9eba827734a3827.svg';
 const IMG_ROW_REMOVE = 'http://localhost:3845/assets/4c6187f5874a7cc596bcee028d8ed521433957b7.svg';
+
+const PHOTO_TILE_WIDTH = 141;
+const PHOTO_TILE_HEIGHT = 121;
 
 const AMENITY_OPTIONS = [
   { label: 'Water', icon: IMG_WATER },
@@ -393,7 +394,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
 
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
-            <Image source={{ uri: IMG_PHOTOS }} style={styles.sectionIcon} />
+            <CameraIcon size={32} color={COLORS.accent} weight="regular" />
             <Text style={styles.sectionTitle}>Foto’s</Text>
           </View>
 
@@ -426,10 +427,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
                   accessibilityLabel="Foto toevoegen"
                   accessibilityHint="Voeg een foto toe aan dit perceel"
                 >
-                  <Image
-                    source={{ uri: index === 0 ? IMG_EMPTY_PLUS : IMG_EMPTY_PLUS_ALT }}
-                    style={styles.emptyPlusIcon}
-                  />
+                  <Image source={{ uri: IMG_EMPTY_PLUS }} style={styles.emptyPlusIcon} />
                 </Pressable>
               );
             })}
@@ -643,6 +641,10 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
   },
+  photoSectionIcon: {
+    width: 32,
+    height: 32,
+  },
   sectionTitle: {
     fontFamily: FONTS.displaySemiBold,
     fontSize: 20,
@@ -662,12 +664,12 @@ const styles = StyleSheet.create({
   photoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
     gap: SPACING.md,
+    alignItems: 'flex-start',
   },
   photoSlot: {
-    width: '48%',
-    aspectRatio: 141 / 121,
+    width: PHOTO_TILE_WIDTH,
+    height: PHOTO_TILE_HEIGHT,
     borderRadius: RADIUS.sm,
     overflow: 'hidden',
     position: 'relative',
@@ -692,8 +694,8 @@ const styles = StyleSheet.create({
     height: 16,
   },
   emptyPhotoSlot: {
-    width: '48%',
-    aspectRatio: 141 / 121,
+    width: PHOTO_TILE_WIDTH,
+    height: PHOTO_TILE_HEIGHT,
     borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: COLORS.dividerSoft,
