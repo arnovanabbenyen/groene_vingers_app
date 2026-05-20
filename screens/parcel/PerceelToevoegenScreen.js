@@ -23,6 +23,7 @@ import { supabase } from '../../services/supabase';
 import { BinocularsIcon, CalendarIcon, CameraIcon, DropIcon, FrameCornersIcon, LeafIcon, PaintBrushIcon, PlusCircleIcon, XCircleIcon, ToolboxIcon, ShovelIcon, PlantIcon, RecycleIcon, TreeIcon } from 'phosphor-react-native';
 
 const IMG_ARROW_LEFT = 'http://localhost:3845/assets/823f067bbf1763ad90d2dac8f9d3bad9ec4cf79f.svg';
+const IMG_POPUP_ICON = 'http://localhost:3845/assets/4c6187f5874a7cc596bcee028d8ed521433957b7.svg';
 
 const PHOTO_TILE_WIDTH = Math.round(
   (Dimensions.get('window').width - (SPACING.screenX * 2) - (SPACING.md * 2) - SPACING.md) / 2,
@@ -576,7 +577,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
                   accessibilityLabel="Extra informatie verwijderen"
                   accessibilityHint="Verwijder dit extra informatie-item"
                 >
-                  <XCircleIcon size={18} color={COLORS.negative} weight="regular" />
+                  <Image source={{ uri: IMG_POPUP_ICON }} style={styles.extraInfoRemoveIcon} />
                 </Pressable>
               </View>
             ))}
@@ -627,7 +628,10 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
                     <IconComponent size={24} color={selected ? COLORS.brand : COLORS.textSecondary} weight="regular" />
                   </View>
                   <Text style={styles.modalOptionLabel}>{option.label}</Text>
-                  <Text style={styles.modalOptionState}>{selected ? 'Verwijderen' : 'Toevoegen'}</Text>
+                  <View style={styles.modalOptionStateWrap}>
+                    <Text style={styles.modalOptionState}>{selected ? 'Verwijderen' : 'Toevoegen'}</Text>
+                    <Image source={{ uri: IMG_POPUP_ICON }} style={styles.modalOptionRightIcon} />
+                  </View>
                 </Pressable>
               );
             })}
@@ -871,6 +875,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'center',
   },
+  extraInfoRemoveIcon: {
+    width: 21,
+    height: 21,
+    resizeMode: 'contain',
+  },
   helperText: {
     marginTop: SPACING.sm,
     fontFamily: FONTS.body,
@@ -949,6 +958,15 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bodyMedium,
     fontSize: 12.8,
     color: COLORS.brand,
+  },
+  modalOptionRightIcon: {
+    width: 21,
+    height: 21,
+    resizeMode: 'contain',
+  },
+  modalOptionStateWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   modalClose: {
     minHeight: 44,
