@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, View, Image } from 'react-native';
-import { PlusCircle, TrashSimple } from 'phosphor-react-native';
+import { PlusCircleIcon, TrashSimpleIcon } from 'phosphor-react-native';
 import { COLORS, RADIUS, SPACING } from '../theme/tokens';
 
 export default function PhotoPickerCircle({ imageUri, onPress, onDelete }) {
@@ -19,7 +19,7 @@ export default function PhotoPickerCircle({ imageUri, onPress, onDelete }) {
           </>
         ) : (
           <View style={styles.inner}>
-            <PlusCircle size={52} color={COLORS.textPrimary} weight="regular" />
+            <PlusCircleIcon size={52} color={COLORS.textPrimary} weight="regular" />
           </View>
         )}
       </Pressable>
@@ -32,7 +32,7 @@ export default function PhotoPickerCircle({ imageUri, onPress, onDelete }) {
           hitSlop={8}
           style={styles.deleteButton}
         >
-          <TrashSimple size={18} color={COLORS.textInverse} weight="regular" />
+          <TrashSimpleIcon size={18} color={COLORS.textInverse} weight="regular" />
         </Pressable>
       ) : null}
     </View>

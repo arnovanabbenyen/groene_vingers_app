@@ -20,17 +20,9 @@ import AuthTextField from '../../components/auth/AuthTextField';
 import FieldError from '../../components/notifications/FieldError';
 import ScreenHeader from '../../components/headers/ScreenHeader';
 import { supabase } from '../../services/supabase';
-import { BinocularsIcon, CameraIcon, FrameCornersIcon, PlusCircle, XCircleIcon } from 'phosphor-react-native';
+import { BinocularsIcon, CalendarIcon, CameraIcon, DropIcon, FrameCornersIcon, LeafIcon, PaintBrushIcon, PlusCircleIcon, XCircleIcon, ToolboxIcon } from 'phosphor-react-native';
 
-const IMG_AMENITIES = 'http://localhost:3845/assets/55b0d5050ea94d4478f0d4a274cea6ce992889fe.svg';
-const IMG_AMENITIES_ADD = 'http://localhost:3845/assets/768b60194f299d8a06eaad029408ee8deabd0667.svg';
-const IMG_EXTRA = 'http://localhost:3845/assets/c19ef960ca56d7452eb9cb554c6e1f0878f222fc.svg';
 const IMG_ARROW_LEFT = 'http://localhost:3845/assets/823f067bbf1763ad90d2dac8f9d3bad9ec4cf79f.svg';
-const IMG_WATER = 'http://localhost:3845/assets/063801bb394747a450dc2eb31a860de553e409c7.svg';
-const IMG_MATERIAAL = 'http://localhost:3845/assets/2f5dfb33af36eac04d4c671a125c2b9a8715ed88.svg';
-const IMG_ZADEN = 'http://localhost:3845/assets/4eca3e172c3c8d9b87324a1cdd847cb1b1af0ada.svg';
-const IMG_EXTRA_BULLET = 'http://localhost:3845/assets/db775ac6fdc7f1baf0dcdeb5e9eba827734a3827.svg';
-const IMG_ROW_REMOVE = 'http://localhost:3845/assets/4c6187f5874a7cc596bcee028d8ed521433957b7.svg';
 
 const PHOTO_TILE_WIDTH = Math.round(
   (Dimensions.get('window').width - (SPACING.screenX * 2) - (SPACING.md * 2) - SPACING.md) / 2,
@@ -38,12 +30,12 @@ const PHOTO_TILE_WIDTH = Math.round(
 const PHOTO_TILE_HEIGHT = Math.round((PHOTO_TILE_WIDTH * 121) / 141);
 
 const AMENITY_OPTIONS = [
-  { label: 'Water', icon: IMG_WATER },
-  { label: 'Materiaal', icon: IMG_MATERIAAL },
-  { label: 'Zaden', icon: IMG_ZADEN },
-  { label: 'Compost', icon: IMG_WATER },
-  { label: 'Gereedschap', icon: IMG_MATERIAAL },
-  { label: 'Schaduw', icon: IMG_ZADEN },
+  { label: 'Water', icon: DropIcon },
+  { label: 'Materiaal', icon: PaintBrushIcon },
+  { label: 'Zaden', icon: LeafIcon },
+  { label: 'Compost', icon: DropIcon },
+  { label: 'Gereedschap', icon: PaintBrushIcon },
+  { label: 'Schaduw', icon: LeafIcon },
 ];
 
 function uid(prefix) {
@@ -454,7 +446,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
                   accessibilityLabel="Foto toevoegen"
                   accessibilityHint="Voeg een foto toe aan dit perceel"
                 >
-                  <PlusCircle size={24} color={COLORS.textPrimary} weight="regular" />
+                  <PlusCircleIcon size={24} color={COLORS.textPrimary} weight="regular" />
                 </Pressable>
               );
             })}
@@ -483,7 +475,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
         <View style={styles.card}>
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionHeaderLeft}>
-              <Image source={{ uri: IMG_AMENITIES }} style={styles.sectionIcon} />
+              <ToolboxIcon size={32} color={COLORS.accent} weight="regular" />
               <Text style={styles.sectionTitle}>Voorzieningen</Text>
             </View>
             <Pressable
@@ -493,18 +485,20 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
               accessibilityLabel="Voorzieningen toevoegen"
               accessibilityHint="Open de lijst met voorzieningen"
             >
-              <Image source={{ uri: IMG_AMENITIES_ADD }} style={styles.sectionActionIcon} />
+              <PlusCircleIcon size={32} color={COLORS.brand} weight="regular" />
             </Pressable>
           </View>
 
           <View style={styles.amenityRow}>
             {selectedAmenities.map((amenity) => {
-              const iconUri = amenity === 'Water' ? IMG_WATER : amenity === 'Materiaal' ? IMG_MATERIAAL : IMG_ZADEN;
+              const IconComponent = amenity === 'Water' ? DropIcon : amenity === 'Materiaal' ? PaintBrushIcon : LeafIcon;
 
               return (
                 <View key={amenity} style={styles.amenityItem}>
                   <View style={styles.amenityIconWrap}>
-                    <Image source={{ uri: iconUri }} style={styles.amenityIcon} />
+                    <View style={styles.amenityIconCircle}>
+                      <IconComponent size={24} color={COLORS.surface} weight="regular" />
+                    </View>
                     <Pressable
                       onPress={() => toggleAmenity(amenity)}
                       style={styles.amenityRemove}
@@ -512,7 +506,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
                       accessibilityLabel={`${amenity} verwijderen`}
                       accessibilityHint={`Verwijder ${amenity} uit de voorzieningen`}
                     >
-                      <Image source={{ uri: IMG_ROW_REMOVE }} style={styles.rowRemoveIcon} />
+                      <XCircleIcon size={16} color={COLORS.negative} weight="regular" />
                     </Pressable>
                   </View>
                   <Text style={styles.amenityLabel}>{amenity}</Text>
@@ -524,7 +518,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
 
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
-            <Image source={{ uri: IMG_EXTRA }} style={styles.sectionIcon} />
+            <CalendarIcon size={32} color={COLORS.accent} weight="regular" />
             <Text style={styles.sectionTitle}>Extra informatie</Text>
           </View>
 
@@ -550,7 +544,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
             {extraInfoItems.map((item, index) => (
               <View key={`${item}-${index}`} style={styles.extraInfoRow}>
                 <View style={styles.extraInfoBulletWrap}>
-                  <Image source={{ uri: IMG_EXTRA_BULLET }} style={styles.extraInfoBullet} />
+                  <View style={styles.extraInfoBullet} />
                 </View>
                 <Text style={styles.extraInfoText}>{item}</Text>
                 <Pressable
@@ -560,7 +554,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
                   accessibilityLabel="Extra informatie verwijderen"
                   accessibilityHint="Verwijder dit extra informatie-item"
                 >
-                  <Image source={{ uri: IMG_ROW_REMOVE }} style={styles.rowRemoveIcon} />
+                  <XCircleIcon size={18} color={COLORS.negative} weight="regular" />
                 </Pressable>
               </View>
             ))}
@@ -573,7 +567,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
             accessibilityLabel="Extra informatie toevoegen"
             accessibilityHint="Voeg de getypte extra informatie toe aan de lijst"
           >
-            <Image source={{ uri: IMG_AMENITIES_ADD }} style={styles.extraInfoAddIcon} />
+            <PlusCircleIcon size={24} color={COLORS.brand} weight="regular" />
           </Pressable>
         </View>
 
@@ -764,27 +758,31 @@ const styles = StyleSheet.create({
   },
   amenityIconWrap: {
     width: 50,
-    height: 53,
+    height: 50,
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  amenityIcon: {
+  amenityIconCircle: {
     width: 50,
-    height: 53,
+    height: 50,
+    borderRadius: 999,
+    backgroundColor: COLORS.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   amenityRemove: {
     position: 'absolute',
-    right: -1,
-    top: -1,
-    minWidth: 44,
-    minHeight: 44,
+    right: -2,
+    top: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 999,
+    backgroundColor: COLORS.surface,
     alignItems: 'flex-end',
-    justifyContent: 'flex-start',
-  },
-  rowRemoveIcon: {
-    width: 16,
-    height: 16,
+    justifyContent: 'center',
+    zIndex: 2,
+    elevation: 2,
   },
   amenityLabel: {
     marginTop: SPACING.xs,
@@ -799,10 +797,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: -2,
-  },
-  sectionActionIcon: {
-    width: 24,
-    height: 24,
   },
   extraInfoList: {
     marginTop: SPACING.sm,
