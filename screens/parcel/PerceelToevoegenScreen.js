@@ -19,8 +19,8 @@ import AuthTextField from '../../components/auth/AuthTextField';
 import FieldError from '../../components/notifications/FieldError';
 import ScreenHeader from '../../components/headers/ScreenHeader';
 import { supabase } from '../../services/supabase';
+import { FrameCornersIcon } from 'phosphor-react-native';
 
-const IMG_NAME = 'http://localhost:3845/assets/2422f9647122cae6826d11ffbc68897a6ace853b.svg';
 const IMG_PHOTOS = 'http://localhost:3845/assets/e29a99922ff13b29ecc9237b089b72cd33ec56c1.svg';
 const IMG_DESCRIPTION = 'http://localhost:3845/assets/c22d2bb0423ebd02d9ca24f2984ddd36b5d104e3.svg';
 const IMG_AMENITIES = 'http://localhost:3845/assets/55b0d5050ea94d4478f0d4a274cea6ce992889fe.svg';
@@ -361,7 +361,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
       >
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
-            <Image source={{ uri: IMG_NAME }} style={styles.sectionIcon} />
+            <FrameCornersIcon size={32} color={COLORS.accent} weight="regular" />
             <Text style={styles.sectionTitle}>Naam van het perceel</Text>
           </View>
 
