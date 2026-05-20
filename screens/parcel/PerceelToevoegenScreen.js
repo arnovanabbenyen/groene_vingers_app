@@ -70,7 +70,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
   const [beschrijving, setBeschrijving] = useState('');
   const [extraInfoDraft, setExtraInfoDraft] = useState('');
   const [extraInfoItems, setExtraInfoItems] = useState([]);
-  const [selectedAmenities, setSelectedAmenities] = useState(['Water', 'Tools', 'Zaden']);
+  const [selectedAmenities, setSelectedAmenities] = useState([]);
   const [photos, setPhotos] = useState(() => createEmptyPhotoSlots());
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
@@ -489,39 +489,52 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
           </View>
 
           <View style={styles.amenityRow}>
-            {selectedAmenities.map((amenity) => {
-              const IconComponent = amenity === 'Water'
-                ? DropIcon
-                : amenity === 'Tools'
-                ? ShovelIcon
-                : amenity === 'Zaden'
-                ? PlantIcon
-                : amenity === 'Compost'
-                ? RecycleIcon
-                : amenity === 'Bomen'
-                ? TreeIcon
-                : TreeIcon;
+            {selectedAmenities.length === 0 ? (
+              <Pressable
+                onPress={() => setIsAmenityModalVisible(true)}
+                style={styles.amenityEmpty}
+                accessibilityRole="button"
+                accessibilityLabel="Voeg voorzieningen toe"
+                accessibilityHint="Open de lijst met voorzieningen"
+              >
+                <PlusCircleIcon size={20} color={COLORS.textMuted} weight="regular" />
+                <Text style={styles.amenityEmptyText}>Geen voorzieningen toegevoegd</Text>
+              </Pressable>
+            ) : (
+              selectedAmenities.map((amenity) => {
+                const IconComponent = amenity === 'Water'
+                  ? DropIcon
+                  : amenity === 'Tools'
+                  ? ShovelIcon
+                  : amenity === 'Zaden'
+                  ? PlantIcon
+                  : amenity === 'Compost'
+                  ? RecycleIcon
+                  : amenity === 'Bomen'
+                  ? TreeIcon
+                  : TreeIcon;
 
-              return (
-                <View key={amenity} style={styles.amenityItem}>
-                  <View style={styles.amenityIconWrap}>
-                    <View style={styles.amenityIconCircle}>
-                      <IconComponent size={24} color={COLORS.surface} weight="regular" />
+                return (
+                  <View key={amenity} style={styles.amenityItem}>
+                    <View style={styles.amenityIconWrap}>
+                      <View style={styles.amenityIconCircle}>
+                        <IconComponent size={24} color={COLORS.surface} weight="regular" />
+                      </View>
+                      <Pressable
+                        onPress={() => toggleAmenity(amenity)}
+                        style={styles.amenityRemove}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${amenity} verwijderen`}
+                        accessibilityHint={`Verwijder ${amenity} uit de voorzieningen`}
+                      >
+                        <XCircleIcon size={16} color={COLORS.negative} weight="regular" />
+                      </Pressable>
                     </View>
-                    <Pressable
-                      onPress={() => toggleAmenity(amenity)}
-                      style={styles.amenityRemove}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${amenity} verwijderen`}
-                      accessibilityHint={`Verwijder ${amenity} uit de voorzieningen`}
-                    >
-                      <XCircleIcon size={16} color={COLORS.negative} weight="regular" />
-                    </Pressable>
+                    <Text style={styles.amenityLabel}>{amenity}</Text>
                   </View>
-                  <Text style={styles.amenityLabel}>{amenity}</Text>
-                </View>
-              );
-            })}
+                );
+              })
+            )}
           </View>
         </View>
 
@@ -799,6 +812,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#000000',
     textAlign: 'center',
+  },
+  amenityEmpty: {
+    minHeight: 64,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: COLORS.dividerSoft,
+    borderRadius: RADIUS.sm,
+    padding: SPACING.sm,
+    backgroundColor: COLORS.surface,
+  },
+  amenityEmptyText: {
+    marginTop: SPACING.xs,
+    fontFamily: FONTS.body,
+    fontSize: 13,
+    color: COLORS.textMuted,
   },
   sectionAction: {
     minWidth: 44,
