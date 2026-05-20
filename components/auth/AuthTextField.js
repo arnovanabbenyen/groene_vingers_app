@@ -17,6 +17,10 @@ const AuthTextField = React.forwardRef(function AuthTextField({
   accessibilityLabel,
   accessibilityHint,
   accessibilityState,
+  returnKeyType,
+  onSubmitEditing,
+  blurOnSubmit,
+  maxLength,
 }, ref) {
   const resolvedAccessibilityState = {
     ...(accessibilityState || {}),
@@ -33,6 +37,10 @@ const AuthTextField = React.forwardRef(function AuthTextField({
           value={value}
           onChangeText={onChangeText}
           onBlur={onBlur}
+  variant = 'default',
+  shellStyle,
+  inputStyle,
+  labelStyle,
           placeholder={placeholder}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
@@ -41,7 +49,19 @@ const AuthTextField = React.forwardRef(function AuthTextField({
           placeholderTextColor={COLORS.border}
           accessibilityLabel={accessibilityLabel}
           accessibilityHint={accessibilityHint}
-          accessibilityState={resolvedAccessibilityState}
+      {label ? <Text style={[styles.label, labelStyle]}>{label}</Text> : null}
+      <View
+        style={[
+          styles.inputShell,
+          variant === 'soft' && styles.inputShellSoft,
+          error && styles.inputShellError,
+          variant === 'soft' && error && styles.inputShellErrorSoft,
+          shellStyle,
+        ]}
+      >
+          onSubmitEditing={onSubmitEditing}
+          blurOnSubmit={blurOnSubmit}
+          maxLength={maxLength}
         />
       </View>
     </View>
@@ -74,8 +94,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  inputShellSoft: {
+    borderWidth: 0,
+    backgroundColor: 'rgba(87,98,56,0.05)',
+  },
   inputShellError: {
     borderColor: COLORS.negative,
+  },
+  inputShellErrorSoft: {
+    borderWidth: 1,
+    backgroundColor: 'rgba(87,98,56,0.05)',
   },
   iconWrap: {
     width: 18,
@@ -87,5 +115,8 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     color: COLORS.textPrimary,
     paddingVertical: 0,
+  },
+  inputSoft: {
+    fontSize: 16,
   },
 });
