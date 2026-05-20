@@ -13,8 +13,10 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
+import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { decode as decodeBase64 } from 'base64-arraybuffer';
 import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 import AuthTextArea from '../../components/auth/AuthTextArea';
@@ -389,13 +391,21 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
 
       for (let index = 0; index < photosToUpload.length; index += 1) {
         const photo = photosToUpload[index];
-        const response = await fetch(photo.localUri);
-        const blob = await response.blob();
         const filePath = `${ownerId}/${Date.now()}-${index}.jpg`;
+
+        // Read local file as base64 (reliable on RN, unlike fetch().blob())
+        const base64 = await FileSystem.readAsStringAsync(photo.localUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+
+        // Decode to ArrayBuffer for Supabase upload
+        const arrayBuffer = decodeBase64(base64);
+
+        console.log(`Uploading photo ${index}: ${arrayBuffer.byteLength} bytes`);
 
         const { error: uploadError } = await supabase.storage
           .from('perceel-fotos')
-          .upload(filePath, blob, {
+          .upload(filePath, arrayBuffer, {
             contentType: 'image/jpeg',
             upsert: false,
           });
