@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, View, Image, Pressable } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, Image, Pressable } from 'react-native';
 import { Bell, Heart, Eye } from 'phosphor-react-native';
 import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
 import BottomNav from '../../components/navigation/BottomNav';
@@ -10,8 +10,6 @@ const GARDEN_IMAGE = require('../../images/overdekt_perceel_met_serre.png');
 
 export default function TuineigenaarHomeScreen({ onLogout }) {
   const [activeTab, setActiveTab] = useState('start');
-  const [isPerceelMenuVisible, setIsPerceelMenuVisible] = useState(false);
-  const [isPerceelFormVisible, setIsPerceelFormVisible] = useState(false);
 
   const requests = [
     {
@@ -32,25 +30,19 @@ export default function TuineigenaarHomeScreen({ onLogout }) {
   function handleTabPress(item) {
     if (item.key === 'perceel') {
       setActiveTab('perceel');
-      setIsPerceelMenuVisible(true);
       return;
     }
 
     setActiveTab(item.key);
-    setIsPerceelMenuVisible(false);
   }
 
-  if (isPerceelFormVisible) {
+  if (activeTab === 'perceel') {
     return (
       <PerceelToevoegenScreen
         onBack={() => {
-          setIsPerceelFormVisible(false);
-          setIsPerceelMenuVisible(false);
           setActiveTab('start');
         }}
         onSaved={() => {
-          setIsPerceelFormVisible(false);
-          setIsPerceelMenuVisible(false);
           setActiveTab('start');
         }}
       />
@@ -162,45 +154,6 @@ export default function TuineigenaarHomeScreen({ onLogout }) {
 
       {/* Bottom Navigation */}
       <BottomNav activeKey={activeTab} onTabPress={handleTabPress} role="tuineigenaar" />
-
-      <Modal
-        visible={isPerceelMenuVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsPerceelMenuVisible(false)}
-      >
-        <Pressable
-          style={styles.menuBackdrop}
-          onPress={() => setIsPerceelMenuVisible(false)}
-          accessibilityRole="button"
-          accessibilityLabel="Menu sluiten"
-        >
-          <Pressable style={styles.menuSheet} onPress={() => {}}>
-            <Text style={styles.menuTitle}>Toevoegen</Text>
-
-            <Pressable
-              onPress={() => {
-                setIsPerceelMenuVisible(false);
-                setIsPerceelFormVisible(true);
-              }}
-              style={styles.menuOption}
-              accessibilityRole="button"
-              accessibilityLabel="Perceel"
-            >
-              <Text style={styles.menuOptionText}>Perceel</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => setIsPerceelMenuVisible(false)}
-              style={styles.menuCancel}
-              accessibilityRole="button"
-              accessibilityLabel="Annuleren"
-            >
-              <Text style={styles.menuCancelText}>Annuleren</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </View>
   );
 }
@@ -369,45 +322,5 @@ const styles = StyleSheet.create({
   dayTextActive: {
     color: COLORS.brand,
     fontWeight: '600',
-  },
-  menuBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    justifyContent: 'flex-end',
-  },
-  menuSheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: SPACING.md,
-    gap: SPACING.sm,
-  },
-  menuTitle: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
-    color: COLORS.textPrimary,
-  },
-  menuOption: {
-    minHeight: 44,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    justifyContent: 'center',
-    paddingHorizontal: SPACING.md,
-  },
-  menuOptionText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-  },
-  menuCancel: {
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  menuCancelText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: 16,
-    color: COLORS.textSecondary,
   },
 });
