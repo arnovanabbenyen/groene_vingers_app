@@ -11,6 +11,7 @@ import {
   Text,
   View,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -21,7 +22,7 @@ import AuthTextField from '../../components/auth/AuthTextField';
 import FieldError from '../../components/notifications/FieldError';
 import ScreenHeader from '../../components/headers/ScreenHeader';
 import { supabase } from '../../services/supabase';
-import { BinocularsIcon, InfoIcon, CalendarIcon, CameraIcon, DropIcon, FrameCornersIcon, RulerIcon, LeafIcon, PaintBrushIcon, PlusCircleIcon, XCircleIcon, ToolboxIcon, ShovelIcon, PlantIcon, RecycleIcon, TreeIcon } from 'phosphor-react-native';
+import { BinocularsIcon, InfoIcon, CalendarIcon, CameraIcon, MapPinIcon, DropIcon, FrameCornersIcon, RulerIcon, LeafIcon, PaintBrushIcon, PlusCircleIcon, XCircleIcon, ToolboxIcon, ShovelIcon, PlantIcon, RecycleIcon, TreeIcon } from 'phosphor-react-native';
 
 const IMG_ARROW_LEFT = 'http://localhost:3845/assets/823f067bbf1763ad90d2dac8f9d3bad9ec4cf79f.svg';
 const IMG_POPUP_ICON = 'http://localhost:3845/assets/4c6187f5874a7cc596bcee028d8ed521433957b7.svg';
@@ -71,7 +72,11 @@ function createEmptyPhotoSlots() {
 export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
   const [naam, setNaam] = useState('');
   const [beschrijving, setBeschrijving] = useState('');
+  const [adres, setAdres] = useState('');
   const [grootteInput, setGrootteInput] = useState('');
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [isAddressLoading, setIsAddressLoading] = useState(false);
+  const [adresCoords, setAdresCoords] = useState(null); // { lat, lng }
   const [extraInfoDraft, setExtraInfoDraft] = useState('');
   const [extraInfoItems, setExtraInfoItems] = useState([]);
   const [selectedAmenities, setSelectedAmenities] = useState([]);
@@ -83,6 +88,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
 
   const naamRef = useRef(null);
   const extraInfoRef = useRef(null);
+  const adresRef = useRef(null);
   const grootteRef = useRef(null);
 
   const grootte = useMemo(() => parseGrootte(extraInfoItems), [extraInfoItems]);
@@ -99,6 +105,46 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
       if (!normalized) return filtered;
       return [`Grootte: ${normalized}`, ...filtered];
     });
+  }
+
+  useEffect(() => {
+    if (!adres || adres.trim().length === 0) {
+      setAddressSuggestions([]);
+      setIsAddressLoading(false);
+      return undefined;
+    }
+
+    const handle = setTimeout(async () => {
+      setIsAddressLoading(true);
+      try {
+        const key = process.env.EXPO_PUBLIC_LOCATIONIQ_KEY;
+        if (!key) {
+          setAddressSuggestions([]);
+          return;
+        }
+
+        const url = `https://us1.locationiq.com/v1/autocomplete.php?key=${key}&q=${encodeURIComponent(adres)}&format=json&limit=5&countrycodes=be,nl`;
+        const res = await fetch(url);
+        const json = await res.json();
+        const suggestions = Array.isArray(json) ? json : [];
+        setAddressSuggestions(suggestions);
+        AccessibilityInfo.announceForAccessibility(`${suggestions.length} suggesties gevonden`);
+      } catch (err) {
+        setAddressSuggestions([]);
+      } finally {
+        setIsAddressLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(handle);
+  }, [adres]);
+
+  function selectAddressSuggestion(suggestion) {
+    const formatted = suggestion.display_name || suggestion.label || '';
+    setAdres(formatted);
+    setAdresCoords({ lat: parseFloat(suggestion.lat), lng: parseFloat(suggestion.lon) });
+    setAddressSuggestions([]);
+    AccessibilityInfo.announceForAccessibility('Adres geselecteerd');
   }
 
   function setValidationError(field, message) {
@@ -363,6 +409,9 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
         naam: naam.trim(),
         beschrijving: beschrijving.trim() || null,
         grootte: grootte || null,
+        adres: adres && adres.trim() ? adres.trim() : null,
+        lat: adresCoords?.lat ?? null,
+        lng: adresCoords?.lng ?? null,
         extra_info: extraInfoItems,
         voorzieningen: selectedAmenities,
         fotos: uploadedUrls,
@@ -427,6 +476,8 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
           {errors.naam ? <FieldError message={errors.naam} /> : null}
         </View>
 
+        {/* Address input is rendered after the Grootte card (see below) */}
+
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
             <RulerIcon size={28} color={COLORS.accent} weight="regular" />
@@ -453,6 +504,54 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
               </Pressable>
             </View>
           </View>
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <MapPinIcon size={32} color={COLORS.accent} weight="regular" />
+            <Text style={styles.sectionTitle}>Adres</Text>
+          </View>
+
+          <View>
+            <View style={[styles.softInputShell, styles.addressShell]}>
+              <TextInput
+                ref={adresRef}
+                value={adres}
+                onChangeText={(t) => {
+                  setAdres(t);
+                  setAdresCoords(null);
+                }}
+                placeholder="Straat, nummer, postcode en gemeente"
+                placeholderTextColor={COLORS.textMuted}
+                accessibilityRole="combobox"
+                accessibilityLabel="Adres van het perceel"
+                accessibilityHint="Begin te typen om suggesties te zien"
+                style={[styles.softInputText, styles.addressTextInput]}
+                returnKeyType="done"
+              />
+
+              {isAddressLoading ? <ActivityIndicator style={styles.suggestionLoading} size="small" color={COLORS.accent} /> : null}
+            </View>
+
+            {addressSuggestions && addressSuggestions.length > 0 ? (
+              <View style={styles.suggestionsContainer}>
+                {addressSuggestions.map((s, i) => (
+                  <Pressable
+                    key={s.place_id || `${i}`}
+                    onPress={() => selectAddressSuggestion(s)}
+                    style={styles.suggestionItem}
+                    accessibilityRole="button"
+                    accessibilityLabel={s.display_name}
+                  >
+                    <Text style={styles.suggestionText}>{s.display_name}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : adres && !isAddressLoading ? (
+              <Text style={styles.suggestionHelperText}>Geen adressen gevonden</Text>
+            ) : null}
+          </View>
+
         </View>
 
         <View style={styles.card}>
@@ -907,6 +1006,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.xs,
     minHeight: 22,
+  },
+  addressShell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingRight: 12,
+  },
+  addressTextInput: {
+    flex: 1,
+    fontFamily: FONTS.body,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    paddingVertical: 10,
+  },
+  suggestionsContainer: {
+    marginTop: 6,
+    borderRadius: RADIUS.xs,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.dividerSoft,
+    overflow: 'hidden',
+  },
+  suggestionItem: {
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+  },
+  suggestionText: {
+    fontFamily: FONTS.body,
+    fontSize: 15,
+    color: COLORS.textPrimary,
+  },
+  suggestionHelperText: {
+    marginTop: SPACING.xs,
+    fontFamily: FONTS.body,
+    fontSize: 13,
+    color: COLORS.textMuted,
+  },
+  suggestionLoading: {
+    marginLeft: SPACING.sm,
   },
   extraInfoBulletWrap: {
     width: 5,
