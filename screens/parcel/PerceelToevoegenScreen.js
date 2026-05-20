@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import {
   AccessibilityInfo,
   Alert,
@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Text,
   View,
+  TextInput,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -20,7 +21,7 @@ import AuthTextField from '../../components/auth/AuthTextField';
 import FieldError from '../../components/notifications/FieldError';
 import ScreenHeader from '../../components/headers/ScreenHeader';
 import { supabase } from '../../services/supabase';
-import { BinocularsIcon, InfoIcon, CalendarIcon, CameraIcon, DropIcon, FrameCornersIcon, LeafIcon, PaintBrushIcon, PlusCircleIcon, XCircleIcon, ToolboxIcon, ShovelIcon, PlantIcon, RecycleIcon, TreeIcon } from 'phosphor-react-native';
+import { BinocularsIcon, InfoIcon, CalendarIcon, CameraIcon, DropIcon, FrameCornersIcon, RulerIcon, LeafIcon, PaintBrushIcon, PlusCircleIcon, XCircleIcon, ToolboxIcon, ShovelIcon, PlantIcon, RecycleIcon, TreeIcon } from 'phosphor-react-native';
 
 const IMG_ARROW_LEFT = 'http://localhost:3845/assets/823f067bbf1763ad90d2dac8f9d3bad9ec4cf79f.svg';
 const IMG_POPUP_ICON = 'http://localhost:3845/assets/4c6187f5874a7cc596bcee028d8ed521433957b7.svg';
@@ -70,6 +71,7 @@ function createEmptyPhotoSlots() {
 export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
   const [naam, setNaam] = useState('');
   const [beschrijving, setBeschrijving] = useState('');
+  const [grootteInput, setGrootteInput] = useState('');
   const [extraInfoDraft, setExtraInfoDraft] = useState('');
   const [extraInfoItems, setExtraInfoItems] = useState([]);
   const [selectedAmenities, setSelectedAmenities] = useState([]);
@@ -81,8 +83,23 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
 
   const naamRef = useRef(null);
   const extraInfoRef = useRef(null);
+  const grootteRef = useRef(null);
 
   const grootte = useMemo(() => parseGrootte(extraInfoItems), [extraInfoItems]);
+
+  useEffect(() => {
+    setGrootteInput(grootte || '');
+  }, [grootte]);
+
+  function saveGrootteInput() {
+    const cleaned = (grootteInput || '').replace(/m²|m2/gi, '').trim();
+    const normalized = normalizeExtraInfo(cleaned);
+    setExtraInfoItems((current) => {
+      const filtered = current.filter((it) => !it.toLowerCase().startsWith('grootte:'));
+      if (!normalized) return filtered;
+      return [`Grootte: ${normalized}`, ...filtered];
+    });
+  }
 
   function setValidationError(field, message) {
     setErrors((current) => ({ ...current, [field]: message }));
@@ -408,6 +425,34 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
             inputStyle={styles.softInputText}
           />
           {errors.naam ? <FieldError message={errors.naam} /> : null}
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <RulerIcon size={28} color={COLORS.accent} weight="regular" />
+            <Text style={styles.sectionTitle}>Grootte perceel</Text>
+          </View>
+
+          <View style={styles.grootteWrapper}>
+            <View style={[styles.softInputShell, styles.grootteShell]}>
+              <TextInput
+                ref={grootteRef}
+                value={grootteInput}
+                onChangeText={setGrootteInput}
+                placeholder="Bijvoorbeeld 40..."
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="number-pad"
+                returnKeyType="done"
+                onBlur={saveGrootteInput}
+                onSubmitEditing={saveGrootteInput}
+                style={styles.grootteTextInput}
+              />
+
+              <Pressable style={styles.grootteUnitOverlay} onPress={() => grootteRef.current?.focus?.()} accessibilityRole="button" accessibilityLabel="Eenheid">
+                <Text style={styles.grootteUnitOverlayText}>m²</Text>
+              </Pressable>
+            </View>
+          </View>
         </View>
 
         <View style={styles.card}>
@@ -889,6 +934,44 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  grootteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    position: 'relative',
+  },
+  grootteWrapper: {
+    marginTop: SPACING.xs,
+  },
+  grootteShell: {
+    position: 'relative',
+    height: 36,
+    paddingRight: 56,
+    justifyContent: 'center',
+    borderRadius: RADIUS.xs,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 12,
+  },
+  grootteTextInput: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: 18,
+    color: COLORS.textPrimary,
+  },
+  grootteUnitOverlay: {
+    position: 'absolute',
+    right: 12,
+    top: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  grootteUnitOverlayText: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: 18,
+    color: COLORS.textSecondary,
   },
   extraInfoText: {
     flex: 1,
