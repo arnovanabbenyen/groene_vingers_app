@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   Alert,
+  Dimensions,
   Image,
   Modal,
   Pressable,
@@ -19,24 +20,23 @@ import AuthTextField from '../../components/auth/AuthTextField';
 import FieldError from '../../components/notifications/FieldError';
 import ScreenHeader from '../../components/headers/ScreenHeader';
 import { supabase } from '../../services/supabase';
-import { CameraIcon, FrameCornersIcon } from 'phosphor-react-native';
+import { CameraIcon, FrameCornersIcon, PlusCircle, XCircleIcon } from 'phosphor-react-native';
 
 const IMG_DESCRIPTION = 'http://localhost:3845/assets/c22d2bb0423ebd02d9ca24f2984ddd36b5d104e3.svg';
 const IMG_AMENITIES = 'http://localhost:3845/assets/55b0d5050ea94d4478f0d4a274cea6ce992889fe.svg';
 const IMG_AMENITIES_ADD = 'http://localhost:3845/assets/768b60194f299d8a06eaad029408ee8deabd0667.svg';
 const IMG_EXTRA = 'http://localhost:3845/assets/c19ef960ca56d7452eb9cb554c6e1f0878f222fc.svg';
 const IMG_ARROW_LEFT = 'http://localhost:3845/assets/823f067bbf1763ad90d2dac8f9d3bad9ec4cf79f.svg';
-const IMG_SAMPLE_PHOTO = 'http://localhost:3845/assets/857199f83e6ee66097c2acbb287412099fc7b745.png';
-const IMG_PHOTO_REMOVE = 'http://localhost:3845/assets/08e59dfaafacb1cc679c9adbfca7fa56f6f8e5f6.svg';
-const IMG_EMPTY_PLUS = 'http://localhost:3845/assets/8cf5c500f73c04c90540fb5d290d8a5ae12a9977.svg';
 const IMG_WATER = 'http://localhost:3845/assets/063801bb394747a450dc2eb31a860de553e409c7.svg';
 const IMG_MATERIAAL = 'http://localhost:3845/assets/2f5dfb33af36eac04d4c671a125c2b9a8715ed88.svg';
 const IMG_ZADEN = 'http://localhost:3845/assets/4eca3e172c3c8d9b87324a1cdd847cb1b1af0ada.svg';
 const IMG_EXTRA_BULLET = 'http://localhost:3845/assets/db775ac6fdc7f1baf0dcdeb5e9eba827734a3827.svg';
 const IMG_ROW_REMOVE = 'http://localhost:3845/assets/4c6187f5874a7cc596bcee028d8ed521433957b7.svg';
 
-const PHOTO_TILE_WIDTH = 141;
-const PHOTO_TILE_HEIGHT = 121;
+const PHOTO_TILE_WIDTH = Math.round(
+  (Dimensions.get('window').width - (SPACING.screenX * 2) - (SPACING.md * 2) - SPACING.md) / 2,
+);
+const PHOTO_TILE_HEIGHT = Math.round((PHOTO_TILE_WIDTH * 121) / 141);
 
 const AMENITY_OPTIONS = [
   { label: 'Water', icon: IMG_WATER },
@@ -46,13 +46,6 @@ const AMENITY_OPTIONS = [
   { label: 'Gereedschap', icon: IMG_MATERIAAL },
   { label: 'Schaduw', icon: IMG_ZADEN },
 ];
-
-const PLACEHOLDER_PHOTO = {
-  id: 'placeholder-photo',
-  previewUri: IMG_SAMPLE_PHOTO,
-  localUri: null,
-  isPlaceholder: true,
-};
 
 function uid(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -78,13 +71,17 @@ function normalizeExtraInfo(input) {
   return trimmed;
 }
 
+function createEmptyPhotoSlots() {
+  return Array.from({ length: 4 }, () => null);
+}
+
 export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
   const [naam, setNaam] = useState('');
   const [beschrijving, setBeschrijving] = useState('');
   const [extraInfoDraft, setExtraInfoDraft] = useState('');
   const [extraInfoItems, setExtraInfoItems] = useState([]);
   const [selectedAmenities, setSelectedAmenities] = useState(['Water', 'Materiaal', 'Zaden']);
-  const [photos, setPhotos] = useState([PLACEHOLDER_PHOTO]);
+  const [photos, setPhotos] = useState(() => createEmptyPhotoSlots());
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -128,37 +125,31 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
     return true;
   }
 
-  function updatePhotos(updater) {
+  function setPhotoAtIndex(index, newPhoto) {
     setPhotos((current) => {
-      const next = updater(current);
-      const normalized = next.filter(Boolean);
-      return normalized.length > 0 ? normalized.slice(0, 4) : [PLACEHOLDER_PHOTO];
+      const next = current.slice(0, 4);
+      next[index] = newPhoto;
+      return next;
     });
   }
 
-  function replacePlaceholderOrAppend(newPhoto) {
-    updatePhotos((current) => {
-      const realPhotos = current.filter((item) => !item.isPlaceholder);
-      return [...realPhotos, newPhoto];
-    });
-  }
-
-  function replacePhotoAtIndex(index, newPhoto) {
-    updatePhotos((current) => {
-      const realPhotos = current.filter((item) => !item.isPlaceholder);
-      if (index >= 0 && index < realPhotos.length) {
-        realPhotos[index] = newPhoto;
-        return realPhotos;
+  function addPhotoToFirstEmptySlot(newPhoto) {
+    setPhotos((current) => {
+      const next = current.slice(0, 4);
+      const emptyIndex = next.findIndex((item) => !item);
+      if (emptyIndex === -1) {
+        return next;
       }
-      return [...realPhotos, newPhoto];
+      next[emptyIndex] = newPhoto;
+      return next;
     });
   }
 
   function removePhotoAtIndex(index) {
-    updatePhotos((current) => {
-      const realPhotos = current.filter((item) => !item.isPlaceholder);
-      realPhotos.splice(index, 1);
-      return realPhotos;
+    setPhotos((current) => {
+      const next = current.slice(0, 4);
+      next[index] = null;
+      return next;
     });
   }
 
@@ -192,9 +183,9 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
 
       const nextPhoto = createPhoto(manipulated.uri, manipulated.uri);
       if (typeof index === 'number') {
-        replacePhotoAtIndex(index, nextPhoto);
+        setPhotoAtIndex(index, nextPhoto);
       } else {
-        replacePlaceholderOrAppend(nextPhoto);
+        addPhotoToFirstEmptySlot(nextPhoto);
       }
     } catch (error) {
       const message = error.message || 'Foto kiezen mislukt.';
@@ -232,9 +223,9 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
 
       const nextPhoto = createPhoto(manipulated.uri, manipulated.uri);
       if (typeof index === 'number') {
-        replacePhotoAtIndex(index, nextPhoto);
+        setPhotoAtIndex(index, nextPhoto);
       } else {
-        replacePlaceholderOrAppend(nextPhoto);
+        addPhotoToFirstEmptySlot(nextPhoto);
       }
     } catch (error) {
       const message = error.message || 'Camera openen mislukt.';
@@ -404,7 +395,9 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
               if (photo) {
                 return (
                   <View key={photo.id} style={styles.photoSlot}>
-                    <Image source={{ uri: photo.previewUri }} style={styles.photoImage} />
+                    <View style={styles.photoFrame}>
+                      <Image source={{ uri: photo.previewUri }} style={styles.photoImage} />
+                    </View>
                     <Pressable
                       onPress={() => removePhotoAtIndex(index)}
                       style={styles.photoRemove}
@@ -412,7 +405,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
                       accessibilityLabel="Foto verwijderen"
                       accessibilityHint="Verwijder deze foto uit het perceel"
                     >
-                      <Image source={{ uri: IMG_PHOTO_REMOVE }} style={styles.photoRemoveIcon} />
+                      <XCircleIcon size={20} color={COLORS.negative} weight="regular" />
                     </Pressable>
                   </View>
                 );
@@ -427,7 +420,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
                   accessibilityLabel="Foto toevoegen"
                   accessibilityHint="Voeg een foto toe aan dit perceel"
                 >
-                  <Image source={{ uri: IMG_EMPTY_PLUS }} style={styles.emptyPlusIcon} />
+                  <PlusCircle size={24} color={COLORS.textPrimary} weight="regular" />
                 </Pressable>
               );
             })}
@@ -671,27 +664,36 @@ const styles = StyleSheet.create({
     width: PHOTO_TILE_WIDTH,
     height: PHOTO_TILE_HEIGHT,
     borderRadius: RADIUS.sm,
-    overflow: 'hidden',
+    overflow: 'visible',
     position: 'relative',
+  },
+  photoFrame: {
+    width: '100%',
+    height: '100%',
+    borderRadius: RADIUS.sm,
+    overflow: 'hidden',
   },
   photoImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
-    borderRadius: RADIUS.sm,
   },
   photoRemove: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    minWidth: 44,
-    minHeight: 44,
-    alignItems: 'flex-end',
-    justifyContent: 'flex-start',
-  },
-  photoRemoveIcon: {
-    width: 16,
-    height: 16,
+    top: -10,
+    right: -10,
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 3,
+    elevation: 3,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
   },
   emptyPhotoSlot: {
     width: PHOTO_TILE_WIDTH,
@@ -703,10 +705,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.surface,
-  },
-  emptyPlusIcon: {
-    width: 24,
-    height: 24,
   },
   amenityRow: {
     flexDirection: 'row',
