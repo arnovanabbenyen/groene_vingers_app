@@ -20,9 +20,8 @@ import AuthTextField from '../../components/auth/AuthTextField';
 import FieldError from '../../components/notifications/FieldError';
 import ScreenHeader from '../../components/headers/ScreenHeader';
 import { supabase } from '../../services/supabase';
-import { CameraIcon, FrameCornersIcon, PlusCircle, XCircleIcon } from 'phosphor-react-native';
+import { BinocularsIcon, CameraIcon, FrameCornersIcon, PlusCircle, XCircleIcon } from 'phosphor-react-native';
 
-const IMG_DESCRIPTION = 'http://localhost:3845/assets/c22d2bb0423ebd02d9ca24f2984ddd36b5d104e3.svg';
 const IMG_AMENITIES = 'http://localhost:3845/assets/55b0d5050ea94d4478f0d4a274cea6ce992889fe.svg';
 const IMG_AMENITIES_ADD = 'http://localhost:3845/assets/768b60194f299d8a06eaad029408ee8deabd0667.svg';
 const IMG_EXTRA = 'http://localhost:3845/assets/c19ef960ca56d7452eb9cb554c6e1f0878f222fc.svg';
@@ -464,7 +463,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
 
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
-            <Image source={{ uri: IMG_DESCRIPTION }} style={styles.sectionIcon} />
+            <BinocularsIcon size={32} color={COLORS.accent} weight="regular" />
             <Text style={styles.sectionTitle}>Beschrijving:</Text>
           </View>
 
@@ -476,6 +475,8 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
             height={216}
             accessibilityLabel="Beschrijving van het perceel"
             accessibilityHint="Geef een beschrijving van je perceel"
+            shellStyle={styles.descriptionShell}
+            inputStyle={styles.descriptionInput}
           />
         </View>
 
@@ -688,6 +689,16 @@ const styles = StyleSheet.create({
   softInputText: {
     fontSize: 16,
     fontFamily: FONTS.body,
+  },
+  descriptionShell: {
+    borderRadius: 8,
+    backgroundColor: 'rgba(87,98,56,0.05)',
+    padding: 8,
+  },
+  descriptionInput: {
+    fontSize: 16,
+    fontFamily: FONTS.body,
+    lineHeight: 16,
   },
   photoGrid: {
     flexDirection: 'row',
