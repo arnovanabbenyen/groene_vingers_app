@@ -2,26 +2,33 @@ import React from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { COLORS, FONTS, RADIUS } from '../theme/tokens';
 
-const AuthTextField = React.forwardRef(function AuthTextField({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  icon,
-  keyboardType,
-  autoCapitalize,
-  secureTextEntry,
-  halfWidth = false,
-  error = false,
-  onBlur,
-  accessibilityLabel,
-  accessibilityHint,
-  accessibilityState,
-  returnKeyType,
-  onSubmitEditing,
-  blurOnSubmit,
-  maxLength,
-}, ref) {
+const AuthTextField = React.forwardRef(function AuthTextField(
+  {
+    label,
+    value,
+    onChangeText,
+    placeholder,
+    icon,
+    keyboardType,
+    autoCapitalize,
+    secureTextEntry,
+    halfWidth = false,
+    error = false,
+    onBlur,
+    accessibilityLabel,
+    accessibilityHint,
+    accessibilityState,
+    returnKeyType,
+    onSubmitEditing,
+    blurOnSubmit,
+    maxLength,
+    variant = 'default',
+    shellStyle,
+    inputStyle,
+    labelStyle,
+  },
+  ref,
+) {
   const resolvedAccessibilityState = {
     ...(accessibilityState || {}),
     invalid: error || accessibilityState?.invalid || undefined,
@@ -29,26 +36,6 @@ const AuthTextField = React.forwardRef(function AuthTextField({
 
   return (
     <View style={[styles.fieldWrap, halfWidth && styles.fieldHalf]}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={[styles.inputShell, error && styles.inputShellError]}>
-        {icon ? <View style={styles.iconWrap}>{icon}</View> : null}
-        <TextInput
-          ref={ref}
-          value={value}
-          onChangeText={onChangeText}
-          onBlur={onBlur}
-  variant = 'default',
-  shellStyle,
-  inputStyle,
-  labelStyle,
-          placeholder={placeholder}
-          keyboardType={keyboardType}
-          autoCapitalize={autoCapitalize}
-          secureTextEntry={secureTextEntry}
-          style={styles.input}
-          placeholderTextColor={COLORS.border}
-          accessibilityLabel={accessibilityLabel}
-          accessibilityHint={accessibilityHint}
       {label ? <Text style={[styles.label, labelStyle]}>{label}</Text> : null}
       <View
         style={[
@@ -59,6 +46,22 @@ const AuthTextField = React.forwardRef(function AuthTextField({
           shellStyle,
         ]}
       >
+        {icon ? <View style={styles.iconWrap}>{icon}</View> : null}
+        <TextInput
+          ref={ref}
+          value={value}
+          onChangeText={onChangeText}
+          onBlur={onBlur}
+          placeholder={placeholder}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          secureTextEntry={secureTextEntry}
+          style={[styles.input, variant === 'soft' && styles.inputSoft, inputStyle]}
+          placeholderTextColor={COLORS.border}
+          accessibilityLabel={accessibilityLabel}
+          accessibilityHint={accessibilityHint}
+          accessibilityState={resolvedAccessibilityState}
+          returnKeyType={returnKeyType}
           onSubmitEditing={onSubmitEditing}
           blurOnSubmit={blurOnSubmit}
           maxLength={maxLength}
