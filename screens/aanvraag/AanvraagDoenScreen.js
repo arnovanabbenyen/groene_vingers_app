@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   Image,
-  Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import {
   ArrowLeftIcon,
-  CaretDownIcon,
   DropIcon,
   LeafIcon,
   MapPinIcon,
@@ -20,6 +19,8 @@ import {
   StarIcon,
   TreeIcon,
 } from 'phosphor-react-native';
+import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 import FieldError from '../../components/notifications/FieldError';
@@ -66,35 +67,6 @@ function AmenityIcon({ label }) {
   return <LeafIcon size={16} color={COLORS.textPrimary} weight="regular" />;
 }
 
-function DropdownField({
-  label,
-  value,
-  onPress,
-  expanded,
-  accessibilityLabel,
-  accessibilityHint,
-  testRef,
-  compact = false,
-}) {
-  return (
-    <View style={compact ? styles.dateField : styles.fieldGroup}>
-      {!compact ? <Text style={styles.sectionTitle}>{label}</Text> : null}
-      <Pressable
-        ref={testRef}
-        onPress={onPress}
-        style={compact ? styles.dateDropdown : styles.dropdown}
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
-        accessibilityHint={accessibilityHint}
-        accessibilityState={{ expanded }}
-      >
-        <Text style={compact ? styles.dateDropdownText : styles.dropdownText}>{value}</Text>
-        <CaretDownIcon size={16} color={COLORS.textPrimary} weight="regular" />
-      </Pressable>
-    </View>
-  );
-}
-
 export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
   if (!perceel && !__DEV__) {
     console.warn('AanvraagDoenScreen is using MOCK_PERCEEL fallback in production.');
@@ -107,30 +79,12 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
   const [motivation, setMotivation] = useState('');
   const [type, setType] = useState(TYPE_OPTIONS[0]);
   const [availability, setAvailability] = useState([]);
-  const [day, setDay] = useState(String(today.getDate()));
-  const [month, setMonth] = useState(String(today.getMonth() + 1).padStart(2, '0'));
-  const [year, setYear] = useState(String(currentYear));
+  const [startDate, setStartDate] = useState(today);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [pickerType, setPickerType] = useState('type');
   const [heroImageError, setHeroImageError] = useState(false);
 
   const motivationRef = useRef(null);
-  const dayDropdownRef = useRef(null);
-
-  const dayOptions = useMemo(
-    () => Array.from({ length: 31 }, (_, index) => String(index + 1)),
-    [],
-  );
-  const monthOptions = useMemo(
-    () => Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0')),
-    [],
-  );
-  const yearOptions = useMemo(
-    () => [String(currentYear), String(currentYear + 1), String(currentYear + 2)],
-    [currentYear],
-  );
 
   const perceelItems = useMemo(() => getPerceelItems(perceel), [perceel]);
 
@@ -140,30 +94,6 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
   }, [perceel.fotos, perceel.image]);
 
   const hasHeroImage = Boolean(heroSource?.uri || heroSource);
-
-  const pickerOptions = useMemo(() => {
-    if (pickerType === 'type') return TYPE_OPTIONS;
-    if (pickerType === 'day') return dayOptions;
-    if (pickerType === 'month') return monthOptions;
-    return yearOptions;
-  }, [pickerType, dayOptions, monthOptions, yearOptions]);
-
-  function openPicker(kind) {
-    setPickerType(kind);
-    setIsPickerOpen(true);
-  }
-
-  function closePicker() {
-    setIsPickerOpen(false);
-  }
-
-  function selectPickerValue(value) {
-    if (pickerType === 'type') setType(value);
-    if (pickerType === 'day') setDay(value);
-    if (pickerType === 'month') setMonth(value);
-    if (pickerType === 'year') setYear(value);
-    closePicker();
-  }
 
   function toggleDay(label) {
     setAvailability((current) => (
@@ -181,26 +111,12 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
     if (!type) {
       next.type = 'Kies een type samenwerking';
     }
-    if (!day || !month || !year) {
-      next.date = 'Kies een startdatum';
-    } else {
-      const dayNumber = parseInt(day, 10);
-      const monthNumber = parseInt(month, 10);
-      const yearNumber = parseInt(year, 10);
-      const chosenDate = new Date(yearNumber, monthNumber - 1, dayNumber);
-      const isValidDate = chosenDate.getFullYear() === yearNumber
-        && chosenDate.getMonth() === monthNumber - 1
-        && chosenDate.getDate() === dayNumber;
-
-      if (!isValidDate) {
-        next.date = 'Kies een geldige startdatum';
-      } else {
-        const todayAtMidnight = new Date();
-        todayAtMidnight.setHours(0, 0, 0, 0);
-        if (chosenDate <= todayAtMidnight) {
-          next.date = 'De gewenste startdatum moet in de toekomst liggen';
-        }
-      }
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const picked = new Date(startDate);
+    picked.setHours(0, 0, 0, 0);
+    if (picked < now) {
+      next.date = 'De startdatum moet in de toekomst liggen';
     }
 
     setErrors(next);
@@ -210,8 +126,6 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
       AccessibilityInfo.announceForAccessibility(next[firstKey]);
       if (firstKey === 'motivation') {
         motivationRef.current?.focus?.();
-      } else if (firstKey === 'date') {
-        dayDropdownRef.current?.focus?.();
       }
     }
 
@@ -232,7 +146,7 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
         throw new Error('Je bent niet ingelogd. Log opnieuw in en probeer het opnieuw.');
       }
 
-      const startDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      const formattedDate = startDate.toISOString().split('T')[0];
 
       const row = {
         perceel_id: perceel?.id,
@@ -240,7 +154,7 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
         motivation: motivation.trim(),
         type_samenwerking: type,
         availability,
-        start_date: startDate,
+        start_date: formattedDate,
         status: 'pending',
       };
 
@@ -340,14 +254,21 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
         </View>
 
         <View style={styles.formSection}>
-          <DropdownField
-            label="Type samenwerking:"
-            value={type}
-            onPress={() => openPicker('type')}
-            expanded={isPickerOpen && pickerType === 'type'}
+          <Text style={styles.sectionTitle}>Type samenwerking:</Text>
+          <View
+            style={styles.pickerWrapper}
             accessibilityLabel="Type samenwerking"
-            accessibilityHint="Open de keuzelijst voor type samenwerking"
-          />
+          >
+            <Picker
+              selectedValue={type}
+              onValueChange={(itemValue) => setType(itemValue)}
+              accessibilityLabel="Type samenwerking"
+            >
+              {TYPE_OPTIONS.map((option) => (
+                <Picker.Item key={option} label={option} value={option} />
+              ))}
+            </Picker>
+          </View>
           {errors.type ? <FieldError message={errors.type} /> : null}
         </View>
 
@@ -375,31 +296,17 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
 
         <View style={styles.formSection}>
           <Text style={styles.sectionTitle}>Gewenste start datum:</Text>
-          <View style={styles.dateRow}>
-            <DropdownField
-              compact
-              value={day}
-              onPress={() => openPicker('day')}
-              expanded={isPickerOpen && pickerType === 'day'}
-              accessibilityLabel="Startdatum dag"
-              accessibilityHint="Open de keuzelijst voor dag"
-              testRef={dayDropdownRef}
-            />
-            <DropdownField
-              compact
-              value={month}
-              onPress={() => openPicker('month')}
-              expanded={isPickerOpen && pickerType === 'month'}
-              accessibilityLabel="Startdatum maand"
-              accessibilityHint="Open de keuzelijst voor maand"
-            />
-            <DropdownField
-              compact
-              value={year}
-              onPress={() => openPicker('year')}
-              expanded={isPickerOpen && pickerType === 'year'}
-              accessibilityLabel="Startdatum jaar"
-              accessibilityHint="Open de keuzelijst voor jaar"
+          <View style={styles.datePickerWrapper} accessibilityLabel="Gewenste startdatum">
+            <DateTimePicker
+              value={startDate}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, selectedDate) => {
+                if (selectedDate) setStartDate(selectedDate);
+              }}
+              minimumDate={new Date()}
+              accessibilityLabel="Gewenste startdatum"
+              locale="nl-BE"
             />
           </View>
           {errors.date ? <FieldError message={errors.date} /> : null}
@@ -414,51 +321,6 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
           loading={loading}
         />
       </ScrollView>
-
-      <Modal
-        visible={isPickerOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={closePicker}
-      >
-        <Pressable style={styles.modalBackdrop} onPress={closePicker}>
-          <Pressable style={styles.modalSheet} onPress={() => {}} accessibilityRole="dialog">
-            <Text style={styles.modalTitle}>
-              {pickerType === 'type'
-                ? 'Type samenwerking'
-                : pickerType === 'day'
-                ? 'Kies dag'
-                : pickerType === 'month'
-                ? 'Kies maand'
-                : 'Kies jaar'}
-            </Text>
-
-            {pickerOptions.map((option) => {
-              const selected = (pickerType === 'type' && option === type)
-                || (pickerType === 'day' && option === day)
-                || (pickerType === 'month' && option === month)
-                || (pickerType === 'year' && option === year);
-
-              return (
-                <Pressable
-                  key={option}
-                  onPress={() => selectPickerValue(option)}
-                  style={[styles.modalOption, selected && styles.modalOptionSelected]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  accessibilityLabel={option}
-                >
-                  <Text style={[styles.modalOptionText, selected && styles.modalOptionTextSelected]}>{option}</Text>
-                </Pressable>
-              );
-            })}
-
-            <Pressable onPress={closePicker} style={styles.modalCloseButton} accessibilityRole="button" accessibilityLabel="Sluit keuzelijst">
-              <Text style={styles.modalCloseText}>Sluiten</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </View>
   );
 }
@@ -637,20 +499,11 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     textAlignVertical: 'top',
   },
-  dropdown: {
-    height: 34,
+  pickerWrapper: {
+    minHeight: 160,
     borderRadius: 8,
     backgroundColor: 'rgba(87,98,56,0.05)',
-    paddingHorizontal: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  dropdownText: {
-    color: COLORS.textPrimary,
-    fontSize: 16,
-    lineHeight: 16,
-    fontFamily: FONTS.displaySemiBold,
+    justifyContent: 'center',
   },
   weekdayRow: {
     flexDirection: 'row',
@@ -678,82 +531,9 @@ const styles = StyleSheet.create({
   weekdayTextSelected: {
     color: COLORS.textInverse,
   },
-  dateRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  dateField: {
-    flex: 1,
-  },
-  dateDropdown: {
-    height: 34,
-    borderRadius: 4,
+  datePickerWrapper: {
+    borderRadius: 8,
     backgroundColor: 'rgba(87,98,56,0.05)',
-    paddingHorizontal: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  dateDropdownText: {
-    color: '#000000',
-    fontSize: 16,
-    lineHeight: 16,
-    fontFamily: FONTS.bodyMedium,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: RADIUS.xl,
-    borderTopRightRadius: RADIUS.xl,
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.lg,
-    gap: SPACING.sm,
-  },
-  modalTitle: {
-    color: COLORS.textPrimary,
-    fontSize: 20,
-    lineHeight: 22,
-    fontFamily: FONTS.displaySemiBold,
-    marginBottom: SPACING.xs,
-  },
-  modalOption: {
-    minHeight: 44,
-    justifyContent: 'center',
-    borderRadius: RADIUS.sm,
-    paddingHorizontal: SPACING.sm,
-  },
-  modalOptionSelected: {
-    backgroundColor: 'rgba(87,98,56,0.08)',
-  },
-  modalOptionText: {
-    color: COLORS.textPrimary,
-    fontSize: 16,
-    lineHeight: 20,
-    fontFamily: FONTS.body,
-  },
-  modalOptionTextSelected: {
-    color: COLORS.brand,
-    fontFamily: FONTS.bodyMedium,
-  },
-  modalCloseButton: {
-    marginTop: SPACING.sm,
-    height: 44,
-    borderRadius: RADIUS.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.brand,
-  },
-  modalCloseText: {
-    color: COLORS.brand,
-    fontSize: 16,
-    lineHeight: 16,
-    fontFamily: FONTS.displayMedium,
+    overflow: 'hidden',
   },
 });
