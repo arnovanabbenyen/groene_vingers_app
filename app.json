@@ -37,14 +37,6 @@
       }
     },
     "plugins": [
-      [
-        "@sentry/react-native/expo",
-        {
-          "url": "https://sentry.io/",
-          "project": "react-native",
-          "organization": "arno-van-abbenyen"
-        }
-      ],
       "@react-native-community/datetimepicker"
     ]
   }
