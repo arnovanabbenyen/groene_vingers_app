@@ -61,11 +61,19 @@
         const mapped = (data || []).map((row) => ({
           id: row.id,
           image: row.fotos && row.fotos[0] ? row.fotos[0] : null,
+          fotos: row.fotos || [],
           location: row.plaats || 'Locatie nog niet beschikbaar',
           rating: null,
           title: row.naam,
           size: row.grootte ? `${row.grootte}m²` : null,
+          description: row.beschrijving || null,
+          voorzieningen: row.voorzieningen || [],
+          extraInfo: row.extra_info || [],
           chips: row.voorzieningen || [],
+          ownerId: row.owner_id,
+          adres: row.adres || null,
+          lat: row.lat || null,
+          lng: row.lng || null,
           raw: row,
         }));
 
@@ -218,8 +226,8 @@
                   }}
                 >
                   {filteredPlots.map((plot, index) => (
-                      <PlotCard key={`${plot.id}-${index}`} plot={plot} onPress={() => setSelectedPlot(plot)} />
-                    ))}
+                    <PlotCard key={`${plot.id}-${index}`} plot={plot} onPress={() => setSelectedPlot(plot)} />
+                  ))}
                 </ScrollView>
 
                 {filteredPlots.length === 0 ? (

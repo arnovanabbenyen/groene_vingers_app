@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import ParcelDetailHeader from '../../components/parcel/ParcelDetailHeader';
@@ -5,11 +6,49 @@ import ParcelOverviewSection from '../../components/parcel/ParcelOverviewSection
 import ParcelPresenceSection from '../../components/parcel/ParcelPresenceSection';
 import ParcelInfoList from '../../components/parcel/ParcelInfoList';
 import ParcelOwnerCard from '../../components/parcel/ParcelOwnerCard';
+import { supabase } from '../../services/supabase';
 import { COLORS, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 
 const HERO_IMAGE = require('../../images/overdekt_perceel_met_serre.png');
 
 export default function ParcelDetailScreen({ onBack, onRequest = () => {}, onMorePress = () => {}, perceel = {} }) {
+  const [ownerProfile, setOwnerProfile] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadOwner() {
+      if (!perceel.ownerId || !supabase) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, bio, avatar_url, created_at')
+        .eq('id', perceel.ownerId)
+        .maybeSingle();
+
+      if (error) {
+        console.warn('Could not load owner profile', error);
+        return;
+      }
+
+      if (mounted) setOwnerProfile(data || null);
+    }
+
+    setOwnerProfile(null);
+    loadOwner();
+    return () => {
+      mounted = false;
+    };
+  }, [perceel.ownerId]);
+
+  const ownerDisplayName = ownerProfile
+    ? [ownerProfile.first_name, ownerProfile.last_name].filter(Boolean).join(' ').trim() || 'Eigenaar'
+    : '';
+
+  const ownerJoinYear = ownerProfile?.created_at
+    ? new Date(ownerProfile.created_at).getFullYear()
+    : null;
+
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
@@ -23,12 +62,13 @@ export default function ParcelDetailScreen({ onBack, onRequest = () => {}, onMor
         <ParcelOverviewSection
           heroImage={perceel.image || HERO_IMAGE}
           title={perceel.title || 'Perceel'}
-          location={perceel.plaats || 'Locatie nog niet beschikbaar'}
+          location={perceel.location || perceel.plaats || 'Locatie nog niet beschikbaar'}
           distance={perceel.distance || ''}
-          ownerName={perceel.ownerName || ''}
+          ownerName={ownerDisplayName}
           stats={perceel.stats || [
-            { value: perceel.size ? `${perceel.size}m²` : '30m²', label: 'Grootte' },
+            { value: perceel.size ? perceel.size.replace('m²', '') : '—', valueSuffix: 'm²', label: 'Grootte' },
             { value: 'Nu vrij', label: 'Beschikbaar' },
+            { value: '4.5', label: 'Score' },
           ]}
         />
 
@@ -42,15 +82,15 @@ export default function ParcelDetailScreen({ onBack, onRequest = () => {}, onMor
         </View>
 
         <View style={styles.section}>
-          <ParcelPresenceSection />
+          <ParcelPresenceSection voorzieningen={perceel.voorzieningen || []} />
         </View>
 
         <View style={styles.section}>
-          <ParcelInfoList />
+          <ParcelInfoList items={perceel.extraInfo || []} />
         </View>
 
         <View style={styles.section}>
-          <ParcelOwnerCard />
+          <ParcelOwnerCard ownerProfile={ownerProfile} joinYear={ownerJoinYear} />
         </View>
 
         <View style={styles.divider} />
