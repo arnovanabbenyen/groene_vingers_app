@@ -187,6 +187,7 @@ export default function TuineigenaarHomeScreen({ onLogout }) {
           .from('aanvragen')
           .select(`
             id,
+            sender_id,
             motivation,
             type_samenwerking,
             availability,
@@ -199,12 +200,6 @@ export default function TuineigenaarHomeScreen({ onLogout }) {
               grootte,
               fotos,
               owner_id
-            ),
-            sender:profiles!sender_id (
-              id,
-              first_name,
-              last_name,
-              avatar_url
             )
           `)
           .eq('perceel.owner_id', userId)
@@ -217,7 +212,42 @@ export default function TuineigenaarHomeScreen({ onLogout }) {
           return;
         }
 
-        if (mounted) setAanvragen(data || []);
+        const aanvragenData = data || [];
+        console.log('Aanvragen query result:', aanvragenData.map((item) => ({ id: item.id, sender_id: item.sender_id })));
+        const senderIds = [...new Set(aanvragenData.map((item) => item.sender_id).filter(Boolean))];
+        console.log('Resolved senderIds:', senderIds);
+
+        let senderProfilesById = {};
+        if (senderIds.length > 0) {
+          const { data: senderProfiles, error: senderProfilesError } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, avatar_url')
+            .in('id', senderIds);
+
+          if (senderProfilesError) {
+            console.warn('Failed to load sender profiles', senderProfilesError);
+          } else {
+            senderProfilesById = (senderProfiles || []).reduce((accumulator, senderProfile) => {
+              accumulator[senderProfile.id] = senderProfile;
+              return accumulator;
+            }, {});
+            console.log('Loaded sender profiles:', senderProfiles);
+          }
+        }
+
+        const enrichedAanvragen = aanvragenData.map((aanvraag) => ({
+          ...aanvraag,
+          sender: senderProfilesById[aanvraag.sender_id] || null,
+        }));
+
+        console.log('Enriched aanvragen:', enrichedAanvragen.map((item) => ({
+          id: item.id,
+          sender_id: item.sender_id,
+          senderName: formatRequesterName(item.sender),
+          hasAvatar: Boolean(item.sender?.avatar_url),
+        })));
+
+        if (mounted) setAanvragen(enrichedAanvragen);
       } catch (e) {
         console.warn('loadDashboardData error', e);
         if (mounted) setAanvragen([]);
