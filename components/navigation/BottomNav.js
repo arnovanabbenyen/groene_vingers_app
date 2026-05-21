@@ -53,6 +53,16 @@ function NavIcon({ item, isActive, profileImageSource }) {
   return <ChatsCircleIcon size={NAV_ICON_SIZE} color={color} weight={isActive ? 'fill' : 'regular'} />;
 }
 
+function Badge({ count }) {
+  const label = count > 9 ? '9+' : String(count);
+
+  return (
+    <View style={styles.badge} accessible accessibilityRole="text">
+      <Text style={styles.badgeText}>{label}</Text>
+    </View>
+  );
+}
+
 export default function BottomNav({
   items,
   activeKey = 'start',
@@ -61,6 +71,7 @@ export default function BottomNav({
   profileImageSource,
   style,
   role = 'tuinzoeker',
+  badgeCounts = {},
 }) {
   const insets = useSafeAreaInsets();
   const resolvedProfileImageSource = profileImageSource ?? profileImageUri;
@@ -70,6 +81,8 @@ export default function BottomNav({
     <View style={[styles.container, { paddingBottom: Math.max(14, insets.bottom + 8) }, style]}>
       {navItems.map((item) => {
         const isActive = item.key === activeKey;
+        const badgeCount = item.type === 'avatar' ? 0 : Number(badgeCounts?.[item.key] || 0);
+        const badgeLabel = badgeCount > 9 ? '9+' : String(badgeCount);
 
         return (
           <Pressable
@@ -77,6 +90,8 @@ export default function BottomNav({
             style={styles.tabItem}
             onPress={() => onTabPress?.(item)}
             hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.label}${badgeCount > 0 ? `, ${badgeLabel} nieuwe` : ''}`}
           >
             <View
               style={[
@@ -87,7 +102,10 @@ export default function BottomNav({
               ]}
             />
             <View style={styles.iconLabelWrap}>
-              <NavIcon item={item} isActive={isActive} profileImageSource={resolvedProfileImageSource} />
+              <View style={styles.iconWrap}>
+                <NavIcon item={item} isActive={isActive} profileImageSource={resolvedProfileImageSource} />
+                {badgeCount > 0 && item.type !== 'avatar' ? <Badge count={badgeCount} /> : null}
+              </View>
               <Text
                 style={[
                   styles.label,
@@ -127,6 +145,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: SPACING.navIconGap,
   },
+  iconWrap: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   label: {
     fontSize: 10,
     fontFamily: FONTS.bodyMedium,
@@ -138,5 +161,24 @@ const styles = StyleSheet.create({
     width: 23,
     height: 23,
     borderRadius: RADIUS.pill / 2,
+  },
+  badge: {
+    position: 'absolute',
+    top: -5,
+    right: -10,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    backgroundColor: COLORS.negative,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: COLORS.surface,
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 10,
+    lineHeight: 10,
+    includeFontPadding: false,
   },
 });
