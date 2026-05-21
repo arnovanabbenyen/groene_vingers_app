@@ -60,7 +60,8 @@ export default function ParcelDetailScreen({ onBack, onRequest = () => {}, onMor
         showsVerticalScrollIndicator={false}
       >
         <ParcelOverviewSection
-          heroImage={perceel.image || HERO_IMAGE}
+          fotos={perceel.fotos || []}
+          fallbackImage={HERO_IMAGE}
           title={perceel.title || 'Perceel'}
           location={perceel.location || perceel.plaats || 'Locatie nog niet beschikbaar'}
           distance={perceel.distance || ''}

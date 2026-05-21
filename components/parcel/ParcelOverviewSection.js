@@ -1,7 +1,10 @@
-import { useState } from 'react';
-import { ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Dimensions, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { HeartStraightIcon, MapPinIcon, UserCircleIcon, LeafIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS, SPACING } from '../theme/tokens';
+
+const HERO_HEIGHT = 201;
+const HERO_WIDTH = Dimensions.get('window').width - (SPACING.screenX * 2);
 
 function StatCard({ value, label, valueSuffix }) {
   return (
@@ -18,7 +21,8 @@ function StatCard({ value, label, valueSuffix }) {
 }
 
 export default function ParcelOverviewSection({
-  heroImage,
+  fotos,
+  fallbackImage,
   title,
   location,
   distance,
@@ -29,31 +33,88 @@ export default function ParcelOverviewSection({
   ],
   onFavoritePress,
 }) {
-  const [imageError, setImageError] = useState(false);
-  const heroImageSource = typeof heroImage === 'string' ? { uri: heroImage } : heroImage;
-  const canShowHeroImage = Boolean(heroImageSource?.uri) && !imageError;
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+  const [failedPhotoIndexes, setFailedPhotoIndexes] = useState({});
+
+  const photoSources = useMemo(() => {
+    const basePhotos = Array.isArray(fotos) ? fotos.filter(Boolean) : [];
+    if (basePhotos.length > 0) return basePhotos;
+    if (fallbackImage) return [fallbackImage];
+    return [];
+  }, [fotos, fallbackImage]);
+
+  useEffect(() => {
+    setActivePhotoIndex(0);
+    setFailedPhotoIndexes({});
+  }, [photoSources.length]);
+
+  function handleScrollEnd(event) {
+    const slideWidth = event.nativeEvent.layoutMeasurement.width;
+    const offset = event.nativeEvent.contentOffset.x;
+    const newIndex = Math.round(offset / slideWidth);
+    setActivePhotoIndex(newIndex);
+  }
+
+  function handleImageError(index) {
+    setFailedPhotoIndexes((current) => ({ ...current, [index]: true }));
+  }
+
+  const hasPhotos = photoSources.length > 0;
+  const showDots = photoSources.length > 1;
 
   return (
     <View style={styles.container}>
       <View style={styles.contentBlock}>
         <View style={styles.heroBlock}>
-          {canShowHeroImage ? (
-            <ImageBackground
-              source={heroImageSource}
-              style={styles.heroImage}
-              imageStyle={styles.heroImageRounded}
-              onError={() => setImageError(true)}
-            />
+          {hasPhotos ? (
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={handleScrollEnd}
+              style={styles.carousel}
+              contentContainerStyle={styles.carouselContent}
+              accessibilityRole="adjustable"
+            >
+              {photoSources.map((photo, index) => {
+                const source = typeof photo === 'string' ? { uri: photo } : photo;
+                const isFailed = failedPhotoIndexes[index];
+
+                return (
+                  <View key={`photo-${index}`} style={styles.slide}>
+                    {isFailed ? (
+                      <View style={[styles.slideImage, styles.heroPlaceholder]}>
+                        <LeafIcon size={40} color={COLORS.brand} weight="regular" />
+                      </View>
+                    ) : (
+                      <Image
+                        source={source}
+                        style={styles.slideImage}
+                        resizeMode="cover"
+                        onError={() => handleImageError(index)}
+                        accessibilityLabel={`Foto ${index + 1} van ${photoSources.length} van het perceel`}
+                      />
+                    )}
+                  </View>
+                );
+              })}
+            </ScrollView>
           ) : (
             <View style={[styles.heroImage, styles.heroPlaceholder]}>
               <LeafIcon size={40} color={COLORS.brand} weight="regular" />
             </View>
           )}
-          <View style={styles.paginationRow}>
-            <View style={[styles.paginationDot, styles.paginationDotActive]} />
-            <View style={styles.paginationDot} />
-            <View style={styles.paginationDot} />
-          </View>
+
+          {showDots ? (
+            <View style={styles.paginationRow} accessibilityElementsHidden>
+              {photoSources.map((_, index) => (
+                <View
+                  key={`dot-${index}`}
+                  style={[styles.paginationDot, index === activePhotoIndex && styles.paginationDotActive]}
+                />
+              ))}
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.titleRow}>
@@ -111,18 +172,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   heroImage: {
-    width: '100%',
-    height: 201,
+    width: HERO_WIDTH,
+    height: HERO_HEIGHT,
     borderRadius: RADIUS.sm,
     overflow: 'hidden',
+  },
+  carousel: {
+    width: HERO_WIDTH,
+    height: HERO_HEIGHT,
+    borderRadius: RADIUS.sm,
+  },
+  carouselContent: {
+    borderRadius: RADIUS.sm,
+    overflow: 'hidden',
+  },
+  slide: {
+    width: HERO_WIDTH,
+    height: HERO_HEIGHT,
+    borderRadius: RADIUS.sm,
+    overflow: 'hidden',
+  },
+  slideImage: {
+    width: '100%',
+    height: '100%',
   },
   heroPlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.surfaceMuted,
-  },
-  heroImageRounded: {
-    borderRadius: RADIUS.sm,
   },
   paginationRow: {
     marginTop: SPACING.md,
