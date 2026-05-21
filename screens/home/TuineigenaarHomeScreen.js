@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, Text, View, Image, Pressable } from 'react-native';
 import { Bell, Heart, Eye } from 'phosphor-react-native';
 import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
 import BottomNav from '../../components/navigation/BottomNav';
+import { supabase } from '../../services/supabase';
 import PerceelToevoegenScreen from '../parcel/PerceelToevoegenScreen';
 
 const PROFILE_IMAGE = require('../../images/tuineigenaar_pfp.png');
@@ -10,6 +11,7 @@ const GARDEN_IMAGE = require('../../images/overdekt_perceel_met_serre.png');
 
 export default function TuineigenaarHomeScreen({ onLogout }) {
   const [activeTab, setActiveTab] = useState('start');
+  const [profileImageSource, setProfileImageSource] = useState(PROFILE_IMAGE);
 
   const requests = [
     {
@@ -35,6 +37,36 @@ export default function TuineigenaarHomeScreen({ onLogout }) {
 
     setActiveTab(item.key);
   }
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadProfileAvatar() {
+      if (!supabase) return;
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const user = sessionData?.session?.user;
+        if (!user) return;
+
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError) {
+          console.log('Failed to fetch profile avatar', profileError);
+          return;
+        }
+
+        if (mounted && profile?.avatar_url) setProfileImageSource(profile.avatar_url);
+      } catch (e) {
+        console.log('loadProfileAvatar error', e);
+      }
+    }
+
+    loadProfileAvatar();
+    return () => { mounted = false; };
+  }, []);
 
   if (activeTab === 'perceel') {
     return (
@@ -153,7 +185,7 @@ export default function TuineigenaarHomeScreen({ onLogout }) {
       </ScrollView>
 
       {/* Bottom Navigation */}
-      <BottomNav activeKey={activeTab} onTabPress={handleTabPress} role="tuineigenaar" />
+      <BottomNav activeKey={activeTab} onTabPress={handleTabPress} role="tuineigenaar" profileImageSource={profileImageSource} />
     </View>
   );
 }

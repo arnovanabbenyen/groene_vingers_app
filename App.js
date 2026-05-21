@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
 import AppProviders from './providers/AppProviders';
 import IntroScreen from './screens/intro/IntroScreen';
@@ -16,6 +16,8 @@ import PhotoScreen from './screens/auth/PhotoScreen';
 import BioScreen from './screens/auth/BioScreen';
 import WelcomeScreen from './screens/auth/WelcomeScreen';
 import { supabase } from './services/supabase';
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode as decodeBase64 } from 'base64-arraybuffer';
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
@@ -42,9 +44,65 @@ export default Sentry.wrap(function App() {
   const [screen, setScreen] = useState('intro');
   const [selectedRole, setSelectedRole] = useState('tuinzoeker');
   const [profileDraft, setProfileDraft] = useState(null);
+  const [profilePhotoUri, setProfilePhotoUri] = useState(null);
+  const [profilePhotoUserId, setProfilePhotoUserId] = useState(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [requiresEmailVerification, setRequiresEmailVerification] = useState(false);
   const [lastResetEmail, setLastResetEmail] = useState('');
+  const pendingProfilePhotoRef = useRef({ uri: null, userId: null });
+
+  useEffect(() => {
+    pendingProfilePhotoRef.current = {
+      uri: profilePhotoUri,
+      userId: profilePhotoUserId,
+    };
+  }, [profilePhotoUri, profilePhotoUserId]);
+
+  async function uploadProfilePhoto(userId, photoUri) {
+    const base64Encoding = FileSystem.EncodingType?.Base64 ?? 'base64';
+    const base64 = await FileSystem.readAsStringAsync(photoUri, {
+      encoding: base64Encoding,
+    });
+    const arrayBuffer = decodeBase64(base64);
+
+    if (arrayBuffer.byteLength === 0) {
+      throw new Error('Foto kon niet worden gelezen (0 bytes).');
+    }
+
+    const filePath = `${userId}/${Date.now()}.jpg`;
+    console.log(`Uploading profile photo: ${arrayBuffer.byteLength} bytes to ${filePath}`);
+
+    const { error: uploadError } = await supabase.storage
+      .from('profile-pfp')
+      .upload(filePath, arrayBuffer, {
+        contentType: 'image/jpeg',
+        upsert: false,
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('profile-pfp')
+      .getPublicUrl(filePath);
+
+    const avatarUrl = publicUrlData?.publicUrl;
+    console.log('Profile photo uploaded, URL:', avatarUrl);
+
+    if (avatarUrl) {
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', userId);
+
+      if (updateError) {
+        console.warn('Profile photo uploaded but avatar_url update failed:', updateError);
+      }
+    }
+
+    return avatarUrl;
+  }
 
   useEffect(() => {
     if (!supabase) {
@@ -99,6 +157,22 @@ export default Sentry.wrap(function App() {
         const role = user?.user_metadata?.role;
         if (role) setSelectedRole(role);
         setIsLoggedIn(true);
+
+        const pendingPhoto = pendingProfilePhotoRef.current;
+        if (user?.id && pendingPhoto.uri && pendingPhoto.userId === user.id) {
+          uploadProfilePhoto(user.id, pendingPhoto.uri)
+            .then(() => {
+              setProfilePhotoUri(null);
+              setProfilePhotoUserId(null);
+            })
+            .catch((photoError) => {
+              console.warn('Profile photo upload failed:', photoError);
+              Alert.alert(
+                'Foto kon niet worden opgeslagen',
+                'Je account is aangemaakt, maar je profielfoto kon niet worden opgeslagen. Je kan dit later via je profiel doen.'
+              );
+            });
+        }
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
         setSelectedRole('tuinzoeker');
@@ -150,6 +224,14 @@ export default Sentry.wrap(function App() {
       const createdUser = data?.user;
       if (!createdUser) {
         throw new Error('Account kon niet worden aangemaakt. Probeer opnieuw.');
+      }
+
+      if (profilePhotoUri) {
+        pendingProfilePhotoRef.current = {
+          uri: profilePhotoUri,
+          userId: createdUser.id,
+        };
+        setProfilePhotoUserId(createdUser.id);
       }
  
       setProfileDraft(null);
@@ -235,8 +317,14 @@ export default Sentry.wrap(function App() {
       ) : screen === 'photo' ? (
         <PhotoScreen
           onBack={() => setScreen('account')}
-          onSkip={() => setScreen('intro')}
-          onContinue={() => setScreen('bio')}
+          onSkip={() => {
+            setProfilePhotoUri(null);
+            setScreen('bio');
+          }}
+          onContinue={(imageUri) => {
+            setProfilePhotoUri(imageUri || null);
+            setScreen('bio');
+          }}
         />
       ) : screen === 'bio' ? (
         <BioScreen
