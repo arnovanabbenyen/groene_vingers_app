@@ -217,9 +217,9 @@
                     setActiveDot(Math.max(0, Math.min(filteredPlots.length - 1, nextDot)));
                   }}
                 >
-                  {filteredPlots.map((plot) => (
-                    <PlotCard key={plot.id} plot={plot} onPress={() => setSelectedPlot(plot)} />
-                  ))}
+                  {filteredPlots.map((plot, index) => (
+                      <PlotCard key={`${plot.id}-${index}`} plot={plot} onPress={() => setSelectedPlot(plot)} />
+                    ))}
                 </ScrollView>
 
                 {filteredPlots.length === 0 ? (
@@ -231,7 +231,7 @@
                 <View style={styles.dotRow}>
                   {filteredPlots.map((plot, index) => (
                     <View
-                      key={`dot-${plot.id}`}
+                      key={`dot-${plot.id}-${index}`}
                       style={[styles.dot, index === visibleDotIndex && styles.dotActive]}
                     />
                   ))}
