@@ -7,6 +7,7 @@ import LoginScreen from './screens/auth/LoginScreen';
 import PasswordResetScreen from './screens/auth/PasswordResetScreen';
 import PasswordResetSentScreen from './screens/auth/PasswordResetSentScreen';
 import TuineigenaarHomeScreen from './screens/home/TuineigenaarHomeScreen';
+import { usePendingAanvragen } from './hooks/usePendingAanvragen';
 import InfoScreen from './screens/auth/InfoScreen';
 import InfoScreen2 from './screens/auth/InfoScreen2';
 import InfoScreen3 from './screens/auth/InfoScreen3';
@@ -43,13 +44,25 @@ export default Sentry.wrap(function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [screen, setScreen] = useState('intro');
   const [selectedRole, setSelectedRole] = useState('tuinzoeker');
+  const [verzoekenCount, setVerzoekenCount] = useState(0);
   const [profileDraft, setProfileDraft] = useState(null);
   const [profilePhotoUri, setProfilePhotoUri] = useState(null);
   const [profilePhotoUserId, setProfilePhotoUserId] = useState(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [requiresEmailVerification, setRequiresEmailVerification] = useState(false);
   const [lastResetEmail, setLastResetEmail] = useState('');
+  const { aanvragen: pendingAanvragen } = usePendingAanvragen();
   const pendingProfilePhotoRef = useRef({ uri: null, userId: null });
+
+  useEffect(() => {
+    if (!isLoggedIn || selectedRole !== 'tuineigenaar') {
+      setVerzoekenCount(0);
+      return;
+    }
+
+    setVerzoekenCount(pendingAanvragen.length);
+    // TODO: use a real-time subscription or React Context to keep the badge count in sync with accepted/declined actions. For MVP, count refreshes when the user logs in or navigates.
+  }, [isLoggedIn, selectedRole, pendingAanvragen.length]);
 
   useEffect(() => {
     pendingProfilePhotoRef.current = {
@@ -249,7 +262,11 @@ export default Sentry.wrap(function App() {
     <AppProviders>
       {isLoggedIn ? (
         selectedRole === 'tuineigenaar' ? (
-          <TuineigenaarHomeScreen onLogout={() => setIsLoggedIn(false)} />
+          <TuineigenaarHomeScreen
+            onLogout={() => setIsLoggedIn(false)}
+            badgeCounts={{ verzoeken: verzoekenCount }}
+            onBadgeCountChange={setVerzoekenCount}
+          />
         ) : (
           <HomeScreen onLogout={() => setIsLoggedIn(false)} />
         )
