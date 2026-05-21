@@ -1,22 +1,32 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
+import { UserCircleIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS } from '../theme/tokens';
 
-const OWNER_IMAGE = require('../../images/tuineigenaar_pfp.png');
+export default function ParcelOwnerCard({ ownerProfile, joinYear }) {
+  if (!ownerProfile) return null;
 
-export default function ParcelOwnerCard() {
+  const fullName = [ownerProfile.first_name, ownerProfile.last_name]
+    .filter(Boolean)
+    .join(' ')
+    .trim() || 'Eigenaar';
+
   return (
     <View style={styles.card}>
       <View style={styles.topRow}>
-        <Image source={OWNER_IMAGE} style={styles.avatar} />
+        {ownerProfile.avatar_url ? (
+          <Image source={{ uri: ownerProfile.avatar_url }} style={styles.avatar} />
+        ) : (
+          <View style={[styles.avatar, styles.avatarPlaceholder]}>
+            <UserCircleIcon size={48} color={COLORS.brand} weight="regular" />
+          </View>
+        )}
         <View style={styles.meta}>
-          <Text style={styles.name}>Arthur De Klerck</Text>
-          <Text style={styles.since}>Lid sinds 2025</Text>
+          <Text style={styles.name}>{fullName}</Text>
+          {joinYear ? <Text style={styles.since}>Lid sinds {joinYear}</Text> : null}
         </View>
       </View>
 
-      <Text style={styles.quote}>
-        Het doet me deugd om te zien hoe gemotiveerde tuinliefhebbers mijn tuin met zorg en aandacht onderhouden.
-      </Text>
+      {ownerProfile.bio ? <Text style={styles.quote}>{ownerProfile.bio}</Text> : null}
     </View>
   );
 }
@@ -37,6 +47,11 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
+  },
+  avatarPlaceholder: {
+    backgroundColor: COLORS.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   meta: {
     flex: 1,

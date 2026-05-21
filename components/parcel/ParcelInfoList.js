@@ -1,31 +1,44 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { COLORS, FONTS, SPACING } from '../theme/tokens';
 
-function InfoItem({ title, text }) {
+function InfoItem({ raw }) {
+  const colonIndex = raw.indexOf(':');
+  const hasLabel = colonIndex > 0 && colonIndex < raw.length - 1;
+
+  if (hasLabel) {
+    const title = raw.slice(0, colonIndex + 1);
+    const value = raw.slice(colonIndex + 1).trim();
+
+    return (
+      <View style={styles.itemRow}>
+        <View style={styles.dot} />
+        <Text style={styles.text}>
+          <Text style={styles.title}>{title}</Text>
+          {` ${value}`}
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.itemRow}>
       <View style={styles.dot} />
-      <Text style={styles.text}>
-        <Text style={styles.title}>{title}</Text>
-        {` ${text}`}
-      </Text>
+      <Text style={styles.text}>{raw}</Text>
     </View>
   );
 }
 
-export default function ParcelInfoList({
-  items = [
-    { title: 'Opgepast:', text: 'hond aanwezig' },
-    { title: 'Toegang:', text: 'Via zijpoort' },
-    { title: 'Verwachting eigenaar:', text: 'Geen pesticides' },
-  ],
-}) {
+export default function ParcelInfoList({ items = [] }) {
+  if (!items || items.length === 0) {
+    return null;
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>Extra informatie</Text>
       <View style={styles.list}>
-        {items.map((item) => (
-          <InfoItem key={`${item.title}-${item.text}`} title={item.title} text={item.text} />
+        {items.map((raw, index) => (
+          <InfoItem key={`${raw}-${index}`} raw={raw} />
         ))}
       </View>
     </View>

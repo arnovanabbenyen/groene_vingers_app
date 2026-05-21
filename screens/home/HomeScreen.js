@@ -61,11 +61,19 @@
         const mapped = (data || []).map((row) => ({
           id: row.id,
           image: row.fotos && row.fotos[0] ? row.fotos[0] : null,
+          fotos: row.fotos || [],
           location: row.plaats || 'Locatie nog niet beschikbaar',
           rating: null,
           title: row.naam,
           size: row.grootte ? `${row.grootte}m²` : null,
+          description: row.beschrijving || null,
+          voorzieningen: row.voorzieningen || [],
+          extraInfo: row.extra_info || [],
           chips: row.voorzieningen || [],
+          ownerId: row.owner_id,
+          adres: row.adres || null,
+          lat: row.lat || null,
+          lng: row.lng || null,
           raw: row,
         }));
 
@@ -217,8 +225,8 @@
                     setActiveDot(Math.max(0, Math.min(filteredPlots.length - 1, nextDot)));
                   }}
                 >
-                  {filteredPlots.map((plot) => (
-                    <PlotCard key={plot.id} plot={plot} onPress={() => setSelectedPlot(plot)} />
+                  {filteredPlots.map((plot, index) => (
+                    <PlotCard key={`${plot.id}-${index}`} plot={plot} onPress={() => setSelectedPlot(plot)} />
                   ))}
                 </ScrollView>
 
@@ -231,7 +239,7 @@
                 <View style={styles.dotRow}>
                   {filteredPlots.map((plot, index) => (
                     <View
-                      key={`dot-${plot.id}`}
+                      key={`dot-${plot.id}-${index}`}
                       style={[styles.dot, index === visibleDotIndex && styles.dotActive]}
                     />
                   ))}

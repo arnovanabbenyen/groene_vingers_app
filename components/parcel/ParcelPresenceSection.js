@@ -1,15 +1,18 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { DropIcon, PlantIcon, ShovelIcon } from 'phosphor-react-native';
+import { DropIcon, PlantIcon, ShovelIcon, RecycleIcon, TreeIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, SPACING } from '../theme/tokens';
 
-const ICONS = {
-  water: DropIcon,
-  material: ShovelIcon,
-  seeds: PlantIcon,
+const ICON_MAP = {
+  Water: DropIcon,
+  Tools: ShovelIcon,
+  Materiaal: ShovelIcon,
+  Zaden: PlantIcon,
+  Compost: RecycleIcon,
+  Bomen: TreeIcon,
 };
 
-function PresenceItem({ icon, label }) {
-  const IconComponent = icon;
+function PresenceItem({ label }) {
+  const IconComponent = ICON_MAP[label] || DropIcon;
 
   return (
     <View style={styles.item}>
@@ -21,19 +24,17 @@ function PresenceItem({ icon, label }) {
   );
 }
 
-export default function ParcelPresenceSection({
-  items = [
-    { icon: ICONS.water, label: 'Water' },
-    { icon: ICONS.material, label: 'Materiaal' },
-    { icon: ICONS.seeds, label: 'Zaden' },
-  ],
-}) {
+export default function ParcelPresenceSection({ voorzieningen = [] }) {
+  if (!voorzieningen || voorzieningen.length === 0) {
+    return null;
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Aanwezig</Text>
       <View style={styles.row}>
-        {items.map((item) => (
-          <PresenceItem key={item.label} icon={item.icon} label={item.label} />
+        {voorzieningen.map((label) => (
+          <PresenceItem key={label} label={label} />
         ))}
       </View>
     </View>
