@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { HeartIcon, DropIcon, LeafIcon, MapPinIcon, ShovelIcon, StarIcon, PlantIcon, TreeIcon } from 'phosphor-react-native';
+import { HeartIcon, DropIcon, LeafIcon, MapPinIcon, ShovelIcon, PlantIcon, TreeIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, LAYOUT, RADIUS, SHADOWS, SIZES } from '../theme/tokens';
 
 function AmenityIcon({ label }) {
@@ -53,11 +53,6 @@ export default function PlotCard({ plot, onPress }) {
                   {plot.location || 'Locatie nog niet beschikbaar'}
                 </Text>
               </View>
-
-              <View style={[styles.pill, styles.ratingPill]}>
-                <StarIcon size={16} color={COLORS.textPrimary} weight="fill" />
-                <Text style={styles.pillText}>4.5</Text>
-              </View>
             </View>
 
             <Pressable style={styles.heartButton}>
@@ -77,11 +72,6 @@ export default function PlotCard({ plot, onPress }) {
                 <Text style={styles.pillText} numberOfLines={1}>
                   {plot.location || 'Locatie nog niet beschikbaar'}
                 </Text>
-              </View>
-
-              <View style={[styles.pill, styles.ratingPill]}>
-                <StarIcon size={16} color={COLORS.textPrimary} weight="fill" />
-                <Text style={styles.pillText}>4.5</Text>
               </View>
             </View>
 
@@ -179,9 +169,6 @@ const styles = StyleSheet.create({
     minHeight: SIZES.plotBadgeLocationMinHeight,
     maxWidth: '68%',
   },
-  ratingPill: {
-    minHeight: SIZES.plotBadgeRatingMinHeight,
-  },
   pillText: {
     color: COLORS.textPrimary,
     fontSize: 12.8,
@@ -197,7 +184,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: SIZES.plotFavoriteSize / 2,
-    backgroundColor: COLORS.surface,
   },
   headerRow: {
     flexDirection: 'row',

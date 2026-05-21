@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
-import { HeartStraightIcon, MapPinIcon, StarIcon, UserCircleIcon, LeafIcon } from 'phosphor-react-native';
+import { HeartStraightIcon, MapPinIcon, UserCircleIcon, LeafIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
-function StatCard({ value, label, valueSuffix, showStar }) {
+function StatCard({ value, label, valueSuffix }) {
   return (
     <View style={styles.statCard}>
       <View style={styles.statValueRow}>
@@ -11,7 +11,6 @@ function StatCard({ value, label, valueSuffix, showStar }) {
           {value}
           {valueSuffix ? <Text style={styles.statValueSuffix}>{valueSuffix}</Text> : null}
         </Text>
-        {showStar ? <StarIcon size={11} color={COLORS.accent} weight="fill" /> : null}
       </View>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
@@ -27,7 +26,6 @@ export default function ParcelOverviewSection({
   stats = [
     { value: '30', valueSuffix: 'm²', label: 'Grootte' },
     { value: 'Nu vrij', label: 'Beschikbaar' },
-    { value: '4.5', label: 'Score' },
   ],
   onFavoritePress,
 }) {
@@ -95,7 +93,6 @@ export default function ParcelOverviewSection({
             value={stat.value}
             label={stat.label}
             valueSuffix={stat.valueSuffix}
-            showStar={stat.label === 'Score'}
           />
         ))}
       </View>
