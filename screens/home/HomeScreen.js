@@ -38,6 +38,7 @@
 
   export default function HomeScreen() {
     const [activeTab, setActiveTab] = useState('start');
+    const [profileImageSource, setProfileImageSource] = useState(PROFILE_IMAGE);
     const [activeDot, setActiveDot] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedPlot, setSelectedPlot] = useState(null);
@@ -76,6 +77,34 @@
       }
 
       loadPercelen();
+      // load current user profile avatar for bottom nav
+      async function loadProfileAvatar() {
+        if (!supabase) return;
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const user = sessionData?.session?.user;
+          if (!user) return;
+
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', user.id)
+            .single();
+
+          if (profileError) {
+            console.log('Failed to fetch profile avatar', profileError);
+            return;
+          }
+
+          if (mounted && profile?.avatar_url) {
+            setProfileImageSource(profile.avatar_url);
+          }
+        } catch (e) {
+          console.log('loadProfileAvatar error', e);
+        }
+      }
+
+      loadProfileAvatar();
       return () => { mounted = false; };
     }, []);
 
@@ -214,7 +243,7 @@
           <BottomNav
             activeKey={activeTab}
             onTabPress={(item) => setActiveTab(item.key)}
-            profileImageSource={PROFILE_IMAGE}
+            profileImageSource={profileImageSource}
             style={styles.bottomNav}
           />
         </View>

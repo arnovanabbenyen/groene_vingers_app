@@ -93,7 +93,7 @@ export default function PhotoScreen({ onBack, onContinue, onSkip }) {
       </View>
 
       <View style={styles.footer}>
-        <AuthButton label="Volgende" onPress={onContinue} variant="primary" />
+        <AuthButton label="Volgende" onPress={() => onContinue?.(imageUri)} variant="primary" />
         <View style={styles.loginRow}>
           <Text style={styles.loginText}>Al een account? </Text>
           <Pressable onPress={onSkip}>
