@@ -1,7 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
-  ActivityIndicator,
   Image,
   Modal,
   Pressable,
@@ -22,6 +21,7 @@ import {
   TreeIcon,
 } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
+import AuthButton from '../../components/buttons/AuthButton';
 import FieldError from '../../components/notifications/FieldError';
 import { supabase } from '../../services/supabase';
 import MOCK_PERCEEL from '../../mocks/perceelMock';
@@ -407,18 +407,12 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
 
         {errors.submit ? <FieldError message={errors.submit} /> : null}
 
-        <Pressable
+        <AuthButton
+          label="Stuur verzoek"
           onPress={handleSubmit}
-          disabled={loading}
-          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: loading, busy: loading }}
-          accessibilityLabel="Stuur verzoek"
-          accessibilityHint="Verstuur je aanvraag voor dit perceel"
-        >
-          {loading ? <ActivityIndicator size="small" color={COLORS.textInverse} /> : null}
-          <Text style={styles.submitButtonText}>Stuur verzoek</Text>
-        </Pressable>
+          variant="primary"
+          loading={loading}
+        />
       </ScrollView>
 
       <Modal
@@ -706,25 +700,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 16,
     fontFamily: FONTS.bodyMedium,
-  },
-  submitButton: {
-    marginTop: -4,
-    height: 53,
-    borderRadius: RADIUS.xl,
-    backgroundColor: COLORS.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitButtonText: {
-    color: COLORS.textInverse,
-    fontSize: 16,
-    lineHeight: 16,
-    fontFamily: FONTS.displayMedium,
   },
   modalBackdrop: {
     flex: 1,
