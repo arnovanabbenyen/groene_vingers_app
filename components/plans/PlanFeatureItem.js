@@ -1,6 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { CheckCircleIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/CheckCircle.js';
-import { XCircleIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/XCircle.js';
+import { CheckCircleIcon, XCircleIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, SPACING } from '../theme/tokens';
 
 export default function PlanFeatureItem({ label, included = true }) {

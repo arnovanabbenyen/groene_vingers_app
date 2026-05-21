@@ -1,267 +1,300 @@
-import { useMemo, useState } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import BottomNav from '../../components/navigation/BottomNav';
-import HomeHeader from '../../components/home/HomeHeader';
-import HomePromoCard from '../../components/home/HomePromoCard';
-import HomeSectionCta from '../../components/home/HomeSectionCta';
-import PlotCard from '../../components/home/PlotCard';
-import NotificationScreen from '../notifications/NotificationScreen';
-import PlansScreen from '../plans/PlansScreen';
-import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
-import AanvraagDoenScreen from '../aanvraag/AanvraagDoenScreen';
-import AanvraagBevestigingScreen from '../aanvraag/AanvraagBevestigingScreen';
-import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
+  import { useMemo, useState, useEffect } from 'react';
+  import { StatusBar } from 'expo-status-bar';
+  import { ScrollView, StyleSheet, Text, View } from 'react-native';
+  import BottomNav from '../../components/navigation/BottomNav';
+  import HomeHeader from '../../components/home/HomeHeader';
+  import HomePromoCard from '../../components/home/HomePromoCard';
+  import HomeSectionCta from '../../components/home/HomeSectionCta';
+  import PlotCard from '../../components/home/PlotCard';
+  import { supabase } from '../../services/supabase';
+  import NotificationScreen from '../notifications/NotificationScreen';
+  import PlansScreen from '../plans/PlansScreen';
+  import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
+  import AanvraagDoenScreen from '../aanvraag/AanvraagDoenScreen';
+  import AanvraagBevestigingScreen from '../aanvraag/AanvraagBevestigingScreen';
+  import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 
-const PROFILE_IMAGE = require('../../images/tuinzoeker_pfp.png');
+  const PROFILE_IMAGE = require('../../images/tuinzoeker_pfp.png');
 
-const PLOTS = [
-  {
-    id: 'plot-1',
-    image: require('../../images/overdekt_perceel_met_serre.png'),
-    location: 'Kessel-Lo',
-    rating: '4,5',
-    title: 'Overdekt perceel met serre',
-    size: '30m²',
-    chips: ['Water', 'Materiaal', '2,8km'],
-  },
+  const FALLBACK_PLOTS = [
+    {
+      id: 'plot-1',
+      image: require('../../images/overdekt_perceel_met_serre.png'),
+      location: 'Kessel-Lo',
+      title: 'Overdekt perceel met serre',
+      size: '30m²',
+      chips: ['Water', 'Materiaal', '2,8km'],
+    },
 
-  {
-    id: 'plot-3',
-    image: require('../../images/rustig_perceel_in_het_groen.png'),
-    location: 'Wilsele Dorp',
-    rating: '4,0',
-    title: 'Rustig perceel in het groen',
-    size: '55m²',
-    chips: ['Water', 'Materiaal', '2,5km'],
-  },
-];
+    {
+      id: 'plot-3',
+      image: require('../../images/rustig_perceel_in_het_groen.png'),
+      location: 'Wilsele Dorp',
+      title: 'Rustig perceel in het groen',
+      size: '55m²',
+      chips: ['Water', 'Materiaal', '2,5km'],
+    },
+  ];
 
-export default function HomeScreen() {
-  const [activeTab, setActiveTab] = useState('start');
-  const [activeDot, setActiveDot] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPlot, setSelectedPlot] = useState(null);
-  const [requestPlot, setRequestPlot] = useState(null);
-  const [requestSuccessPerceel, setRequestSuccessPerceel] = useState(null);
+  export default function HomeScreen() {
+    const [activeTab, setActiveTab] = useState('start');
+    const [activeDot, setActiveDot] = useState(0);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedPlot, setSelectedPlot] = useState(null);
+    const [requestPlot, setRequestPlot] = useState(null);
+    const [requestSuccessPerceel, setRequestSuccessPerceel] = useState(null);
+    const [plots, setPlots] = useState(null); // null = loading not attempted
 
-  const filteredPlots = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
+    useEffect(() => {
+      let mounted = true;
 
-    if (!normalizedQuery) {
-      return PLOTS;
+      async function loadPercelen() {
+        if (!supabase) return setPlots([]);
+        const { data, error } = await supabase.from('percelen').select('*');
+        if (error) {
+          console.warn('Failed to load percelen', error);
+          if (mounted) setPlots([]);
+          return;
+        }
+
+        const mapped = (data || []).map((row) => ({
+          id: row.id,
+          image: row.fotos && row.fotos[0] ? row.fotos[0] : null,
+          location: row.plaats || 'Locatie nog niet beschikbaar',
+          rating: null,
+          title: row.naam,
+          size: row.grootte ? `${row.grootte}m²` : null,
+          chips: row.voorzieningen || [],
+          raw: row,
+        }));
+
+        if (mapped[0]?.image) {
+          console.log('Perceel foto URL:', mapped[0].image);
+        }
+
+        if (mounted) setPlots(mapped);
+      }
+
+      loadPercelen();
+      return () => { mounted = false; };
+    }, []);
+
+    const filteredPlots = useMemo(() => {
+      const normalizedQuery = searchQuery.trim().toLowerCase();
+      const source = plots && plots.length > 0 ? plots : FALLBACK_PLOTS;
+
+      if (!normalizedQuery) return source;
+
+      return source.filter((plot) => {
+        const searchableText = [plot.location, plot.title, plot.size, ...(plot.chips || [])].join(' ').toLowerCase();
+        return searchableText.includes(normalizedQuery);
+      });
+    }, [searchQuery, plots]);
+
+    const visibleDotIndex = Math.max(0, Math.min(filteredPlots.length - 1, activeDot));
+
+    if (requestPlot) {
+      const perceelToRequest = requestPlot;
+      return (
+        <AanvraagDoenScreen
+          onBack={() => setRequestPlot(null)}
+          onContinue={(res) => {
+            setRequestPlot(null);
+            if (res?.success) setRequestSuccessPerceel(perceelToRequest);
+          }}
+          perceel={requestPlot}
+        />
+      );
     }
 
-    return PLOTS.filter((plot) => {
-      const searchableText = [plot.location, plot.title, plot.size, ...plot.chips].join(' ').toLowerCase();
-      return searchableText.includes(normalizedQuery);
-    });
-  }, [searchQuery]);
+    if (requestSuccessPerceel) {
+      return (
+        <AanvraagBevestigingScreen
+          perceel={requestSuccessPerceel}
+          onBackToListings={() => setRequestSuccessPerceel(null)}
+          onBackToMessages={() => {
+            setRequestSuccessPerceel(null);
+            setActiveTab('berichten');
+          }}
+        />
+      );
+    }
 
-  const visibleDotIndex = Math.max(0, Math.min(filteredPlots.length - 1, activeDot));
+    if (selectedPlot) {
+      return (
+        <ParcelDetailScreen
+          perceel={selectedPlot}
+          onBack={() => setSelectedPlot(null)}
+          onRequest={() => setRequestPlot(selectedPlot)}
+        />
+      );
+    }
 
-  if (requestPlot) {
-    const perceelToRequest = requestPlot;
+    if (activeTab === 'berichten') {
+      return (
+        <NotificationScreen
+          onBack={() => setActiveTab('start')}
+          onPrimaryAction={() => setActiveTab('start')}
+        />
+      );
+    }
+
+    if (activeTab === 'pro-plan') {
+      return <PlansScreen onBack={() => setActiveTab('start')} />;
+    }
+
     return (
-      <AanvraagDoenScreen
-        onBack={() => setRequestPlot(null)}
-        onContinue={(res) => {
-          setRequestPlot(null);
-          if (res?.success) setRequestSuccessPerceel(perceelToRequest);
-        }}
-        perceel={requestPlot}
-      />
-    );
-  }
+      <View style={styles.safeArea}>
+        <StatusBar style="light" />
+        <View style={styles.mobileFrame}>
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            nestedScrollEnabled
+            scrollEnabled
+            bounces
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <HomeHeader
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onPressNotifications={() => setActiveTab('berichten')}
+            />
 
-  if (requestSuccessPerceel) {
-    return (
-      <AanvraagBevestigingScreen
-        perceel={requestSuccessPerceel}
-        onBackToListings={() => setRequestSuccessPerceel(null)}
-        onBackToMessages={() => {
-          setRequestSuccessPerceel(null);
-          setActiveTab('berichten');
-        }}
-      />
-    );
-  }
+            <View style={styles.contentWrap}>
+              <HomePromoCard onPressUpgrade={() => setActiveTab('pro-plan')} />
 
-  if (selectedPlot) {
-    return (
-      <ParcelDetailScreen
-        perceel={selectedPlot}
-        onBack={() => setSelectedPlot(null)}
-        onRequest={() => setRequestPlot(selectedPlot)}
-      />
-    );
-  }
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Tijd om te beginnen!</Text>
+                <Text style={styles.sectionBody}>
+                  Je hebt nog geen perceel gematched. Bekijk wat er beschikbaar is
+                </Text>
 
-  if (activeTab === 'berichten') {
-    return (
-      <NotificationScreen
-        onBack={() => setActiveTab('start')}
-        onPrimaryAction={() => setActiveTab('start')}
-      />
-    );
-  }
+                <HomeSectionCta />
+              </View>
 
-  if (activeTab === 'pro-plan') {
-    return <PlansScreen onBack={() => setActiveTab('start')} />;
-  }
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Aanbevolen percelen</Text>
 
-  return (
-    <View style={styles.safeArea}>
-      <StatusBar style="light" />
-      <View style={styles.mobileFrame}>
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          nestedScrollEnabled
-          scrollEnabled
-          bounces
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <HomeHeader
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            onPressNotifications={() => setActiveTab('berichten')}
-          />
+                <ScrollView
+                  horizontal
+                  nestedScrollEnabled
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.plotsScroller}
+                  onMomentumScrollEnd={(event) => {
+                    const cardWidth = SIZES.plotCardWidth;
+                    const nextDot = Math.round(event.nativeEvent.contentOffset.x / cardWidth);
+                    setActiveDot(Math.max(0, Math.min(filteredPlots.length - 1, nextDot)));
+                  }}
+                >
+                  {filteredPlots.map((plot) => (
+                    <PlotCard key={plot.id} plot={plot} onPress={() => setSelectedPlot(plot)} />
+                  ))}
+                </ScrollView>
 
-          <View style={styles.contentWrap}>
-            <HomePromoCard onPressUpgrade={() => setActiveTab('pro-plan')} />
+                {filteredPlots.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyStateText}>Geen percelen gevonden voor "{searchQuery}".</Text>
+                  </View>
+                ) : null}
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Tijd om te beginnen!</Text>
-              <Text style={styles.sectionBody}>
-                Je hebt nog geen perceel gematched. Bekijk wat er beschikbaar is
-              </Text>
-
-              <HomeSectionCta />
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Aanbevolen percelen</Text>
-
-              <ScrollView
-                horizontal
-                nestedScrollEnabled
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.plotsScroller}
-                onMomentumScrollEnd={(event) => {
-                  const cardWidth = SIZES.plotCardWidth;
-                  const nextDot = Math.round(event.nativeEvent.contentOffset.x / cardWidth);
-                  setActiveDot(Math.max(0, Math.min(filteredPlots.length - 1, nextDot)));
-                }}
-              >
-                {filteredPlots.map((plot) => (
-                  <PlotCard key={plot.id} plot={plot} onPress={() => setSelectedPlot(plot)} />
-                ))}
-              </ScrollView>
-
-              {filteredPlots.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateText}>Geen percelen gevonden voor "{searchQuery}".</Text>
+                <View style={styles.dotRow}>
+                  {filteredPlots.map((plot, index) => (
+                    <View
+                      key={`dot-${plot.id}`}
+                      style={[styles.dot, index === visibleDotIndex && styles.dotActive]}
+                    />
+                  ))}
                 </View>
-              ) : null}
-
-              <View style={styles.dotRow}>
-                {filteredPlots.map((plot, index) => (
-                  <View
-                    key={`dot-${plot.id}`}
-                    style={[styles.dot, index === visibleDotIndex && styles.dotActive]}
-                  />
-                ))}
               </View>
             </View>
-          </View>
-        </ScrollView>
+          </ScrollView>
 
-        <BottomNav
-          activeKey={activeTab}
-          onTabPress={(item) => setActiveTab(item.key)}
-          profileImageSource={PROFILE_IMAGE}
-          style={styles.bottomNav}
-        />
+          <BottomNav
+            activeKey={activeTab}
+            onTabPress={(item) => setActiveTab(item.key)}
+            profileImageSource={PROFILE_IMAGE}
+            style={styles.bottomNav}
+          />
+        </View>
       </View>
-    </View>
-  );
-}
+    );
+  }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  mobileFrame: {
-    flex: 1,
-    width: '100%',
-    backgroundColor: COLORS.background,
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    backgroundColor: COLORS.background,
-    paddingBottom: SIZES.bottomNavClearance,
-  },
-  contentWrap: {
-    paddingHorizontal: SPACING.screenX,
-    paddingTop: SPACING.xl,
-    gap: SPACING.xl,
-  },
-  section: {
-    gap: SPACING.md,
-  },
-  sectionTitle: {
-    color: COLORS.textPrimary,
-    fontSize: 20,
-    lineHeight: 22,
-    fontFamily: FONTS.displaySemiBold,
-    fontWeight: '600',
-  },
-  sectionBody: {
-    color: COLORS.textSecondary,
-    fontSize: 16,
-    lineHeight: 24,
-    fontFamily: FONTS.body,
-    marginTop: -6,
-  },
-  plotsScroller: {
-    gap: SPACING.md,
-    paddingBottom: SPACING.xxs,
-  },
-  dotRow: {
-    marginTop: -4,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  dot: {
-    width: SIZES.dot,
-    height: SIZES.dot,
-    borderRadius: RADIUS.xs,
-    backgroundColor: COLORS.indicatorMuted,
-  },
-  dotActive: {
-    backgroundColor: COLORS.brand,
-  },
-  emptyState: {
-    paddingVertical: 6,
-  },
-  emptyStateText: {
-    color: COLORS.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: FONTS.body,
-  },
-  bottomNav: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-});
+  const styles = StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    mobileFrame: {
+      flex: 1,
+      width: '100%',
+      backgroundColor: COLORS.background,
+    },
+    scroll: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      backgroundColor: COLORS.background,
+      paddingBottom: SIZES.bottomNavClearance,
+    },
+    contentWrap: {
+      paddingHorizontal: SPACING.screenX,
+      paddingTop: SPACING.xl,
+      gap: SPACING.xl,
+    },
+    section: {
+      gap: SPACING.md,
+    },
+    sectionTitle: {
+      color: COLORS.textPrimary,
+      fontSize: 20,
+      lineHeight: 22,
+      fontFamily: FONTS.displaySemiBold,
+      fontWeight: '600',
+    },
+    sectionBody: {
+      color: COLORS.textSecondary,
+      fontSize: 16,
+      lineHeight: 24,
+      fontFamily: FONTS.body,
+      marginTop: -6,
+    },
+    plotsScroller: {
+      gap: SPACING.md,
+      paddingBottom: SPACING.xxs,
+    },
+    dotRow: {
+      marginTop: -4,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: SPACING.sm,
+    },
+    dot: {
+      width: SIZES.dot,
+      height: SIZES.dot,
+      borderRadius: RADIUS.xs,
+      backgroundColor: COLORS.indicatorMuted,
+    },
+    dotActive: {
+      backgroundColor: COLORS.brand,
+    },
+    emptyState: {
+      paddingVertical: 6,
+    },
+    emptyStateText: {
+      color: COLORS.textSecondary,
+      fontSize: 14,
+      lineHeight: 20,
+      fontFamily: FONTS.body,
+    },
+    bottomNav: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+  });

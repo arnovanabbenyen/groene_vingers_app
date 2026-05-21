@@ -1,10 +1,7 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BellIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Bell.js';
-import { HeartIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Heart.js';
-import { MapPinIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/MapPin.js';
-import { MagnifyingGlassIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/MagnifyingGlass.js';
+import { BellIcon, HeartIcon, MapPinIcon, MagnifyingGlassIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../theme/tokens';
 
 export default function HomeHeader({ searchQuery, onSearchChange, onPressNotifications }) {

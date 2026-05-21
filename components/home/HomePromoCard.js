@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { StarIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Star.js';
+import { StarIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, LAYOUT, RADIUS, SIZES } from '../theme/tokens';
 
 export default function HomePromoCard({ onPressUpgrade }) {

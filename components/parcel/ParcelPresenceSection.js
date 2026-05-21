@@ -1,7 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { DropIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Drop.js';
-import { PlantIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Plant.js';
-import { ShovelIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Shovel.js';
+import { DropIcon, PlantIcon, ShovelIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, SPACING } from '../theme/tokens';
 
 const ICONS = {

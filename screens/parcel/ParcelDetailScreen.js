@@ -23,14 +23,12 @@ export default function ParcelDetailScreen({ onBack, onRequest = () => {}, onMor
         <ParcelOverviewSection
           heroImage={perceel.image || HERO_IMAGE}
           title={perceel.title || 'Perceel'}
-          location={perceel.location || ''}
+          location={perceel.plaats || 'Locatie nog niet beschikbaar'}
           distance={perceel.distance || ''}
           ownerName={perceel.ownerName || ''}
-          rating={perceel.rating || ''}
           stats={perceel.stats || [
             { value: perceel.size ? `${perceel.size}m²` : '30m²', label: 'Grootte' },
             { value: 'Nu vrij', label: 'Beschikbaar' },
-            { value: perceel.rating || '4.5', label: 'Score' },
           ]}
         />
 

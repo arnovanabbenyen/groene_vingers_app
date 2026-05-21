@@ -1,6 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { CaretRightIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/CaretRight.js';
-import { MapTrifoldIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/MapTrifold.js';
+import { CaretRightIcon, MapTrifoldIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS } from '../theme/tokens';
 
 export default function HomeSectionCta() {
