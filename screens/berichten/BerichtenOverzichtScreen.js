@@ -32,7 +32,8 @@ function formatConversationName(conversation) {
 function formatConversationPreview(conversation) {
   const msg = conversation.lastMessage;
   if (!msg) return 'Nog geen berichten';
-  if (msg.media_url) return msg.content ? `📷 ${msg.content}` : '📷 Foto';
+  if (msg.media_urls?.length > 1) return `📷 ${msg.media_urls.length} foto's`;
+  if (msg.media_urls?.length === 1 || msg.media_url) return '📷 Foto';
   return msg.content || 'Nog geen berichten';
 }
 

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -12,7 +13,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import {
@@ -24,6 +24,7 @@ import {
   PaperPlaneRightIcon,
   PlusIcon,
   XCircleIcon,
+  XIcon,
 } from 'phosphor-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../services/supabase';
@@ -32,6 +33,7 @@ import { pickFromCamera, pickFromGallery, uploadChatImage } from '../../services
 import { COLORS, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
+const SCREEN_WIDTH = Dimensions.get('window').width;
 
 function formatMessageTime(timestamp) {
   if (!timestamp) return '';
@@ -44,6 +46,50 @@ function formatMessageTime(timestamp) {
   } catch {
     return '';
   }
+}
+
+// onPress(url, allUrls) — passes the tapped URL and the full array so the
+// preview gallery can start at the right index and scroll through all images.
+function ImageGrid({ urls, onPress }) {
+  const total = urls.length;
+
+  if (total === 1) {
+    return (
+      <TouchableOpacity onPress={() => onPress(urls[0], urls)} activeOpacity={0.85}>
+        <Image source={{ uri: urls[0] }} style={styles.chatImageSingle} resizeMode="cover" />
+      </TouchableOpacity>
+    );
+  }
+
+  const displayUrls = urls.slice(0, 4);
+  const hiddenCount = total - 4;
+
+  if (total === 2) {
+    return (
+      <View style={styles.imageGrid2}>
+        {displayUrls.map((url, i) => (
+          <TouchableOpacity key={i} onPress={() => onPress(url, urls)} activeOpacity={0.85}>
+            <Image source={{ uri: url }} style={styles.chatImageHalf} resizeMode="cover" />
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.imageGrid}>
+      {displayUrls.map((url, i) => (
+        <TouchableOpacity key={i} style={styles.imageGridCell} onPress={() => onPress(url, urls)} activeOpacity={0.85}>
+          <Image source={{ uri: url }} style={styles.chatImageTile} resizeMode="cover" />
+          {i === 3 && hiddenCount > 0 && (
+            <View style={styles.imageGridOverlay}>
+              <Text style={styles.imageGridOverlayText}>+{hiddenCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
 }
 
 function SystemMessageHeader() {
@@ -66,12 +112,19 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
   const [messageInput, setMessageInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [pendingImages, setPendingImages] = useState([]);
-  const [previewImageUrl, setPreviewImageUrl] = useState(null);
+  const [previewUrls, setPreviewUrls] = useState(null);
+  const [previewIndex, setPreviewIndex] = useState(0);
   const [isSamenwerkingPanelOpen, setIsSamenwerkingPanelOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [aanvraagStatus, setAanvraagStatus] = useState(null);
 
   const canStartSamenwerking = aanvraagStatus === AANVRAAG_STATUS.ACCEPTED;
+
+  function openPreview(url, allUrls) {
+    const idx = allUrls.indexOf(url);
+    setPreviewUrls(allUrls);
+    setPreviewIndex(idx >= 0 ? idx : 0);
+  }
 
   // ── Load messages + aanvraag status ──────────────────────────────────────
   useEffect(() => {
@@ -84,7 +137,7 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
 
       const { data: messagesData } = await supabase
         .from('messages')
-        .select('id, conversation_id, sender_id, content, created_at, read_at, media_url, media_type')
+        .select('id, conversation_id, sender_id, content, created_at, read_at, media_url, media_urls, media_type')
         .eq('conversation_id', conversation.id)
         .order('created_at', { ascending: true });
 
@@ -185,7 +238,7 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
     });
   }, [messages]);
 
-  // ── Send (text + any pending images) ─────────────────────────────────────
+  // ── Send (bundles all pending images into one message, then text) ─────────
   async function handleSend() {
     const trimmed = messageInput.trim();
     if ((!trimmed && pendingImages.length === 0) || isSending || !currentUserId) return;
@@ -196,16 +249,17 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
     setPendingImages([]);
     setMessageInput('');
 
-    // Upload + send each image as a separate message
-    for (const asset of imagesToSend) {
-      const tempId = `temp-img-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    // Bundle all images into ONE message
+    if (imagesToSend.length > 0) {
+      const tempId = `temp-img-${Date.now()}`;
       const optimistic = {
         id: tempId,
         conversation_id: conversation.id,
         sender_id: currentUserId,
         content: null,
-        media_url: asset.uri,
-        media_type: asset.mimeType || 'image/jpeg',
+        media_url: null,
+        media_urls: imagesToSend.map((a) => a.uri),
+        media_type: 'image/jpeg',
         created_at: new Date().toISOString(),
         read_at: null,
         _optimistic: true,
@@ -213,27 +267,33 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
       setMessages((current) => [...current, optimistic]);
 
       try {
-        const { publicUrl, mime } = await uploadChatImage(currentUserId, asset.uri);
+        // Upload all images in parallel
+        const uploads = await Promise.all(
+          imagesToSend.map((asset) => uploadChatImage(currentUserId, asset.uri))
+        );
+        const publicUrls = uploads.map((u) => u.publicUrl);
+
         const { data, error } = await supabase
           .from('messages')
           .insert({
             conversation_id: conversation.id,
             sender_id: currentUserId,
             content: null,
-            media_url: publicUrl,
-            media_type: mime,
+            media_urls: publicUrls,
+            media_type: 'image/jpeg',
           })
-          .select('id, conversation_id, sender_id, content, created_at, read_at, media_url, media_type')
+          .select('id, conversation_id, sender_id, content, created_at, read_at, media_url, media_urls, media_type')
           .single();
+
         if (error) throw error;
         setMessages((current) => current.map((m) => (m.id === tempId ? data : m)));
       } catch {
         setMessages((current) => current.filter((m) => m.id !== tempId));
-        Alert.alert('Fout', 'Een afbeelding kon niet worden verzonden.');
+        Alert.alert('Fout', 'De afbeeldingen konden niet worden verzonden.');
       }
     }
 
-    // Send text message if any
+    // Send text as a separate message after the images
     if (textToSend) {
       const tempId = `temp-${Date.now()}`;
       const optimistic = {
@@ -250,7 +310,7 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
       const { data, error } = await supabase
         .from('messages')
         .insert({ conversation_id: conversation.id, sender_id: currentUserId, content: textToSend })
-        .select('id, conversation_id, sender_id, content, created_at, read_at, media_url, media_type')
+        .select('id, conversation_id, sender_id, content, created_at, read_at, media_url, media_urls, media_type')
         .single();
 
       if (error) {
@@ -339,9 +399,12 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
   function renderItem({ item: msg }) {
     const isOwn = msg.sender_id === currentUserId;
     const bottomMargin = msg.isLastInGroup ? 16 : 6;
-    const hasImage = Boolean(msg.media_url);
-    const a11yLabel = hasImage
-      ? (msg.content || 'Foto')
+    const imageUrls = msg.media_urls?.length > 0
+      ? msg.media_urls
+      : (msg.media_url ? [msg.media_url] : []);
+    const hasImages = imageUrls.length > 0;
+    const a11yLabel = hasImages
+      ? (imageUrls.length > 1 ? `${imageUrls.length} foto's` : 'Foto')
       : (msg.content || '');
 
     if (isOwn) {
@@ -351,24 +414,19 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
             <Text style={styles.ownTimestamp}>{formatMessageTime(msg.created_at)}</Text>
           )}
           <View
-            style={hasImage ? styles.ownImageBubble : styles.ownBubble}
+            style={hasImages ? styles.ownImageBubble : styles.ownBubble}
             accessibilityRole="text"
             accessibilityLabel={`Jouw bericht: ${a11yLabel}, ${formatMessageTime(msg.created_at)}`}
           >
-            {hasImage ? (
-              <TouchableOpacity onPress={() => setPreviewImageUrl(msg.media_url)} activeOpacity={0.85}>
-                <Image source={{ uri: msg.media_url }} style={styles.chatImage} resizeMode="cover" />
-                {msg.content ? <Text style={[styles.ownBubbleText, styles.imageCaption]}>{msg.content}</Text> : null}
-              </TouchableOpacity>
-            ) : (
-              <Text style={styles.ownBubbleText}>{msg.content}</Text>
-            )}
+            {hasImages
+              ? <ImageGrid urls={imageUrls} onPress={openPreview} />
+              : <Text style={styles.ownBubbleText}>{msg.content}</Text>
+            }
           </View>
         </View>
       );
     }
 
-    // Other person's message
     return (
       <View style={[styles.otherRow, { marginBottom: bottomMargin }]}>
         {msg.isFirstInGroup ? (
@@ -387,18 +445,14 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
             </View>
           )}
           <View
-            style={hasImage ? styles.otherImageBubble : styles.otherBubble}
+            style={hasImages ? styles.otherImageBubble : styles.otherBubble}
             accessibilityRole="text"
             accessibilityLabel={`Bericht van ${otherUser?.first_name || displayName}: ${a11yLabel}, ${formatMessageTime(msg.created_at)}`}
           >
-            {hasImage ? (
-              <TouchableOpacity onPress={() => setPreviewImageUrl(msg.media_url)} activeOpacity={0.85}>
-                <Image source={{ uri: msg.media_url }} style={styles.chatImage} resizeMode="cover" />
-                {msg.content ? <Text style={[styles.otherBubbleText, styles.imageCaption]}>{msg.content}</Text> : null}
-              </TouchableOpacity>
-            ) : (
-              <Text style={styles.otherBubbleText}>{msg.content}</Text>
-            )}
+            {hasImages
+              ? <ImageGrid urls={imageUrls} onPress={openPreview} />
+              : <Text style={styles.otherBubbleText}>{msg.content}</Text>
+            }
           </View>
         </View>
       </View>
@@ -503,14 +557,59 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
         />
       )}
 
-      {/* Full-screen image preview */}
-      {previewImageUrl && (
-        <Modal visible transparent animationType="fade" onRequestClose={() => setPreviewImageUrl(null)}>
-          <TouchableWithoutFeedback onPress={() => setPreviewImageUrl(null)}>
-            <View style={styles.previewOverlay}>
-              <Image source={{ uri: previewImageUrl }} style={styles.previewImage} resizeMode="contain" />
+      {/* Full-screen image gallery */}
+      {previewUrls && (
+        <Modal visible transparent animationType="fade" onRequestClose={() => setPreviewUrls(null)}>
+          <View style={styles.previewOverlay}>
+            {/* Header: close button + counter */}
+            <View style={[styles.previewHeader, { paddingTop: Math.max(insets.top, 16) }]}>
+              <TouchableOpacity
+                style={styles.previewCloseBtn}
+                onPress={() => setPreviewUrls(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Sluiten"
+              >
+                <XIcon size={20} color="#FFFFFF" weight="bold" />
+              </TouchableOpacity>
+              {previewUrls.length > 1 && (
+                <Text style={styles.previewCounter}>{previewIndex + 1} / {previewUrls.length}</Text>
+              )}
+              <View style={styles.previewHeaderSpacer} />
             </View>
-          </TouchableWithoutFeedback>
+
+            {/* Swipeable images */}
+            <FlatList
+              horizontal
+              pagingEnabled
+              initialScrollIndex={previewIndex}
+              data={previewUrls}
+              keyExtractor={(_, i) => String(i)}
+              renderItem={({ item: url }) => (
+                <View style={styles.previewImageWrap}>
+                  <Image source={{ uri: url }} style={styles.previewImage} resizeMode="contain" />
+                </View>
+              )}
+              getItemLayout={(_, index) => ({
+                length: SCREEN_WIDTH,
+                offset: SCREEN_WIDTH * index,
+                index,
+              })}
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => {
+                const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+                setPreviewIndex(index);
+              }}
+            />
+
+            {/* Dot indicators */}
+            {previewUrls.length > 1 && (
+              <View style={[styles.previewDots, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+                {previewUrls.map((_, i) => (
+                  <View key={i} style={[styles.previewDot, i === previewIndex && styles.previewDotActive]} />
+                ))}
+              </View>
+            )}
+          </View>
         </Modal>
       )}
 
@@ -533,7 +632,7 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
                   accessibilityRole="button"
                   accessibilityLabel="Afbeelding verwijderen"
                 >
-                  <XCircleIcon size={18} color={COLORS.surface} weight="fill" />
+                  <XCircleIcon size={20} color="rgba(0,0,0,0.72)" weight="fill" />
                 </TouchableOpacity>
               </View>
             ))}
@@ -843,7 +942,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // Image bubbles — no background wrapper, image clips to bubble radius
+  // Image bubbles — no background, image/grid clips to bubble radius
   ownImageBubble: {
     maxWidth: '75%',
     borderTopLeftRadius: 10,
@@ -859,14 +958,43 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 2,
     overflow: 'hidden',
   },
-  chatImage: {
+
+  // ImageGrid component styles
+  chatImageSingle: {
     width: 200,
     height: 150,
   },
-  imageCaption: {
-    marginTop: 6,
-    marginHorizontal: 6,
-    marginBottom: 4,
+  imageGrid2: {
+    flexDirection: 'row',
+    gap: 2,
+  },
+  chatImageHalf: {
+    width: 100,
+    height: 130,
+  },
+  imageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 2,
+    width: 202,
+  },
+  imageGridCell: {
+    position: 'relative',
+  },
+  chatImageTile: {
+    width: 100,
+    height: 100,
+  },
+  imageGridOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imageGridOverlayText: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontFamily: FONTS.displayBold,
   },
 
   // Pending image preview strip
@@ -893,16 +1021,61 @@ const styles = StyleSheet.create({
     right: -6,
   },
 
-  // Full-screen image preview
+  // Full-screen image gallery
   previewOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.92)',
+    backgroundColor: '#000000',
+  },
+  previewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  previewCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  previewCounter: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 15,
+  },
+  previewHeaderSpacer: {
+    width: 36,
+  },
+  previewImageWrap: {
+    width: SCREEN_WIDTH,
+    flex: 1,
+    justifyContent: 'center',
+  },
   previewImage: {
-    width: '100%',
-    height: '100%',
+    width: SCREEN_WIDTH,
+    flex: 1,
+  },
+  previewDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingTop: 12,
+  },
+  previewDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.35)',
+  },
+  previewDotActive: {
+    backgroundColor: '#FFFFFF',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 
   // ── Input bar ────────────────────────────────────────────────────────────────
