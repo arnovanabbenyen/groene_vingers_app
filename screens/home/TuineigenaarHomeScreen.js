@@ -22,8 +22,10 @@ import VerzoekenOverzichtScreen from '../aanvraag/VerzoekenOverzichtScreen';
 import AanvraagDetailScreen from '../aanvraag/AanvraagDetailScreen';
 import BerichtenOverzichtScreen from '../berichten/BerichtenOverzichtScreen';
 import ConversationDetailScreen from '../berichten/ConversationDetailScreen';
+import MeldingenScreen from '../notifications/MeldingenScreen';
 import { createConversationForAanvraag } from '../../services/conversations';
 import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
+import { useNotifications } from '../../hooks/useNotifications';
 
 const PROFILE_IMAGE = require('../../images/tuineigenaar_pfp.png');
 const PERCEEL_STATUS = {
@@ -229,6 +231,7 @@ export default function TuineigenaarHomeScreen({
 }) {
   const [activeTab, setActiveTab] = useState('start');
   const [profileImageSource, setProfileImageSource] = useState(PROFILE_IMAGE);
+  const { notifications, isLoading: isLoadingNotifications, unreadCount: notificationCount, markAsRead, markAllAsRead } = useNotifications();
   const [profile, setProfile] = useState(null);
   const [percelen, setPercelen] = useState([]);
   const [selectedPerceel, setSelectedPerceel] = useState(null);
@@ -472,6 +475,19 @@ export default function TuineigenaarHomeScreen({
     );
   }
 
+  if (activeTab === 'meldingen') {
+    return (
+      <MeldingenScreen
+        notifications={notifications}
+        isLoading={isLoadingNotifications}
+        onBack={() => setActiveTab('start')}
+        onMarkAsRead={markAsRead}
+        onMarkAllAsRead={markAllAsRead}
+        role="tuineigenaar"
+      />
+    );
+  }
+
   if (activeTab === 'berichten') {
     return (
       <BerichtenOverzichtScreen
@@ -520,8 +536,21 @@ export default function TuineigenaarHomeScreen({
             {/* TODO: replace hardcoded location once the location feature ships. */}
             <Text style={styles.locationText}>Kessel-Lo</Text>
           </View>
-          <Pressable hitSlop={8} accessibilityRole="button" accessibilityLabel="Meldingen">
+          <Pressable
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Meldingen"
+            onPress={() => setActiveTab('meldingen')}
+            style={styles.bellWrap}
+          >
             <BellIcon size={24} color={COLORS.surface} weight="regular" />
+            {notificationCount > 0 ? (
+              <View style={styles.bellBadge}>
+                <Text style={styles.bellBadgeText}>
+                  {notificationCount > 9 ? '9+' : String(notificationCount)}
+                </Text>
+              </View>
+            ) : null}
           </Pressable>
         </View>
 
@@ -862,5 +891,28 @@ const styles = StyleSheet.create({
   percelenDotActive: {
     width: 14,
     backgroundColor: COLORS.brand,
+  },
+  bellWrap: {
+    position: 'relative',
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.negative,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: COLORS.brand,
+  },
+  bellBadgeText: {
+    color: COLORS.surface,
+    fontSize: 9,
+    fontFamily: FONTS.bodyMedium,
+    lineHeight: 11,
   },
 });

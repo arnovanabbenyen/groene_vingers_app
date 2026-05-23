@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BellIcon, HeartIcon, MapPinIcon, MagnifyingGlassIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../theme/tokens';
 
-export default function HomeHeader({ searchQuery, onSearchChange, onPressNotifications }) {
+export default function HomeHeader({ searchQuery, onSearchChange, onPressNotifications, notificationCount = 0 }) {
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(46, insets.top + 18);
 
@@ -26,8 +26,15 @@ export default function HomeHeader({ searchQuery, onSearchChange, onPressNotific
           </View>
 
           <View style={styles.headerActions}>
-            <Pressable onPress={onPressNotifications} hitSlop={8}>
+            <Pressable onPress={onPressNotifications} hitSlop={8} style={styles.bellWrap}>
               <BellIcon size={24} color={COLORS.textInverse} weight="regular" />
+              {notificationCount > 0 ? (
+                <View style={styles.bellBadge}>
+                  <Text style={styles.bellBadgeText}>
+                    {notificationCount > 9 ? '9+' : String(notificationCount)}
+                  </Text>
+                </View>
+              ) : null}
             </Pressable>
             <Pressable>
               <HeartIcon size={24} color={COLORS.textInverse} weight="regular" />
@@ -127,5 +134,28 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     fontFamily: FONTS.bodyMedium,
     fontWeight: '500',
+  },
+  bellWrap: {
+    position: 'relative',
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.negative,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: COLORS.brand,
+  },
+  bellBadgeText: {
+    color: COLORS.surface,
+    fontSize: 9,
+    fontFamily: FONTS.bodyMedium,
+    lineHeight: 11,
   },
 });
