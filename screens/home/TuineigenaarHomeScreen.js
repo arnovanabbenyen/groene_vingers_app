@@ -21,6 +21,7 @@ import { usePendingAanvragen } from '../../hooks/usePendingAanvragen';
 import VerzoekenOverzichtScreen from '../aanvraag/VerzoekenOverzichtScreen';
 import AanvraagDetailScreen from '../aanvraag/AanvraagDetailScreen';
 import BerichtenOverzichtScreen from '../berichten/BerichtenOverzichtScreen';
+import ConversationDetailScreen from '../berichten/ConversationDetailScreen';
 import { createConversationForAanvraag } from '../../services/conversations';
 import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
 
@@ -223,6 +224,8 @@ export default function TuineigenaarHomeScreen({
   onAanvraagActionComplete,
   aanvragenRefreshKey = 0,
   onOpenConversation,
+  selectedConversation = null,
+  onCloseConversation,
 }) {
   const [activeTab, setActiveTab] = useState('start');
   const [profileImageSource, setProfileImageSource] = useState(PROFILE_IMAGE);
@@ -455,6 +458,16 @@ export default function TuineigenaarHomeScreen({
         aanvraag={selectedAanvraag}
         onBack={onCloseAanvraag}
         onActionComplete={onAanvraagActionComplete}
+      />
+    );
+  }
+
+  if (currentScreen === 'conversation-detail' && selectedConversation) {
+    return (
+      <ConversationDetailScreen
+        conversation={selectedConversation}
+        onBack={onCloseConversation}
+        onConfirmSamenwerking={onCloseConversation}
       />
     );
   }

@@ -37,6 +37,7 @@ export default function App() {
   const [lastResetEmail, setLastResetEmail] = useState('');
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [conversationsRefreshKey, setConversationsRefreshKey] = useState(0);
+  const [selectedConversation, setSelectedConversation] = useState(null);
   const { aanvragen: pendingAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
   const pendingProfilePhotoRef = useRef({ uri: null, userId: null });
 
@@ -135,8 +136,13 @@ export default function App() {
   }
 
   function handleOpenConversation(conversation) {
-    const participantName = [conversation?.otherUser?.first_name, conversation?.otherUser?.last_name].filter(Boolean).join(' ').trim() || 'dit gesprek';
-    Alert.alert('Gesprek openen', `De detailchat voor ${participantName} komt in een volgende stap.`);
+    setSelectedConversation(conversation);
+    setCurrentScreen('conversation-detail');
+  }
+
+  function handleCloseConversation() {
+    setSelectedConversation(null);
+    setCurrentScreen('berichten');
   }
 
   async function uploadProfilePhoto(userId, photoUri) {
@@ -344,12 +350,16 @@ export default function App() {
             badgeCounts={{ verzoeken: verzoekenCount, berichten: unreadMessagesCount }}
             onBadgeCountChange={setVerzoekenCount}
             onOpenConversation={handleOpenConversation}
+            selectedConversation={selectedConversation}
+            onCloseConversation={handleCloseConversation}
           />
         ) : (
           <HomeScreen
             onLogout={handleLogout}
             badgeCounts={{ berichten: unreadMessagesCount }}
             onOpenConversation={handleOpenConversation}
+            selectedConversation={selectedConversation}
+            onCloseConversation={handleCloseConversation}
           />
         )
       ) : screen === 'login' ? (
