@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
-import { ArrowLeftIcon, BellSlashIcon, CheckCircleIcon } from 'phosphor-react-native';
+import { ArrowLeftIcon, BellSlashIcon, SealCheckIcon } from 'phosphor-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 import { useNotifications } from '../../hooks/useNotifications';
@@ -59,7 +59,7 @@ function NotificationAvatar({ notification }) {
   if (notification.type === 'system') {
     return (
       <View style={styles.iconCircle}>
-        <CheckCircleIcon size={24} color={COLORS.brand} weight="regular" />
+        <SealCheckIcon size={24} color={COLORS.brand} weight="regular" />
       </View>
     );
   }
@@ -80,30 +80,34 @@ function NotificationAvatar({ notification }) {
   );
 }
 
-function NotificationRow({ notification, onPress }) {
+function NotificationRow({ notification, onPress, showDivider }) {
   const isUnread = !notification.read_at;
 
   return (
-    <Pressable
-      onPress={() => onPress(notification)}
-      style={[styles.row, isUnread && styles.rowUnread]}
-      accessibilityRole="button"
-      accessibilityLabel={`${notification.title}, ${formatRelative(notification.created_at)}${isUnread ? ', ongelezen' : ''}`}
-    >
-      <NotificationAvatar notification={notification} />
+    <>
+      <Pressable
+        onPress={() => onPress(notification)}
+        style={[styles.row, isUnread && styles.rowUnread]}
+        accessibilityRole="button"
+        accessibilityLabel={`${notification.title}, ${formatRelative(notification.created_at)}${isUnread ? ', ongelezen' : ''}`}
+      >
+        <NotificationAvatar notification={notification} />
 
-      <View style={styles.rowContent}>
-        <Text style={[styles.rowTitle, isUnread && styles.rowTitleUnread]} numberOfLines={2}>
-          {notification.title}
-        </Text>
-        {notification.body ? (
-          <Text style={styles.rowBody} numberOfLines={1}>{notification.body}</Text>
-        ) : null}
-        <Text style={styles.rowTime}>{formatRelative(notification.created_at)}</Text>
-      </View>
-
-      {isUnread && <View style={styles.unreadDot} />}
-    </Pressable>
+        <View style={styles.rowContent}>
+          <View style={styles.titleRow}>
+            <Text style={[styles.rowTitle, isUnread && styles.rowTitleUnread]} numberOfLines={2}>
+              {notification.title}
+            </Text>
+            {isUnread && <View style={styles.unreadDot} />}
+          </View>
+          {notification.body ? (
+            <Text style={styles.rowBody} numberOfLines={1}>{notification.body}</Text>
+          ) : null}
+          <Text style={styles.rowTime}>{formatRelative(notification.created_at)}</Text>
+        </View>
+      </Pressable>
+      {showDivider && <View style={styles.divider} />}
+    </>
   );
 }
 
@@ -192,24 +196,39 @@ export default function MeldingenScreen({
           {groups.vandaag.length > 0 && (
             <>
               <Text style={styles.sectionHeader}>Vandaag</Text>
-              {groups.vandaag.map((n) => (
-                <NotificationRow key={n.id} notification={n} onPress={handlePress} />
+              {groups.vandaag.map((n, i) => (
+                <NotificationRow
+                  key={n.id}
+                  notification={n}
+                  onPress={handlePress}
+                  showDivider={i < groups.vandaag.length - 1}
+                />
               ))}
             </>
           )}
           {groups.dezeWeek.length > 0 && (
             <>
               <Text style={styles.sectionHeader}>Deze week</Text>
-              {groups.dezeWeek.map((n) => (
-                <NotificationRow key={n.id} notification={n} onPress={handlePress} />
+              {groups.dezeWeek.map((n, i) => (
+                <NotificationRow
+                  key={n.id}
+                  notification={n}
+                  onPress={handlePress}
+                  showDivider={i < groups.dezeWeek.length - 1}
+                />
               ))}
             </>
           )}
           {groups.eerder.length > 0 && (
             <>
               <Text style={styles.sectionHeader}>Eerder</Text>
-              {groups.eerder.map((n) => (
-                <NotificationRow key={n.id} notification={n} onPress={handlePress} />
+              {groups.eerder.map((n, i) => (
+                <NotificationRow
+                  key={n.id}
+                  notification={n}
+                  onPress={handlePress}
+                  showDivider={i < groups.eerder.length - 1}
+                />
               ))}
             </>
           )}
@@ -290,7 +309,7 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontFamily: FONTS.body,
     fontSize: 14,
-    color: COLORS.textMuted,
+    color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     maxWidth: 280,
@@ -312,84 +331,99 @@ const styles = StyleSheet.create({
   // ── Section header ────────────────────────────────────────────
   sectionHeader: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 18,
+    fontSize: 20,
     color: COLORS.textPrimary,
     paddingHorizontal: SPACING.screenX,
     paddingTop: 20,
-    paddingBottom: 12,
-    backgroundColor: COLORS.surface,
+    paddingBottom: 8,
   },
   // ── Notification row ──────────────────────────────────────────
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.screenX,
+    alignItems: 'flex-start',
+    marginHorizontal: SPACING.screenX,
+    paddingHorizontal: SPACING.sm,
     paddingVertical: 14,
-    gap: 12,
+    gap: 15,
     backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.dividerSoft,
+    borderRadius: RADIUS.xl,
+    overflow: 'hidden',
   },
   rowUnread: {
-    backgroundColor: COLORS.accentSoft,
+    backgroundColor: 'rgba(255, 217, 94, 0.15)',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.dividerSoft,
+    marginHorizontal: SPACING.screenX,
+    marginVertical: 12,
   },
   avatarImage: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
     backgroundColor: COLORS.surfaceMuted,
   },
   initialsCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
     backgroundColor: COLORS.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   initialsText: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.textPrimary,
   },
   iconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
     backgroundColor: COLORS.surfaceBrand,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rowContent: {
     flex: 1,
-    gap: 4,
+    gap: 2,
     minWidth: 0,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
   rowTitle: {
+    flex: 1,
     fontFamily: FONTS.body,
-    fontSize: 15,
+    fontSize: 16,
     color: COLORS.textPrimary,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   rowTitleUnread: {
     fontFamily: FONTS.bodyMedium,
   },
   rowBody: {
     fontFamily: FONTS.body,
-    fontSize: 13,
+    fontSize: 14,
     color: COLORS.textSecondary,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   rowTime: {
     fontFamily: FONTS.body,
-    fontSize: 13,
-    color: COLORS.textMuted,
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
   },
   unreadDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: COLORS.accent,
+    marginTop: 7,
     flexShrink: 0,
   },
 });
