@@ -35,6 +35,8 @@ export default function App() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [requiresEmailVerification, setRequiresEmailVerification] = useState(false);
   const [lastResetEmail, setLastResetEmail] = useState('');
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [conversationsRefreshKey, setConversationsRefreshKey] = useState(0);
   const { aanvragen: pendingAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
   const pendingProfilePhotoRef = useRef({ uri: null, userId: null });
 
@@ -56,6 +58,60 @@ export default function App() {
   }, [isLoggedIn, selectedRole, pendingAanvragen.length]);
 
   useEffect(() => {
+    let mounted = true;
+
+    async function loadUnreadMessagesCount() {
+      if (!isLoggedIn || !supabase) {
+        if (mounted) setUnreadMessagesCount(0);
+        return;
+      }
+
+      try {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        const userId = sessionData?.session?.user?.id;
+        if (!userId) {
+          if (mounted) setUnreadMessagesCount(0);
+          return;
+        }
+
+        const { data: conversations, error: conversationsError } = await supabase
+          .from('conversations')
+          .select('id')
+          .or(`owner_id.eq.${userId},sender_id.eq.${userId}`);
+
+        if (conversationsError) throw conversationsError;
+
+        const conversationIds = (conversations || []).map((conversation) => conversation.id);
+        if (conversationIds.length === 0) {
+          if (mounted) setUnreadMessagesCount(0);
+          return;
+        }
+
+        const { count, error: messagesError } = await supabase
+          .from('messages')
+          .select('id', { count: 'exact', head: true })
+          .in('conversation_id', conversationIds)
+          .neq('sender_id', userId)
+          .is('read_at', null);
+
+        if (messagesError) throw messagesError;
+
+        if (mounted) setUnreadMessagesCount(count || 0);
+      } catch (err) {
+        console.warn('Failed to load unread message count', err);
+        if (mounted) setUnreadMessagesCount(0);
+      }
+    }
+
+    loadUnreadMessagesCount();
+    return () => {
+      mounted = false;
+    };
+  }, [isLoggedIn, selectedRole, conversationsRefreshKey]);
+
+  useEffect(() => {
     pendingProfilePhotoRef.current = {
       uri: profilePhotoUri,
       userId: profilePhotoUserId,
@@ -75,6 +131,12 @@ export default function App() {
 
   function handleAanvraagActionComplete() {
     setAanvragenRefreshKey((current) => current + 1);
+    setConversationsRefreshKey((current) => current + 1);
+  }
+
+  function handleOpenConversation(conversation) {
+    const participantName = [conversation?.otherUser?.first_name, conversation?.otherUser?.last_name].filter(Boolean).join(' ').trim() || 'dit gesprek';
+    Alert.alert('Gesprek openen', `De detailchat voor ${participantName} komt in een volgende stap.`);
   }
 
   async function uploadProfilePhoto(userId, photoUri) {
@@ -279,11 +341,16 @@ export default function App() {
             onCloseAanvraag={handleCloseAanvraag}
             onAanvraagActionComplete={handleAanvraagActionComplete}
             aanvragenRefreshKey={aanvragenRefreshKey}
-            badgeCounts={{ verzoeken: verzoekenCount }}
+            badgeCounts={{ verzoeken: verzoekenCount, berichten: unreadMessagesCount }}
             onBadgeCountChange={setVerzoekenCount}
+            onOpenConversation={handleOpenConversation}
           />
         ) : (
-          <HomeScreen onLogout={handleLogout} />
+          <HomeScreen
+            onLogout={handleLogout}
+            badgeCounts={{ berichten: unreadMessagesCount }}
+            onOpenConversation={handleOpenConversation}
+          />
         )
       ) : screen === 'login' ? (
         <LoginScreen

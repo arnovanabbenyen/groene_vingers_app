@@ -7,6 +7,7 @@ import AanvraagCard from '../../components/aanvraag/AanvraagCard';
 import { usePendingAanvragen } from '../../hooks/usePendingAanvragen';
 import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 import { supabase } from '../../services/supabase';
+import { createConversationForAanvraag } from '../../services/conversations';
 
 function EmptyRequestsState() {
   return (
@@ -52,6 +53,8 @@ export default function VerzoekenOverzichtScreen({
   }, [aanvragen, searchQuery]);
 
   async function handleAccept(aanvraagId) {
+    const aanvraag = aanvragen.find((item) => item.id === aanvraagId);
+
     const { error } = await supabase
       .from('aanvragen')
       .update({ status: 'accepted', updated_at: new Date().toISOString() })
@@ -60,6 +63,23 @@ export default function VerzoekenOverzichtScreen({
     if (error) {
       Alert.alert('Fout', 'De aanvraag kon niet worden geaccepteerd. Probeer opnieuw.');
       return;
+    }
+
+    if (aanvraag?.id && aanvraag?.sender_id) {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.warn('Failed to load current user for conversation creation', userError);
+      } else {
+        const { error: conversationError } = await createConversationForAanvraag({
+          aanvraagId: aanvraag.id,
+          ownerId: userData?.user?.id,
+          senderId: aanvraag.sender_id,
+        });
+
+        if (conversationError) {
+          console.warn('Failed to create conversation for accepted aanvraag', conversationError);
+        }
+      }
     }
 
     setAanvragen((current) => current.filter((aanvraag) => aanvraag.id !== aanvraagId));

@@ -499,9 +499,12 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {}, ini
         extra_info: extraInfoItems,
         voorzieningen: selectedAmenities,
         fotos: uploadedUrls,
-        status: PERCEEL_STATUS.ACTIVE,
         updated_at: new Date().toISOString(),
       };
+
+      if (!isEditMode) {
+        payload.status = PERCEEL_STATUS.ACTIVE;
+      }
 
       if (isEditMode) {
         const { data: savedPerceel, error: updateError } = await supabase

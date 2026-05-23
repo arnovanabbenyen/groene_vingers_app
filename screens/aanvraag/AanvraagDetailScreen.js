@@ -5,6 +5,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../../services/supabase';
 import { COLORS, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 import { RequestAvatar } from '../../components/aanvraag/AanvraagCard';
+import { createConversationForAanvraag } from '../../services/conversations';
 
 const DAGEN = [
   { key: 'ma', label: 'Ma', fullLabel: 'Maandag' },
@@ -109,11 +110,27 @@ export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplet
       return;
     }
 
+    if (aanvraag?.id && aanvraag?.sender_id) {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.warn('Failed to load current user for conversation creation', userError);
+      } else {
+        const { error: conversationError } = await createConversationForAanvraag({
+          aanvraagId: aanvraag.id,
+          ownerId: userData?.user?.id,
+          senderId: aanvraag.sender_id,
+        });
+
+        if (conversationError) {
+          console.warn('Failed to create conversation for accepted aanvraag', conversationError);
+        }
+      }
+    }
+
     Alert.alert('Aanvraag geaccepteerd', 'De aanvrager wordt hierover geïnformeerd.', [{ text: 'OK', onPress: () => {
       onActionComplete?.();
       onBack?.();
     }}]);
-    // TODO: start a chat between sender and owner once chat feature exists
     // TODO: send push notification to sender confirming acceptance
   }
 
