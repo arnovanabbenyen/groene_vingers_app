@@ -4,6 +4,8 @@ export const COLORS = {
   background: '#F7F7F5',
   surface: '#FFFFFF',
   surfaceMuted: '#E9E9E9',
+  surfaceBrand: '#EAF3DE',
+  accentSoft: '#FFFBEE',
   brand: '#576238',
   brandMid: '#606C3D',
   brandSoft: 'rgba(87,98,56,0.2)',

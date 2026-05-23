@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ArrowLeftIcon, BellIcon, BellSlashIcon, HandshakeIcon, SealCheckIcon } from 'phosphor-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
@@ -32,24 +32,17 @@ function isToday(dateStr) {
 }
 
 function isThisWeek(dateStr) {
-  const d = new Date(dateStr);
-  const now = new Date();
-  const msPerDay = 86400000;
-  const diffDays = Math.floor((now - d) / msPerDay);
+  const diffDays = Math.floor((new Date() - new Date(dateStr)) / 86400000);
   return diffDays < 7 && !isToday(dateStr);
 }
 
 function groupNotifications(notifications) {
-  const today = [];
-  const thisWeek = [];
-  const earlier = [];
-
+  const today = [], thisWeek = [], earlier = [];
   for (const n of notifications) {
     if (isToday(n.created_at)) today.push(n);
     else if (isThisWeek(n.created_at)) thisWeek.push(n);
     else earlier.push(n);
   }
-
   const sections = [];
   if (today.length > 0) sections.push({ key: 'today', label: 'Vandaag', items: today });
   if (thisWeek.length > 0) sections.push({ key: 'week', label: 'Deze week', items: thisWeek });
@@ -58,26 +51,55 @@ function groupNotifications(notifications) {
 }
 
 function buildFlatData(notifications) {
-  const sections = groupNotifications(notifications);
   const flat = [];
-  for (const section of sections) {
+  for (const section of groupNotifications(notifications)) {
     flat.push({ kind: 'header', id: `header-${section.key}`, label: section.label });
-    for (const n of section.items) {
-      flat.push({ kind: 'row', id: n.id, notification: n });
-    }
+    for (const n of section.items) flat.push({ kind: 'row', id: n.id, notification: n });
   }
   return flat;
 }
 
-function TypeIcon({ type }) {
-  const iconProps = { size: 22, weight: 'regular', color: COLORS.brand };
-  if (type === 'aanvraag_accepted' || type === 'aanvraag_confirmed') {
-    return <SealCheckIcon {...iconProps} />;
+function getInitials(name) {
+  if (!name) return '';
+  return name.trim().split(/\s+/).map((w) => w[0]).filter(Boolean).join('').slice(0, 2).toUpperCase();
+}
+
+function FallbackIcon({ type }) {
+  const props = { size: 22, weight: 'regular', color: COLORS.brand };
+  if (type === 'aanvraag_accepted' || type === 'aanvraag_confirmed') return <SealCheckIcon {...props} />;
+  if (type === 'aanvraag_received') return <HandshakeIcon {...props} />;
+  return <BellIcon {...props} />;
+}
+
+function ActorAvatar({ notification }) {
+  const [imageError, setImageError] = useState(false);
+  const avatarUrl = notification.data?.actor_avatar_url;
+  const actorName = notification.data?.actor_name || '';
+  const initials = getInitials(actorName);
+
+  if (avatarUrl && !imageError) {
+    return (
+      <Image
+        source={{ uri: avatarUrl }}
+        style={styles.avatarImage}
+        onError={() => setImageError(true)}
+      />
+    );
   }
-  if (type === 'aanvraag_received') {
-    return <HandshakeIcon {...iconProps} />;
+
+  if (initials) {
+    return (
+      <View style={[styles.avatarCircle, styles.avatarInitialsBg]}>
+        <Text style={styles.avatarInitialsText}>{initials}</Text>
+      </View>
+    );
   }
-  return <BellIcon {...iconProps} />;
+
+  return (
+    <View style={styles.avatarCircle}>
+      <FallbackIcon type={notification.type} />
+    </View>
+  );
 }
 
 function NotificationRow({ notification, onPress }) {
@@ -90,9 +112,7 @@ function NotificationRow({ notification, onPress }) {
       accessibilityRole="button"
       accessibilityLabel={notification.title}
     >
-      <View style={styles.rowIcon}>
-        <TypeIcon type={notification.type} />
-      </View>
+      <ActorAvatar notification={notification} />
 
       <View style={styles.rowContent}>
         <View style={styles.rowTitleRow}>
@@ -163,11 +183,7 @@ export default function MeldingenScreen({
             </Text>
           </View>
           {role === 'tuinzoeker' ? (
-            <Pressable
-              style={styles.findBtn}
-              onPress={onZoekPerceel}
-              accessibilityRole="button"
-            >
+            <Pressable style={styles.findBtn} onPress={onZoekPerceel} accessibilityRole="button">
               <Text style={styles.findBtnText}>Zoek een perceel</Text>
             </Pressable>
           ) : null}
@@ -199,6 +215,8 @@ export default function MeldingenScreen({
     </View>
   );
 }
+
+const AVATAR_SIZE = 45;
 
 const styles = StyleSheet.create({
   container: {
@@ -257,7 +275,7 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: '#EAF3DE',
+    backgroundColor: COLORS.surfaceBrand,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -311,17 +329,32 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
   },
   rowUnread: {
-    backgroundColor: '#FFFBEE',
+    backgroundColor: COLORS.accentSoft,
     borderRadius: RADIUS.sm,
   },
-  rowIcon: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    backgroundColor: '#EAF3DE',
+  avatarImage: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: COLORS.surfaceMuted,
+    flexShrink: 0,
+  },
+  avatarCircle: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: COLORS.surfaceBrand,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+  },
+  avatarInitialsBg: {
+    backgroundColor: COLORS.brandSoft,
+  },
+  avatarInitialsText: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: 16,
+    color: COLORS.brand,
   },
   rowContent: {
     flex: 1,
