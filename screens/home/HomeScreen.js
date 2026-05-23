@@ -7,7 +7,7 @@
   import HomeSectionCta from '../../components/home/HomeSectionCta';
   import PlotCard from '../../components/home/PlotCard';
   import { supabase } from '../../services/supabase';
-  import NotificationScreen from '../notifications/NotificationScreen';
+  import BerichtenOverzichtScreen from '../berichten/BerichtenOverzichtScreen';
   import PlansScreen from '../plans/PlansScreen';
   import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
   import AanvraagDoenScreen from '../aanvraag/AanvraagDoenScreen';
@@ -36,7 +36,7 @@
     },
   ];
 
-  export default function HomeScreen() {
+  export default function HomeScreen({ badgeCounts = {}, onOpenConversation }) {
     const [activeTab, setActiveTab] = useState('start');
     const [profileImageSource, setProfileImageSource] = useState(PROFILE_IMAGE);
     const [activeDot, setActiveDot] = useState(0);
@@ -169,9 +169,11 @@
 
     if (activeTab === 'berichten') {
       return (
-        <NotificationScreen
-          onBack={() => setActiveTab('start')}
-          onPrimaryAction={() => setActiveTab('start')}
+        <BerichtenOverzichtScreen
+          onTabPress={(item) => setActiveTab(item.key)}
+          profileImageSource={profileImageSource}
+          badgeCounts={badgeCounts}
+          onOpenConversation={onOpenConversation}
         />
       );
     }
@@ -252,6 +254,7 @@
             activeKey={activeTab}
             onTabPress={(item) => setActiveTab(item.key)}
             profileImageSource={profileImageSource}
+            badgeCounts={badgeCounts}
             style={styles.bottomNav}
           />
         </View>

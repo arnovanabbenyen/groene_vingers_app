@@ -25,6 +25,7 @@ import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/
 import AuthButton from '../../components/buttons/AuthButton';
 import FieldError from '../../components/notifications/FieldError';
 import { supabase } from '../../services/supabase';
+import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
 import MOCK_PERCEEL from '../../mocks/perceelMock';
 
 const WEEKDAYS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
@@ -155,7 +156,7 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
         type_samenwerking: type,
         availability,
         start_date: formattedDate,
-        status: 'pending',
+        status: AANVRAAG_STATUS.PENDING,
       };
 
       console.log('Submitting aanvraag:', row);

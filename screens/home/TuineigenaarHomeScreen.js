@@ -20,6 +20,9 @@ import AanvraagCard, { normalizeSize } from '../../components/aanvraag/AanvraagC
 import { usePendingAanvragen } from '../../hooks/usePendingAanvragen';
 import VerzoekenOverzichtScreen from '../aanvraag/VerzoekenOverzichtScreen';
 import AanvraagDetailScreen from '../aanvraag/AanvraagDetailScreen';
+import BerichtenOverzichtScreen from '../berichten/BerichtenOverzichtScreen';
+import { createConversationForAanvraag } from '../../services/conversations';
+import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
 
 const PROFILE_IMAGE = require('../../images/tuineigenaar_pfp.png');
 const PERCEEL_STATUS = {
@@ -44,9 +47,9 @@ function ActiveSamenwerkingenEmpty() {
       <HandshakeIcon size={40} color={COLORS.brand} weight="regular" />
       <Text style={styles.emptyFeatureTitle}>Nog geen actieve samenwerkingen</Text>
       <Text style={styles.emptyFeatureSubtext}>
-        Zodra je een aanvraag accepteert, verschijnen je actieve samenwerkingen hier.
+        Zodra een aanvraag als samenwerking is bevestigd, verschijnt die hier.
       </Text>
-      {/* TODO: render actual active samenwerkingen cards when aanvragen with status='accepted' exist. For now, show empty state only. */}
+      {/* TODO: render actual active samenwerkingen cards when aanvragen with status=AANVRAAG_STATUS.CONFIRMED exist. For now, show empty state only. */}
     </View>
   );
 }
@@ -219,6 +222,7 @@ export default function TuineigenaarHomeScreen({
   onCloseAanvraag,
   onAanvraagActionComplete,
   aanvragenRefreshKey = 0,
+  onOpenConversation,
 }) {
   const [activeTab, setActiveTab] = useState('start');
   const [profileImageSource, setProfileImageSource] = useState(PROFILE_IMAGE);
@@ -292,15 +296,33 @@ export default function TuineigenaarHomeScreen({
 
   async function handleAccept(aanvraagId) {
     try {
+      const aanvraag = aanvragen.find((item) => item.id === aanvraagId);
       const { error } = await supabase
         .from('aanvragen')
-        .update({ status: 'accepted', updated_at: new Date().toISOString() })
+        .update({ status: AANVRAAG_STATUS.ACCEPTED, updated_at: new Date().toISOString() })
         .eq('id', aanvraagId);
 
       if (error) {
         console.error('Failed to accept aanvraag', error);
         Alert.alert('Fout', 'De aanvraag kon niet worden geaccepteerd. Probeer opnieuw.');
         return;
+      }
+
+      if (aanvraag?.id && aanvraag?.sender_id) {
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError) {
+          console.warn('Failed to load current user for conversation creation', userError);
+        } else {
+          const { error: conversationError } = await createConversationForAanvraag({
+            aanvraagId: aanvraag.id,
+            ownerId: userData?.user?.id,
+            senderId: aanvraag.sender_id,
+          });
+
+          if (conversationError) {
+            console.warn('Failed to create conversation for accepted aanvraag', conversationError);
+          }
+        }
       }
 
       setAanvragen((current) => current.filter((aanvraag) => aanvraag.id !== aanvraagId));
@@ -433,6 +455,17 @@ export default function TuineigenaarHomeScreen({
         aanvraag={selectedAanvraag}
         onBack={onCloseAanvraag}
         onActionComplete={onAanvraagActionComplete}
+      />
+    );
+  }
+
+  if (activeTab === 'berichten') {
+    return (
+      <BerichtenOverzichtScreen
+        onTabPress={handleTabPress}
+        profileImageSource={profileImageSource}
+        badgeCounts={badgeCounts}
+        onOpenConversation={onOpenConversation}
       />
     );
   }
