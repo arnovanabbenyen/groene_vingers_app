@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   BellIcon,
   HandshakeIcon,
@@ -529,6 +530,7 @@ export default function TuineigenaarHomeScreen({
 
   return (
     <View style={styles.container}>
+      <SafeAreaView edges={['top']} style={styles.headerSafe}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View style={styles.locationRow}>
@@ -556,6 +558,7 @@ export default function TuineigenaarHomeScreen({
 
         <Text style={styles.greeting}>Hallo, {profile?.first_name || 'Arno'}</Text>
       </View>
+      </SafeAreaView>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
@@ -629,9 +632,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.surface,
   },
+  headerSafe: {
+    backgroundColor: COLORS.brand,
+  },
   header: {
     backgroundColor: COLORS.brand,
-    paddingTop: 16,
+    paddingTop: SPACING.md,
     paddingHorizontal: SPACING.screenX,
     paddingBottom: SPACING.lg,
   },
