@@ -267,7 +267,7 @@ export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplet
 
       <View style={[styles.actionBar, { paddingBottom: insets.bottom + 16 }]}>
         <Pressable
-          style={[styles.primaryButton, isProcessing && processingAction === 'accept' && styles.buttonDisabled]}
+          style={[styles.buttonBase, styles.primaryButton, isProcessing && processingAction === 'accept' && styles.buttonDisabled]}
           onPress={handleAccept}
           disabled={isProcessing}
           accessibilityRole="button"
@@ -282,7 +282,7 @@ export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplet
         </Pressable>
 
         <Pressable
-          style={[styles.secondaryButton, isProcessing && processingAction === 'decline' && styles.buttonDisabled]}
+          style={[styles.buttonBase, styles.secondaryButton, isProcessing && processingAction === 'decline' && styles.buttonDisabled]}
           onPress={handleDecline}
           disabled={isProcessing}
           accessibilityRole="button"
@@ -349,8 +349,9 @@ const styles = StyleSheet.create({
   dateBox: { flex: 1, backgroundColor: COLORS.surfaceMuted, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   dateText: { fontFamily: FONTS.bodySemiBold, fontSize: 17, color: COLORS.textPrimary },
   actionBar: { paddingHorizontal: SPACING.screenX, paddingTop: 16, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.divider || '#E5E5E5' },
-  primaryButton: { backgroundColor: COLORS.brand, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginBottom: 12 },
-  secondaryButton: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: COLORS.brand, borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
+  buttonBase: { height: 44, borderRadius: RADIUS.sm, alignItems: 'center', justifyContent: 'center' },
+  primaryButton: { backgroundColor: COLORS.brand, marginBottom: 12 },
+  secondaryButton: { backgroundColor: 'transparent', borderWidth: 2, borderColor: COLORS.brand },
   primaryButtonText: { color: COLORS.surface, fontFamily: FONTS.bodySemiBold, fontSize: 16 },
   secondaryButtonText: { color: COLORS.brand, fontFamily: FONTS.bodySemiBold, fontSize: 16 },
   buttonDisabled: { opacity: 0.8 },
