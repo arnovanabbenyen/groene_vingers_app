@@ -13,7 +13,8 @@
   import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
   import AanvraagDoenScreen from '../aanvraag/AanvraagDoenScreen';
   import AanvraagBevestigingScreen from '../aanvraag/AanvraagBevestigingScreen';
-  import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
+  import { MagnifyingGlassIcon } from 'phosphor-react-native';
+  import { COLORS, FONTS, LAYOUT, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 
   const PROFILE_IMAGE = require('../../images/tuinzoeker_pfp.png');
 
@@ -37,6 +38,12 @@
     },
   ];
 
+  const AANVRAAG_STATUS_CHIP = {
+    pending: { label: 'In behandeling', bg: 'rgba(255,217,94,0.92)', color: COLORS.textPrimary },
+    accepted: { label: 'Geaccepteerd', bg: 'rgba(87,98,56,0.92)', color: COLORS.textInverse },
+    confirmed: { label: 'Samenwerking bevestigd', bg: 'rgba(87,98,56,0.92)', color: COLORS.textInverse },
+  };
+
   export default function HomeScreen({ badgeCounts = {}, onOpenConversation, selectedConversation: appSelectedConversation = null, onCloseConversation, unreadNotificationsCount = 0, onOpenNotifications }) {
     const [activeTab, setActiveTab] = useState('start');
     const [selectedConversation, setSelectedConversation] = useState(null);
@@ -47,6 +54,7 @@
     const [requestPlot, setRequestPlot] = useState(null);
     const [requestSuccessPerceel, setRequestSuccessPerceel] = useState(null);
     const [plots, setPlots] = useState(null); // null = loading not attempted
+    const [myAanvragen, setMyAanvragen] = useState([]);
 
     useEffect(() => {
       let mounted = true;
@@ -86,7 +94,34 @@
         if (mounted) setPlots(mapped);
       }
 
+      async function loadMyAanvragen() {
+        if (!supabase) return;
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const userId = sessionData?.session?.user?.id;
+          if (!userId) return;
+
+          const { data, error } = await supabase
+            .from('aanvragen')
+            .select('id, status, perceel_id, percelen(id, naam, plaats, grootte, fotos, voorzieningen, extra_info, owner_id)')
+            .eq('sender_id', userId)
+            .not('status', 'in', '("declined","cancelled")')
+            .order('created_at', { ascending: false });
+
+          if (error) {
+            console.warn('Failed to load my aanvragen', error);
+            return;
+          }
+
+          if (mounted) setMyAanvragen(data || []);
+        } catch (e) {
+          console.warn('loadMyAanvragen error', e);
+        }
+      }
+
       loadPercelen();
+      loadMyAanvragen();
+
       // load current user profile avatar for bottom nav
       async function loadProfileAvatar() {
         if (!supabase) return;
@@ -120,7 +155,10 @@
 
     const filteredPlots = useMemo(() => {
       const normalizedQuery = searchQuery.trim().toLowerCase();
-      const source = plots && plots.length > 0 ? plots : FALLBACK_PLOTS;
+      const aangevraagdeIds = new Set(myAanvragen.map((a) => a.perceel_id));
+      const source = (plots && plots.length > 0 ? plots : FALLBACK_PLOTS).filter(
+        (p) => !aangevraagdeIds.has(p.id)
+      );
 
       if (!normalizedQuery) return source;
 
@@ -128,7 +166,7 @@
         const searchableText = [plot.location, plot.title, plot.size, ...(plot.chips || [])].join(' ').toLowerCase();
         return searchableText.includes(normalizedQuery);
       });
-    }, [searchQuery, plots]);
+    }, [searchQuery, plots, myAanvragen]);
 
     const visibleDotIndex = Math.max(0, Math.min(filteredPlots.length - 1, activeDot));
 
@@ -236,6 +274,44 @@
                 <HomeSectionCta />
               </View>
 
+              {myAanvragen.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Jouw aanvragen</Text>
+                  <ScrollView
+                    horizontal
+                    nestedScrollEnabled
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.plotsScroller}
+                  >
+                    {myAanvragen.map((aanvraag) => {
+                      const perceel = aanvraag.percelen;
+                      if (!perceel) return null;
+                      const plot = {
+                        id: perceel.id,
+                        image: perceel.fotos?.[0] || null,
+                        fotos: perceel.fotos || [],
+                        location: perceel.plaats || 'Locatie niet beschikbaar',
+                        title: perceel.naam,
+                        size: perceel.grootte ? `${perceel.grootte}m²` : null,
+                        chips: perceel.voorzieningen || [],
+                        ownerId: perceel.owner_id,
+                        extra_info: perceel.extra_info || [],
+                        raw: perceel,
+                      };
+                      const chipConfig = AANVRAAG_STATUS_CHIP[aanvraag.status] ?? AANVRAAG_STATUS_CHIP.pending;
+                      return (
+                        <View key={aanvraag.id} style={styles.aanvraagCardWrap}>
+                          <PlotCard plot={plot} onPress={() => setSelectedPlot(plot)} />
+                          <View style={[styles.statusChip, { backgroundColor: chipConfig.bg }]}>
+                            <Text style={[styles.statusChipText, { color: chipConfig.color }]}>{chipConfig.label}</Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              )}
+
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Aanbevolen percelen</Text>
 
@@ -256,8 +332,10 @@
                 </ScrollView>
 
                 {filteredPlots.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyStateText}>Geen percelen gevonden voor "{searchQuery}".</Text>
+                  <View style={styles.emptyState} accessible accessibilityRole="text">
+                    <MagnifyingGlassIcon size={40} color={COLORS.brand} weight="regular" />
+                    <Text style={styles.emptyTitle}>Geen resultaten</Text>
+                    <Text style={styles.emptySubtext}>Geen percelen gevonden voor je zoekopdracht.</Text>
                   </View>
                 ) : null}
 
@@ -345,14 +423,41 @@
     dotActive: {
       backgroundColor: COLORS.brand,
     },
-    emptyState: {
-      paddingVertical: 6,
+    aanvraagCardWrap: {
+      position: 'relative',
     },
-    emptyStateText: {
-      color: COLORS.textSecondary,
-      fontSize: 14,
-      lineHeight: 20,
+    statusChip: {
+      position: 'absolute',
+      top: LAYOUT.plot.cardPadding + LAYOUT.plot.badgeInset,
+      left: LAYOUT.plot.cardPadding + LAYOUT.plot.badgeInset,
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      zIndex: 10,
+    },
+    statusChipText: {
+      fontFamily: FONTS.bodyMedium,
+      fontSize: 12,
+      lineHeight: 14,
+    },
+    emptyState: {
+      paddingVertical: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+    },
+    emptyTitle: {
+      fontFamily: FONTS.displaySemiBold,
+      fontSize: 16,
+      color: COLORS.textPrimary,
+      textAlign: 'center',
+    },
+    emptySubtext: {
       fontFamily: FONTS.body,
+      fontSize: 14,
+      color: COLORS.textSecondary,
+      lineHeight: 20,
+      textAlign: 'center',
     },
     bottomNav: {
       position: 'absolute',
