@@ -8,6 +8,7 @@ import { usePendingAanvragen } from '../../hooks/usePendingAanvragen';
 import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 import { supabase } from '../../services/supabase';
 import { createConversationForAanvraag } from '../../services/conversations';
+import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
 
 function EmptyRequestsState() {
   return (
@@ -57,7 +58,7 @@ export default function VerzoekenOverzichtScreen({
 
     const { error } = await supabase
       .from('aanvragen')
-      .update({ status: 'accepted', updated_at: new Date().toISOString() })
+      .update({ status: AANVRAAG_STATUS.ACCEPTED, updated_at: new Date().toISOString() })
       .eq('id', aanvraagId);
 
     if (error) {

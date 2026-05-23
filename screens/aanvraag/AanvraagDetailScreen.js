@@ -6,6 +6,7 @@ import { supabase } from '../../services/supabase';
 import { COLORS, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 import { RequestAvatar } from '../../components/aanvraag/AanvraagCard';
 import { createConversationForAanvraag } from '../../services/conversations';
+import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
 
 const DAGEN = [
   { key: 'ma', label: 'Ma', fullLabel: 'Maandag' },
@@ -97,7 +98,7 @@ export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplet
     const { error } = await supabase
       .from('aanvragen')
       .update({
-        status: 'accepted',
+        status: AANVRAAG_STATUS.ACCEPTED,
         updated_at: new Date().toISOString(),
       })
       .eq('id', aanvraag.id);
@@ -141,7 +142,7 @@ export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplet
     const { error } = await supabase
       .from('aanvragen')
       .update({
-        status: 'declined',
+        status: AANVRAAG_STATUS.DECLINED,
         updated_at: new Date().toISOString(),
       })
       .eq('id', aanvraag.id);

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
+import { AANVRAAG_STATUS } from '../services/aanvraagStatus';
 
 export function usePendingAanvragen(refreshKey = 0) {
   const [aanvragen, setAanvragen] = useState([]);
@@ -55,7 +56,7 @@ export function usePendingAanvragen(refreshKey = 0) {
             )
           `)
           .eq('perceel.owner_id', verifiedUserId)
-          .eq('status', 'pending')
+          .eq('status', AANVRAAG_STATUS.PENDING)
           .order('created_at', { ascending: false });
 
         if (aanvragenError) throw aanvragenError;

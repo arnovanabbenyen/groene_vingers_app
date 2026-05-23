@@ -22,6 +22,7 @@ import VerzoekenOverzichtScreen from '../aanvraag/VerzoekenOverzichtScreen';
 import AanvraagDetailScreen from '../aanvraag/AanvraagDetailScreen';
 import BerichtenOverzichtScreen from '../berichten/BerichtenOverzichtScreen';
 import { createConversationForAanvraag } from '../../services/conversations';
+import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
 
 const PROFILE_IMAGE = require('../../images/tuineigenaar_pfp.png');
 const PERCEEL_STATUS = {
@@ -46,9 +47,9 @@ function ActiveSamenwerkingenEmpty() {
       <HandshakeIcon size={40} color={COLORS.brand} weight="regular" />
       <Text style={styles.emptyFeatureTitle}>Nog geen actieve samenwerkingen</Text>
       <Text style={styles.emptyFeatureSubtext}>
-        Zodra je een aanvraag accepteert, verschijnen je actieve samenwerkingen hier.
+        Zodra een aanvraag als samenwerking is bevestigd, verschijnt die hier.
       </Text>
-      {/* TODO: render actual active samenwerkingen cards when aanvragen with status='accepted' exist. For now, show empty state only. */}
+      {/* TODO: render actual active samenwerkingen cards when aanvragen with status=AANVRAAG_STATUS.CONFIRMED exist. For now, show empty state only. */}
     </View>
   );
 }
@@ -298,7 +299,7 @@ export default function TuineigenaarHomeScreen({
       const aanvraag = aanvragen.find((item) => item.id === aanvraagId);
       const { error } = await supabase
         .from('aanvragen')
-        .update({ status: 'accepted', updated_at: new Date().toISOString() })
+        .update({ status: AANVRAAG_STATUS.ACCEPTED, updated_at: new Date().toISOString() })
         .eq('id', aanvraagId);
 
       if (error) {
