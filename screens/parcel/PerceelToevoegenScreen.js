@@ -34,6 +34,11 @@ const PHOTO_TILE_WIDTH = Math.round(
   (Dimensions.get('window').width - (SPACING.screenX * 2) - (SPACING.md * 2) - SPACING.md) / 2,
 );
 const PHOTO_TILE_HEIGHT = Math.round((PHOTO_TILE_WIDTH * 121) / 141);
+const PERCEEL_STATUS = {
+  ACTIVE: 'active',
+  HIDDEN: 'hidden',
+  DELETED: 'deleted',
+};
 
 const AMENITY_OPTIONS = [
   { label: 'Water', icon: DropIcon },
@@ -62,23 +67,74 @@ function normalizeExtraInfo(input) {
   return trimmed;
 }
 
+function capitalizeFirstLetter(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 function createEmptyPhotoSlots() {
   return Array.from({ length: 4 }, () => null);
 }
 
-export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
-  const [naam, setNaam] = useState('');
-  const [beschrijving, setBeschrijving] = useState('');
-  const [adres, setAdres] = useState('');
-  const [plaats, setPlaats] = useState('');
-  const [grootteInput, setGrootteInput] = useState('');
+function createPhotoFromUrl(url) {
+  return {
+    id: uid('photo'),
+    previewUri: url,
+    remoteUrl: url,
+    localUri: null,
+    isPlaceholder: false,
+    isExisting: true,
+  };
+}
+
+function createInitialPhotoSlots(initialPerceel) {
+  const photoUrls = Array.isArray(initialPerceel?.fotos) ? initialPerceel.fotos.filter(Boolean) : [];
+  const slots = createEmptyPhotoSlots();
+
+  photoUrls.slice(0, 4).forEach((url, index) => {
+    slots[index] = createPhotoFromUrl(url);
+  });
+
+  return slots;
+}
+
+function createInitialExtraInfo(initialPerceel) {
+  const values = Array.isArray(initialPerceel?.extra_info)
+    ? initialPerceel.extra_info
+    : Array.isArray(initialPerceel?.extraInfo)
+      ? initialPerceel.extraInfo
+      : [];
+
+  return values.filter(Boolean);
+}
+
+function createInitialAmenities(initialPerceel) {
+  const values = Array.isArray(initialPerceel?.voorzieningen)
+    ? initialPerceel.voorzieningen
+    : [];
+
+  return values.filter(Boolean).map((value) => capitalizeFirstLetter(value));
+}
+
+export default function PerceelToevoegenScreen({ onBack, onSaved = () => {}, initialPerceel = null }) {
+  const isEditMode = Boolean(initialPerceel);
+  const [naam, setNaam] = useState(initialPerceel?.naam || '');
+  const [beschrijving, setBeschrijving] = useState(initialPerceel?.beschrijving || '');
+  const [adres, setAdres] = useState(initialPerceel?.adres || '');
+  const [plaats, setPlaats] = useState(initialPerceel?.plaats || '');
+  const [grootteInput, setGrootteInput] = useState(initialPerceel?.grootte ? String(initialPerceel.grootte) : '');
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [isAddressLoading, setIsAddressLoading] = useState(false);
-  const [adresCoords, setAdresCoords] = useState(null); // { lat, lng }
+  const [adresCoords, setAdresCoords] = useState(
+    initialPerceel?.lat != null && initialPerceel?.lng != null
+      ? { lat: Number(initialPerceel.lat), lng: Number(initialPerceel.lng) }
+      : null,
+  );
   const [extraInfoDraft, setExtraInfoDraft] = useState('');
-  const [extraInfoItems, setExtraInfoItems] = useState([]);
-  const [selectedAmenities, setSelectedAmenities] = useState([]);
-  const [photos, setPhotos] = useState(() => createEmptyPhotoSlots());
+  const [extraInfoItems, setExtraInfoItems] = useState(() => createInitialExtraInfo(initialPerceel));
+  const [selectedAmenities, setSelectedAmenities] = useState(() => createInitialAmenities(initialPerceel));
+  const [photos, setPhotos] = useState(() => createInitialPhotoSlots(initialPerceel));
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -88,6 +144,26 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
   const extraInfoRef = useRef(null);
   const adresRef = useRef(null);
   const grootteRef = useRef(null);
+
+  useEffect(() => {
+    setNaam(initialPerceel?.naam || '');
+    setBeschrijving(initialPerceel?.beschrijving || '');
+    setAdres(initialPerceel?.adres || '');
+    setPlaats(initialPerceel?.plaats || '');
+    setGrootteInput(initialPerceel?.grootte ? String(initialPerceel.grootte) : '');
+    setAdresCoords(
+      initialPerceel?.lat != null && initialPerceel?.lng != null
+        ? { lat: Number(initialPerceel.lat), lng: Number(initialPerceel.lng) }
+        : null,
+    );
+    setExtraInfoDraft('');
+    setExtraInfoItems(createInitialExtraInfo(initialPerceel));
+    setSelectedAmenities(createInitialAmenities(initialPerceel));
+    setPhotos(createInitialPhotoSlots(initialPerceel));
+    setErrors({});
+    setSubmitError('');
+    setIsSaving(false);
+  }, [initialPerceel]);
 
   useEffect(() => {
     if (!adres || adres.trim().length === 0) {
@@ -365,46 +441,53 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
         throw new Error('Je bent niet ingelogd. Log opnieuw in en probeer het opnieuw.');
       }
 
-      const photosToUpload = photos.filter((photo) => !photo.isPlaceholder && photo.localUri);
       const uploadedUrls = [];
 
-      for (let index = 0; index < photosToUpload.length; index += 1) {
-        const photo = photosToUpload[index];
-        const filePath = `${ownerId}/${Date.now()}-${index}.jpg`;
-
-        // Read local file as base64 (reliable on RN, unlike fetch().blob())
-        const base64 = await FileSystem.readAsStringAsync(photo.localUri, {
-          encoding: 'base64',
-        });
-
-        // Decode to ArrayBuffer for Supabase upload
-        const arrayBuffer = decodeBase64(base64);
-
-        if (arrayBuffer.byteLength === 0) {
-          throw new Error('Foto kon niet worden gelezen (0 bytes). Probeer een andere foto.');
+      // TODO: clean up orphaned photo files in Supabase Storage when they are removed during edit. For now, files remain in storage but are no longer referenced by any perceel.
+      for (let index = 0; index < photos.length; index += 1) {
+        const photo = photos[index];
+        if (!photo) {
+          continue;
         }
 
-        console.log(`Uploading photo ${index}: ${arrayBuffer.byteLength} bytes`);
+        if (photo.localUri) {
+          const filePath = `${ownerId}/${Date.now()}-${index}.jpg`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('perceel-fotos')
-          .upload(filePath, arrayBuffer, {
-            contentType: 'image/jpeg',
-            upsert: false,
+          // Read local file as base64 (reliable on RN, unlike fetch().blob())
+          const base64 = await FileSystem.readAsStringAsync(photo.localUri, {
+            encoding: 'base64',
           });
 
-        if (uploadError) {
-          throw uploadError;
+          // Decode to ArrayBuffer for Supabase upload
+          const arrayBuffer = decodeBase64(base64);
+
+          if (arrayBuffer.byteLength === 0) {
+            throw new Error('Foto kon niet worden gelezen (0 bytes). Probeer een andere foto.');
+          }
+
+          const { error: uploadError } = await supabase.storage
+            .from('perceel-fotos')
+            .upload(filePath, arrayBuffer, {
+              contentType: 'image/jpeg',
+              upsert: false,
+            });
+
+          if (uploadError) {
+            throw uploadError;
+          }
+
+          const { data: publicUrlData } = supabase.storage
+            .from('perceel-fotos')
+            .getPublicUrl(filePath);
+
+          uploadedUrls.push(publicUrlData.publicUrl);
+          continue;
         }
 
-        const { data: publicUrlData } = supabase.storage
-          .from('perceel-fotos')
-          .getPublicUrl(filePath);
-
-        uploadedUrls.push(publicUrlData.publicUrl);
+        uploadedUrls.push(photo.remoteUrl || photo.previewUri);
       }
 
-      const row = {
+      const payload = {
         owner_id: ownerId,
         naam: naam.trim(),
         beschrijving: beschrijving.trim() || null,
@@ -416,17 +499,46 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
         extra_info: extraInfoItems,
         voorzieningen: selectedAmenities,
         fotos: uploadedUrls,
+        status: PERCEEL_STATUS.ACTIVE,
+        updated_at: new Date().toISOString(),
       };
 
-      // TODO: keep this insert in sync if the percelen schema changes.
-      console.log('Saving perceel with row:', row);
-      const { error: insertError } = await supabase.from('percelen').insert(row);
-      if (insertError) {
-        throw insertError;
-      }
+      if (isEditMode) {
+        const { data: savedPerceel, error: updateError } = await supabase
+          .from('percelen')
+          .update(payload)
+          .eq('id', initialPerceel.id)
+          .select('*')
+          .single();
 
-      console.log('Perceel opgeslagen:', row);
-      onSaved(row);
+        if (updateError) {
+          throw updateError;
+        }
+
+        Alert.alert('Wijzigingen opgeslagen', 'Je perceel is bijgewerkt.', [
+          {
+            text: 'OK',
+            onPress: () => onSaved(savedPerceel || payload),
+          },
+        ]);
+      } else {
+        const { data: savedPerceel, error: insertError } = await supabase
+          .from('percelen')
+          .insert(payload)
+          .select('*')
+          .single();
+
+        if (insertError) {
+          throw insertError;
+        }
+
+        Alert.alert('Perceel toegevoegd', 'Je perceel is opgeslagen.', [
+          {
+            text: 'OK',
+            onPress: () => onSaved(savedPerceel || payload),
+          },
+        ]);
+      }
     } catch (error) {
       const message = error.message || 'Opslaan mislukt.';
       setSubmitError(message);
@@ -438,7 +550,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title="Perceel toevoegen" onBack={onBack} />
+      <ScreenHeader title={isEditMode ? 'Perceel bewerken' : 'Perceel toevoegen'} onBack={onBack} />
 
       <ScrollView
         style={styles.scroll}
@@ -741,7 +853,11 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {} }) {
         {submitError ? <FieldError message={submitError} /> : null}
 
         <View style={styles.submitWrap}>
-          <AuthButton label="Voeg perceel toe" onPress={handleSubmit} loading={isSaving} />
+          <AuthButton
+            label={isEditMode ? 'Wijzigingen opslaan' : 'Perceel toevoegen'}
+            onPress={handleSubmit}
+            loading={isSaving}
+          />
         </View>
       </ScrollView>
 

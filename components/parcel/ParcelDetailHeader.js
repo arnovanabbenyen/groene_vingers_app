@@ -20,13 +20,15 @@ export default function ParcelDetailHeader({ title = 'Perceel', onBack, onMorePr
 
       <Text style={[styles.title, { top: 52 + topOffset }]}>{title}</Text>
 
-      <Pressable
-        style={[styles.moreButton, { top: 55 + topOffset }]}
-        onPress={onMorePress}
-        hitSlop={8}
-      >
-        <DotsThreeIcon size={24} color={COLORS.textInverse} weight="regular" />
-      </Pressable>
+      {onMorePress ? (
+        <Pressable
+          style={[styles.moreButton, { top: 55 + topOffset }]}
+          onPress={onMorePress}
+          hitSlop={8}
+        >
+          <DotsThreeIcon size={24} color={COLORS.textInverse} weight="regular" />
+        </Pressable>
+      ) : null}
     </View>
   );
 }

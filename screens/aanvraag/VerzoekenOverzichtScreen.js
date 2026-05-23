@@ -28,7 +28,14 @@ function NoResultsState() {
   );
 }
 
-export default function VerzoekenOverzichtScreen({ onTabPress, profileImageSource, badgeCounts = {}, onBadgeCountChange }) {
+export default function VerzoekenOverzichtScreen({
+  onTabPress,
+  profileImageSource,
+  badgeCounts = {},
+  onBadgeCountChange,
+  onViewAanvraag,
+  onAanvraagActionComplete,
+}) {
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const { aanvragen, isLoading, setAanvragen } = usePendingAanvragen();
@@ -57,11 +64,12 @@ export default function VerzoekenOverzichtScreen({ onTabPress, profileImageSourc
 
     setAanvragen((current) => current.filter((aanvraag) => aanvraag.id !== aanvraagId));
     onBadgeCountChange?.((current) => Math.max(0, current - 1));
+    onAanvraagActionComplete?.();
     Alert.alert('Aanvraag geaccepteerd', 'De aanvrager wordt hierover geïnformeerd.');
   }
 
-  function handleView() {
-    Alert.alert('Binnenkort beschikbaar', 'Het detail-scherm voor aanvragen wordt later toegevoegd.');
+  function handleView(aanvraag) {
+    onViewAanvraag?.(aanvraag);
   }
 
   function handleFilterPress() {
