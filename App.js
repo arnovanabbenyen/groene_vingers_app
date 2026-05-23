@@ -143,6 +143,7 @@ export default function App() {
   function handleCloseConversation() {
     setSelectedConversation(null);
     setCurrentScreen('berichten');
+    setConversationsRefreshKey((current) => current + 1);
   }
 
   async function uploadProfilePhoto(userId, photoUri) {
