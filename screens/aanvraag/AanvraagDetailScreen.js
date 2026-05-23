@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { ArrowLeftIcon, CheckCircleIcon, DropIcon, LeafIcon, MapPinIcon, StarIcon, ToolboxIcon } from 'phosphor-react-native';
+import { ArrowLeftIcon, ArchiveIcon, CarIcon, CheckCircleIcon, DropIcon, LeafIcon, LightningIcon, MapPinIcon, StarIcon, ToiletIcon, ToolboxIcon, WifiHighIcon } from 'phosphor-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../services/supabase';
 import { COLORS, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
@@ -18,9 +18,14 @@ const DAGEN = [
 
 const VOORZIENING_ICONS = {
   water: DropIcon,
-  tools: ToolboxIcon,
+  elektriciteit: LightningIcon,
+  wifi: WifiHighIcon,
   gereedschap: ToolboxIcon,
   materiaal: ToolboxIcon,
+  tools: ToolboxIcon,
+  opslag: ArchiveIcon,
+  parkeergelegenheid: CarIcon,
+  toilet: ToiletIcon,
   zaden: LeafIcon,
   bomen: LeafIcon,
 };
@@ -70,8 +75,8 @@ export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplet
   const sender = aanvraag?.sender || null;
   const perceel = aanvraag?.perceel || null;
   const senderName = [sender?.first_name, sender?.last_name].filter(Boolean).join(' ').trim() || 'Aanvrager';
-  const senderPlace = sender?.plaats || sender?.location || '';
-  const placeLine = senderPlace ? `${senderPlace} · 2,8km` : '2,8km';
+  const perceelPlace = perceel?.plaats || '';
+  const placeLine = perceelPlace ? `${perceelPlace} · 2,8km` : '2,8km';
   const locationLabel = perceel?.plaats || perceel?.naam || 'Perceel';
   const selectedDays = useMemo(() => (aanvraag?.availability || []).map((day) => String(day).toLowerCase()), [aanvraag?.availability]);
   const startDate = parseStartDate(aanvraag?.start_date);
@@ -225,6 +230,7 @@ export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplet
         </View>
 
         <View style={styles.motivationSection}>
+          <Text style={styles.sectionLabel}>Motivatie:</Text>
           <Text style={styles.motivationText}>{aanvraag?.motivation}</Text>
         </View>
 
@@ -330,7 +336,7 @@ const styles = StyleSheet.create({
   voorzieningItem: { alignItems: 'center', justifyContent: 'center', gap: 4 },
   voorzieningLabel: { fontFamily: FONTS.bodyRegular, fontSize: 13, color: COLORS.textMuted },
   voorzieningSeparator: { width: 1, height: 24, backgroundColor: COLORS.divider || '#E5E5E5' },
-  motivationSection: { paddingHorizontal: SPACING.screenX, paddingVertical: 20 },
+  motivationSection: { paddingHorizontal: SPACING.screenX, paddingTop: 12 },
   motivationText: { fontFamily: FONTS.bodyRegular, fontSize: 15, lineHeight: 22, color: COLORS.textPrimary },
   typeSection: { paddingHorizontal: SPACING.screenX, marginTop: 12 },
   availabilitySection: { paddingHorizontal: SPACING.screenX, marginTop: 20 },

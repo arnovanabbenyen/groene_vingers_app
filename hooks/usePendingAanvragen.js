@@ -48,6 +48,8 @@ export function usePendingAanvragen(refreshKey = 0) {
               id,
               naam,
               grootte,
+              plaats,
+              voorzieningen,
               fotos,
               owner_id
             )
