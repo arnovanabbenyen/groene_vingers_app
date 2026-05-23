@@ -25,14 +25,25 @@ export default function App() {
   const [screen, setScreen] = useState('intro');
   const [selectedRole, setSelectedRole] = useState('tuinzoeker');
   const [verzoekenCount, setVerzoekenCount] = useState(0);
+  const [aanvragenRefreshKey, setAanvragenRefreshKey] = useState(0);
+  const [currentScreen, setCurrentScreen] = useState('home');
+  const [selectedAanvraag, setSelectedAanvraag] = useState(null);
+  const [selectedAanvraagSource, setSelectedAanvraagSource] = useState('home');
   const [profileDraft, setProfileDraft] = useState(null);
   const [profilePhotoUri, setProfilePhotoUri] = useState(null);
   const [profilePhotoUserId, setProfilePhotoUserId] = useState(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [requiresEmailVerification, setRequiresEmailVerification] = useState(false);
   const [lastResetEmail, setLastResetEmail] = useState('');
-  const { aanvragen: pendingAanvragen } = usePendingAanvragen();
+  const { aanvragen: pendingAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
   const pendingProfilePhotoRef = useRef({ uri: null, userId: null });
+
+  function handleLogout() {
+    setIsLoggedIn(false);
+    setCurrentScreen('home');
+    setSelectedAanvraag(null);
+    setSelectedAanvraagSource('home');
+  }
 
   useEffect(() => {
     if (!isLoggedIn || selectedRole !== 'tuineigenaar') {
@@ -50,6 +61,21 @@ export default function App() {
       userId: profilePhotoUserId,
     };
   }, [profilePhotoUri, profilePhotoUserId]);
+
+  function handleViewAanvraag(aanvraag, sourceScreen = 'home') {
+    setSelectedAanvraag(aanvraag);
+    setSelectedAanvraagSource(sourceScreen);
+    setCurrentScreen('aanvraag-detail');
+  }
+
+  function handleCloseAanvraag() {
+    setCurrentScreen(selectedAanvraagSource || 'home');
+    setSelectedAanvraag(null);
+  }
+
+  function handleAanvraagActionComplete() {
+    setAanvragenRefreshKey((current) => current + 1);
+  }
 
   async function uploadProfilePhoto(userId, photoUri) {
     const base64Encoding = FileSystem.EncodingType?.Base64 ?? 'base64';
@@ -169,6 +195,9 @@ export default function App() {
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
         setSelectedRole('tuinzoeker');
+        setCurrentScreen('home');
+        setSelectedAanvraag(null);
+        setSelectedAanvraagSource('home');
       }
     });
 
@@ -243,12 +272,18 @@ export default function App() {
       {isLoggedIn ? (
         selectedRole === 'tuineigenaar' ? (
           <TuineigenaarHomeScreen
-            onLogout={() => setIsLoggedIn(false)}
+            onLogout={handleLogout}
+            currentScreen={currentScreen}
+            selectedAanvraag={selectedAanvraag}
+            onViewAanvraag={handleViewAanvraag}
+            onCloseAanvraag={handleCloseAanvraag}
+            onAanvraagActionComplete={handleAanvraagActionComplete}
+            aanvragenRefreshKey={aanvragenRefreshKey}
             badgeCounts={{ verzoeken: verzoekenCount }}
             onBadgeCountChange={setVerzoekenCount}
           />
         ) : (
-          <HomeScreen onLogout={() => setIsLoggedIn(false)} />
+          <HomeScreen onLogout={handleLogout} />
         )
       ) : screen === 'login' ? (
         <LoginScreen

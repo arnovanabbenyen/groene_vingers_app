@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 
-export function usePendingAanvragen() {
+export function usePendingAanvragen(refreshKey = 0) {
   const [aanvragen, setAanvragen] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -109,7 +109,7 @@ export function usePendingAanvragen() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [refreshKey]);
 
   return { aanvragen, isLoading, error, setAanvragen };
 }

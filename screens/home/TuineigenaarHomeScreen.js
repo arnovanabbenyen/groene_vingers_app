@@ -18,6 +18,7 @@ import PerceelToevoegenScreen from '../parcel/PerceelToevoegenScreen';
 import AanvraagCard, { normalizeSize } from '../../components/aanvraag/AanvraagCard';
 import { usePendingAanvragen } from '../../hooks/usePendingAanvragen';
 import VerzoekenOverzichtScreen from '../aanvraag/VerzoekenOverzichtScreen';
+import AanvraagDetailScreen from '../aanvraag/AanvraagDetailScreen';
 
 const PROFILE_IMAGE = require('../../images/tuineigenaar_pfp.png');
 
@@ -202,12 +203,22 @@ function PercelenCarousel({ percelen, onAddPress, onPerceelPress }) {
   );
 }
 
-export default function TuineigenaarHomeScreen({ onLogout, badgeCounts = {}, onBadgeCountChange }) {
+export default function TuineigenaarHomeScreen({
+  onLogout,
+  badgeCounts = {},
+  onBadgeCountChange,
+  currentScreen = 'home',
+  selectedAanvraag = null,
+  onViewAanvraag,
+  onCloseAanvraag,
+  onAanvraagActionComplete,
+  aanvragenRefreshKey = 0,
+}) {
   const [activeTab, setActiveTab] = useState('start');
   const [profileImageSource, setProfileImageSource] = useState(PROFILE_IMAGE);
   const [profile, setProfile] = useState(null);
   const [percelen, setPercelen] = useState([]);
-  const { aanvragen, isLoading: isLoadingAanvragen, setAanvragen } = usePendingAanvragen();
+  const { aanvragen, isLoading: isLoadingAanvragen, setAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
 
   function handleTabPress(item) {
     if (item.key === 'perceel') {
@@ -285,6 +296,7 @@ export default function TuineigenaarHomeScreen({ onLogout, badgeCounts = {}, onB
 
       setAanvragen((current) => current.filter((aanvraag) => aanvraag.id !== aanvraagId));
       onBadgeCountChange?.((current) => Math.max(0, current - 1));
+      onAanvraagActionComplete?.();
       Alert.alert('Aanvraag geaccepteerd', 'De aanvrager wordt hierover geïnformeerd.');
     } catch (error) {
       console.error('Failed to accept aanvraag', error);
@@ -293,9 +305,17 @@ export default function TuineigenaarHomeScreen({ onLogout, badgeCounts = {}, onB
   }
 
   function handleViewAanvraag(aanvraag) {
-    console.log('View aanvraag', aanvraag.id);
-    // TODO: navigate to AanvraagDetailScreen
-    Alert.alert('Binnenkort beschikbaar', 'Het detail-scherm voor aanvragen wordt later toegevoegd.');
+    onViewAanvraag?.(aanvraag, activeTab === 'verzoeken' ? 'verzoeken' : 'home');
+  }
+
+  if (currentScreen === 'aanvraag-detail' && selectedAanvraag) {
+    return (
+      <AanvraagDetailScreen
+        aanvraag={selectedAanvraag}
+        onBack={onCloseAanvraag}
+        onActionComplete={onAanvraagActionComplete}
+      />
+    );
   }
 
   if (activeTab === 'verzoeken') {
@@ -305,6 +325,8 @@ export default function TuineigenaarHomeScreen({ onLogout, badgeCounts = {}, onB
         profileImageSource={profileImageSource}
         badgeCounts={badgeCounts}
         onBadgeCountChange={onBadgeCountChange}
+        onViewAanvraag={(aanvraag) => onViewAanvraag?.(aanvraag, 'verzoeken')}
+        onAanvraagActionComplete={onAanvraagActionComplete}
       />
     );
   }

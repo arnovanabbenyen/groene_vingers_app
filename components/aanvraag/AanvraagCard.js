@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import {
   CheckCircleIcon,
   CheckIcon,
@@ -20,7 +20,7 @@ function formatRequesterName(sender) {
   return [sender?.first_name, sender?.last_name].filter(Boolean).join(' ').trim() || 'Aanvrager';
 }
 
-function RequestAvatar({ sender }) {
+export function RequestAvatar({ sender }) {
   if (sender?.avatar_url) {
     return <Image source={{ uri: sender.avatar_url }} style={styles.userAvatar} accessibilityLabel={`Profielfoto van ${formatRequesterName(sender)}`} />;
   }
@@ -63,7 +63,14 @@ function AanvraagCard({ aanvraag, onAccept, onView }) {
   const size = normalizeSize(perceel?.grootte);
 
   return (
-    <View style={styles.requestCard}>
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={() => onView(aanvraag)}
+      style={styles.requestCard}
+      accessibilityRole="button"
+      accessibilityLabel={`Open aanvraag van ${fullName}`}
+      accessibilityHint="Open de detailweergave van deze aanvraag"
+    >
       <View style={styles.userRow}>
         <View style={styles.userInfo}>
           <RequestAvatar sender={sender} />
@@ -111,7 +118,7 @@ function AanvraagCard({ aanvraag, onAccept, onView }) {
           <Text style={styles.viewButtonText}>Bekijk</Text>
         </Pressable>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
