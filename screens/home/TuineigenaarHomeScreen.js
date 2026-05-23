@@ -15,12 +15,18 @@ import { COLORS, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../../components
 import BottomNav from '../../components/navigation/BottomNav';
 import { supabase } from '../../services/supabase';
 import PerceelToevoegenScreen from '../parcel/PerceelToevoegenScreen';
+import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
 import AanvraagCard, { normalizeSize } from '../../components/aanvraag/AanvraagCard';
 import { usePendingAanvragen } from '../../hooks/usePendingAanvragen';
 import VerzoekenOverzichtScreen from '../aanvraag/VerzoekenOverzichtScreen';
 import AanvraagDetailScreen from '../aanvraag/AanvraagDetailScreen';
 
 const PROFILE_IMAGE = require('../../images/tuineigenaar_pfp.png');
+const PERCEEL_STATUS = {
+  ACTIVE: 'active',
+  HIDDEN: 'hidden',
+  DELETED: 'deleted',
+};
 
 function EmptyRequestsState() {
   return (
@@ -218,6 +224,9 @@ export default function TuineigenaarHomeScreen({
   const [profileImageSource, setProfileImageSource] = useState(PROFILE_IMAGE);
   const [profile, setProfile] = useState(null);
   const [percelen, setPercelen] = useState([]);
+  const [selectedPerceel, setSelectedPerceel] = useState(null);
+  const [perceelMode, setPerceelMode] = useState(null);
+  const [perceelRefreshKey, setPerceelRefreshKey] = useState(0);
   const { aanvragen, isLoading: isLoadingAanvragen, setAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
 
   function handleTabPress(item) {
@@ -253,7 +262,7 @@ export default function TuineigenaarHomeScreen({
           .maybeSingle();
 
         if (profileError) {
-          console.log('Failed to fetch profile avatar', profileError);
+          console.warn('Failed to fetch profile avatar', profileError);
         }
 
         if (mounted) setProfile(profileData || null);
@@ -261,7 +270,7 @@ export default function TuineigenaarHomeScreen({
 
         const { data: percelenData, error: percelenError } = await supabase
           .from('percelen')
-          .select('id, naam, grootte, plaats, fotos, voorzieningen')
+          .select('id, owner_id, naam, beschrijving, grootte, adres, plaats, lat, lng, extra_info, fotos, voorzieningen, created_at, updated_at, status')
           .eq('owner_id', userId)
           .order('created_at', { ascending: false });
 
@@ -279,7 +288,7 @@ export default function TuineigenaarHomeScreen({
 
     loadDashboardData();
     return () => { mounted = false; };
-  }, []);
+  }, [perceelRefreshKey]);
 
   async function handleAccept(aanvraagId) {
     try {
@@ -308,6 +317,116 @@ export default function TuineigenaarHomeScreen({
     onViewAanvraag?.(aanvraag, activeTab === 'verzoeken' ? 'verzoeken' : 'home');
   }
 
+  function handlePerceelPress(perceel) {
+    setSelectedPerceel(perceel);
+    setPerceelMode('view');
+  }
+
+  function handleEditPerceel() {
+    setPerceelMode('edit');
+  }
+
+  function handleClosePerceel() {
+    setActiveTab('start');
+    setSelectedPerceel(null);
+    setPerceelMode(null);
+  }
+
+  async function confirmDeletePerceel() {
+    if (!selectedPerceel) return;
+
+    const { error } = await supabase
+      .from('percelen')
+      .update({ status: PERCEEL_STATUS.DELETED, updated_at: new Date().toISOString() })
+      .eq('id', selectedPerceel.id);
+
+    if (error) {
+      Alert.alert('Fout', 'Het perceel kon niet worden verwijderd. Probeer opnieuw.');
+      return;
+    }
+
+    setSelectedPerceel(null);
+    setPerceelMode(null);
+    setPerceelRefreshKey((current) => current + 1);
+    setActiveTab('start');
+
+    Alert.alert('Perceel verwijderd', 'Het perceel is uit de app gehaald.');
+
+    // TODO: implement "Undo" functionality — for now, deletion is a soft-delete (status='deleted'), so the data can theoretically be restored via a future admin feature.
+  }
+
+  function handleDeletePerceel() {
+    if (!selectedPerceel) return;
+
+    Alert.alert(
+      'Perceel verwijderen?',
+      'Weet je zeker dat je dit perceel wilt verwijderen? Lopende aanvragen blijven bewaard, maar het perceel verdwijnt uit de app.',
+      [
+        { text: 'Annuleren', style: 'cancel' },
+        { text: 'Verwijderen', style: 'destructive', onPress: confirmDeletePerceel },
+      ],
+    );
+  }
+
+  async function handleToggleVisibility() {
+    if (!selectedPerceel) return;
+
+    const newStatus = selectedPerceel.status === PERCEEL_STATUS.HIDDEN ? PERCEEL_STATUS.ACTIVE : PERCEEL_STATUS.HIDDEN;
+    const isHiding = newStatus === PERCEEL_STATUS.HIDDEN;
+
+    const { error } = await supabase
+      .from('percelen')
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', selectedPerceel.id);
+
+    if (error) {
+      Alert.alert('Fout', 'De zichtbaarheid kon niet worden bijgewerkt. Probeer opnieuw.');
+      return;
+    }
+
+    setSelectedPerceel({ ...selectedPerceel, status: newStatus });
+    setPerceelRefreshKey((current) => current + 1);
+
+    Alert.alert(
+      isHiding ? 'Perceel verborgen' : 'Perceel weer zichtbaar',
+      isHiding
+        ? 'Tuinzoekers kunnen dit perceel niet meer vinden. Lopende aanvragen blijven werken.'
+        : 'Tuinzoekers kunnen dit perceel weer vinden in de app.',
+    );
+  }
+
+  function handlePerceelSaved(savedPerceel) {
+    if (savedPerceel?.id) {
+      setSelectedPerceel(savedPerceel);
+    }
+
+    setPerceelRefreshKey((current) => current + 1);
+    setPerceelMode('view');
+  }
+
+  if (perceelMode === 'edit' && selectedPerceel) {
+    return (
+      <PerceelToevoegenScreen
+        initialPerceel={selectedPerceel}
+        onBack={() => setPerceelMode('view')}
+        onSaved={handlePerceelSaved}
+      />
+    );
+  }
+
+  if (perceelMode === 'view' && selectedPerceel) {
+    return (
+      <ParcelDetailScreen
+        perceel={selectedPerceel}
+        onBack={handleClosePerceel}
+        isOwner={true}
+        onEdit={handleEditPerceel}
+        onToggleVisibility={handleToggleVisibility}
+        onDelete={handleDeletePerceel}
+      />
+    );
+  }
+
   if (currentScreen === 'aanvraag-detail' && selectedAanvraag) {
     return (
       <AanvraagDetailScreen
@@ -331,12 +450,6 @@ export default function TuineigenaarHomeScreen({
     );
   }
 
-  function handlePerceelPress(perceel) {
-    console.log('Perceel selected', perceel.id);
-    // TODO: open perceel edit/management screen (currently a placeholder)
-    Alert.alert('Binnenkort beschikbaar', 'Het bewerken van een perceel komt binnenkort.');
-  }
-
   if (activeTab === 'perceel') {
     return (
       <PerceelToevoegenScreen
@@ -344,6 +457,7 @@ export default function TuineigenaarHomeScreen({
           setActiveTab('start');
         }}
         onSaved={() => {
+          setPerceelRefreshKey((current) => current + 1);
           setActiveTab('start');
         }}
       />
@@ -414,7 +528,7 @@ export default function TuineigenaarHomeScreen({
           </View>
 
           <PercelenCarousel
-            percelen={percelen}
+            percelen={(percelen || []).filter((perceel) => perceel.status !== PERCEEL_STATUS.DELETED)}
             onAddPress={() => setActiveTab('perceel')}
             onPerceelPress={handlePerceelPress}
           />

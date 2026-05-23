@@ -51,7 +51,7 @@
 
       async function loadPercelen() {
         if (!supabase) return setPlots([]);
-        const { data, error } = await supabase.from('percelen').select('*');
+        const { data, error } = await supabase.from('percelen').select('*').eq('status', 'active');
         if (error) {
           console.warn('Failed to load percelen', error);
           if (mounted) setPlots([]);
