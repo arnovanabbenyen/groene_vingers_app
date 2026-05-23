@@ -30,7 +30,10 @@ function formatConversationName(conversation) {
 }
 
 function formatConversationPreview(conversation) {
-  return conversation.lastMessage?.content || 'Nog geen berichten';
+  const msg = conversation.lastMessage;
+  if (!msg) return 'Nog geen berichten';
+  if (msg.media_url) return msg.content ? `📷 ${msg.content}` : '📷 Foto';
+  return msg.content || 'Nog geen berichten';
 }
 
 function ConversationAvatar({ conversation, size = 52 }) {

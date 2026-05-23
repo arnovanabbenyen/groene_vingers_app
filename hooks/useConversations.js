@@ -73,7 +73,7 @@ export function useConversations(refreshKey = 0) {
         if (conversationIds.length > 0) {
           const { data: recentMessages, error: msgError } = await supabase
             .from('messages')
-            .select('id, conversation_id, content, sender_id, created_at, read_at')
+            .select('id, conversation_id, content, sender_id, created_at, read_at, media_url, media_type')
             .in('conversation_id', conversationIds)
             .order('created_at', { ascending: false });
 

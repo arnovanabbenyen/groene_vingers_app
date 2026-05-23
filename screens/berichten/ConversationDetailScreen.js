@@ -5,11 +5,14 @@ import {
   FlatList,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import {
@@ -25,6 +28,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../services/supabase';
 import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
+import { pickFromCamera, pickFromGallery, uploadChatImage } from '../../services/messageMedia';
 import { COLORS, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
@@ -61,6 +65,8 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
   const [messageInput, setMessageInput] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [pendingImages, setPendingImages] = useState([]);
+  const [previewImageUrl, setPreviewImageUrl] = useState(null);
   const [isSamenwerkingPanelOpen, setIsSamenwerkingPanelOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [aanvraagStatus, setAanvraagStatus] = useState(null);
@@ -78,7 +84,7 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
 
       const { data: messagesData } = await supabase
         .from('messages')
-        .select('id, conversation_id, sender_id, content, created_at, read_at')
+        .select('id, conversation_id, sender_id, content, created_at, read_at, media_url, media_type')
         .eq('conversation_id', conversation.id)
         .order('created_at', { ascending: true });
 
@@ -179,49 +185,94 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
     });
   }, [messages]);
 
-  // ── Send message ──────────────────────────────────────────────────────────
-  async function handleSendMessage() {
+  // ── Send (text + any pending images) ─────────────────────────────────────
+  async function handleSend() {
     const trimmed = messageInput.trim();
-    if (!trimmed || isSending || !currentUserId) return;
+    if ((!trimmed && pendingImages.length === 0) || isSending || !currentUserId) return;
 
     setIsSending(true);
-
-    const tempId = `temp-${Date.now()}`;
-    const optimistic = {
-      id: tempId,
-      conversation_id: conversation.id,
-      sender_id: currentUserId,
-      content: trimmed,
-      created_at: new Date().toISOString(),
-      read_at: null,
-      _optimistic: true,
-    };
-
-    setMessages((current) => [...current, optimistic]);
+    const imagesToSend = [...pendingImages];
+    const textToSend = trimmed;
+    setPendingImages([]);
     setMessageInput('');
 
-    const { data, error } = await supabase
-      .from('messages')
-      .insert({
+    // Upload + send each image as a separate message
+    for (const asset of imagesToSend) {
+      const tempId = `temp-img-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const optimistic = {
+        id: tempId,
         conversation_id: conversation.id,
         sender_id: currentUserId,
-        content: trimmed,
-      })
-      .select('id, conversation_id, sender_id, content, created_at, read_at')
-      .single();
+        content: null,
+        media_url: asset.uri,
+        media_type: asset.mimeType || 'image/jpeg',
+        created_at: new Date().toISOString(),
+        read_at: null,
+        _optimistic: true,
+      };
+      setMessages((current) => [...current, optimistic]);
 
-    setIsSending(false);
-
-    if (error) {
-      setMessages((current) => current.filter((m) => m.id !== tempId));
-      setMessageInput(trimmed);
-      Alert.alert('Fout', 'Het bericht kon niet worden verzonden. Probeer opnieuw.');
-      return;
+      try {
+        const { publicUrl, mime } = await uploadChatImage(currentUserId, asset.uri);
+        const { data, error } = await supabase
+          .from('messages')
+          .insert({
+            conversation_id: conversation.id,
+            sender_id: currentUserId,
+            content: null,
+            media_url: publicUrl,
+            media_type: mime,
+          })
+          .select('id, conversation_id, sender_id, content, created_at, read_at, media_url, media_type')
+          .single();
+        if (error) throw error;
+        setMessages((current) => current.map((m) => (m.id === tempId ? data : m)));
+      } catch {
+        setMessages((current) => current.filter((m) => m.id !== tempId));
+        Alert.alert('Fout', 'Een afbeelding kon niet worden verzonden.');
+      }
     }
 
-    setMessages((current) =>
-      current.map((m) => (m.id === tempId ? data : m))
-    );
+    // Send text message if any
+    if (textToSend) {
+      const tempId = `temp-${Date.now()}`;
+      const optimistic = {
+        id: tempId,
+        conversation_id: conversation.id,
+        sender_id: currentUserId,
+        content: textToSend,
+        created_at: new Date().toISOString(),
+        read_at: null,
+        _optimistic: true,
+      };
+      setMessages((current) => [...current, optimistic]);
+
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({ conversation_id: conversation.id, sender_id: currentUserId, content: textToSend })
+        .select('id, conversation_id, sender_id, content, created_at, read_at, media_url, media_type')
+        .single();
+
+      if (error) {
+        setMessages((current) => current.filter((m) => m.id !== tempId));
+        setMessageInput(textToSend);
+        Alert.alert('Fout', 'Het bericht kon niet worden verzonden. Probeer opnieuw.');
+      } else {
+        setMessages((current) => current.map((m) => (m.id === tempId ? data : m)));
+      }
+    }
+
+    setIsSending(false);
+  }
+
+  async function handlePickFromCamera() {
+    const assets = await pickFromCamera();
+    if (assets.length) setPendingImages((current) => [...current, ...assets]);
+  }
+
+  async function handlePickFromGallery() {
+    const assets = await pickFromGallery();
+    if (assets.length) setPendingImages((current) => [...current, ...assets]);
   }
 
   // ── Confirm samenwerking ──────────────────────────────────────────────────
@@ -288,6 +339,10 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
   function renderItem({ item: msg }) {
     const isOwn = msg.sender_id === currentUserId;
     const bottomMargin = msg.isLastInGroup ? 16 : 6;
+    const hasImage = Boolean(msg.media_url);
+    const a11yLabel = hasImage
+      ? (msg.content || 'Foto')
+      : (msg.content || '');
 
     if (isOwn) {
       return (
@@ -296,11 +351,18 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
             <Text style={styles.ownTimestamp}>{formatMessageTime(msg.created_at)}</Text>
           )}
           <View
-            style={styles.ownBubble}
+            style={hasImage ? styles.ownImageBubble : styles.ownBubble}
             accessibilityRole="text"
-            accessibilityLabel={`Jouw bericht: ${msg.content}, ${formatMessageTime(msg.created_at)}`}
+            accessibilityLabel={`Jouw bericht: ${a11yLabel}, ${formatMessageTime(msg.created_at)}`}
           >
-            <Text style={styles.ownBubbleText}>{msg.content}</Text>
+            {hasImage ? (
+              <TouchableOpacity onPress={() => setPreviewImageUrl(msg.media_url)} activeOpacity={0.85}>
+                <Image source={{ uri: msg.media_url }} style={styles.chatImage} resizeMode="cover" />
+                {msg.content ? <Text style={[styles.ownBubbleText, styles.imageCaption]}>{msg.content}</Text> : null}
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.ownBubbleText}>{msg.content}</Text>
+            )}
           </View>
         </View>
       );
@@ -309,7 +371,6 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
     // Other person's message
     return (
       <View style={[styles.otherRow, { marginBottom: bottomMargin }]}>
-        {/* Avatar or spacer */}
         {msg.isFirstInGroup ? (
           <Image source={avatarSource} style={styles.messageAvatar} />
         ) : (
@@ -326,11 +387,18 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
             </View>
           )}
           <View
-            style={styles.otherBubble}
+            style={hasImage ? styles.otherImageBubble : styles.otherBubble}
             accessibilityRole="text"
-            accessibilityLabel={`Bericht van ${otherUser?.first_name || displayName}: ${msg.content}, ${formatMessageTime(msg.created_at)}`}
+            accessibilityLabel={`Bericht van ${otherUser?.first_name || displayName}: ${a11yLabel}, ${formatMessageTime(msg.created_at)}`}
           >
-            <Text style={styles.otherBubbleText}>{msg.content}</Text>
+            {hasImage ? (
+              <TouchableOpacity onPress={() => setPreviewImageUrl(msg.media_url)} activeOpacity={0.85}>
+                <Image source={{ uri: msg.media_url }} style={styles.chatImage} resizeMode="cover" />
+                {msg.content ? <Text style={[styles.otherBubbleText, styles.imageCaption]}>{msg.content}</Text> : null}
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.otherBubbleText}>{msg.content}</Text>
+            )}
           </View>
         </View>
       </View>
@@ -435,18 +503,53 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
         />
       )}
 
+      {/* Full-screen image preview */}
+      {previewImageUrl && (
+        <Modal visible transparent animationType="fade" onRequestClose={() => setPreviewImageUrl(null)}>
+          <TouchableWithoutFeedback onPress={() => setPreviewImageUrl(null)}>
+            <View style={styles.previewOverlay}>
+              <Image source={{ uri: previewImageUrl }} style={styles.previewImage} resizeMode="contain" />
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      )}
+
       {/* Sticky input bar */}
       <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom - 8, 4) }]}>
+        {/* Pending image preview strip */}
+        {pendingImages.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.pendingStrip}
+            contentContainerStyle={styles.pendingStripContent}
+          >
+            {pendingImages.map((asset, index) => (
+              <View key={`${asset.uri}-${index}`} style={styles.pendingThumbWrap}>
+                <Image source={{ uri: asset.uri }} style={styles.pendingThumb} resizeMode="cover" />
+                <TouchableOpacity
+                  style={styles.pendingThumbRemove}
+                  onPress={() => setPendingImages((current) => current.filter((_, i) => i !== index))}
+                  accessibilityRole="button"
+                  accessibilityLabel="Afbeelding verwijderen"
+                >
+                  <XCircleIcon size={18} color={COLORS.surface} weight="fill" />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+
         <View style={styles.inputPill}>
           {/* Left: camera button + text input inline */}
           <View style={styles.inputPillLeft}>
             <TouchableOpacity
               style={styles.cameraBtn}
-              onPress={() => Alert.alert('Foto bijvoegen', 'Foto bijvoegen komt binnenkort.')}
+              onPress={handlePickFromCamera}
+              disabled={isSending}
               accessibilityRole="button"
               accessibilityLabel="Foto maken"
             >
-              {/* TODO: implement photo attachment via expo-image-picker */}
               <CameraIcon size={16} color={COLORS.surface} weight="regular" />
             </TouchableOpacity>
 
@@ -462,36 +565,34 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
             />
           </View>
 
-          {/* Right: send button when typing, mic + gallery when empty */}
-          {messageInput.trim().length > 0 ? (
+          {/* Right: send button when there's content, mic + gallery when empty */}
+          {(messageInput.trim().length > 0 || pendingImages.length > 0) ? (
             <TouchableOpacity
-              onPress={handleSendMessage}
+              onPress={handleSend}
               disabled={isSending}
               accessibilityRole="button"
               accessibilityLabel="Bericht verzenden"
             >
-              <PaperPlaneRightIcon
-                size={22}
-                color={isSending ? COLORS.textMuted : COLORS.brand}
-                weight="fill"
-              />
+              {isSending
+                ? <ActivityIndicator size="small" color={COLORS.brand} />
+                : <PaperPlaneRightIcon size={22} color={COLORS.brand} weight="fill" />
+              }
             </TouchableOpacity>
           ) : (
             <View style={styles.iconsRight}>
               <TouchableOpacity
-                onPress={() => Alert.alert('Spraakbericht', 'Spraakberichten komen binnenkort.')}
+                onPress={() => Alert.alert('Spraakbericht', 'Spraakberichten zijn niet beschikbaar.')}
                 accessibilityRole="button"
                 accessibilityLabel="Spraakbericht opnemen"
               >
-                {/* TODO: implement voice messages */}
                 <MicrophoneIcon size={22} color={COLORS.textPrimary} weight="regular" />
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => Alert.alert('Galerij', "Foto's uit galerij komen binnenkort.")}
+                onPress={handlePickFromGallery}
+                disabled={isSending}
                 accessibilityRole="button"
                 accessibilityLabel="Foto uit galerij kiezen"
               >
-                {/* TODO: implement gallery photo picker */}
                 <ImageIcon size={22} color={COLORS.textPrimary} weight="regular" />
               </TouchableOpacity>
             </View>
@@ -740,6 +841,68 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: COLORS.textPrimary,
     lineHeight: 20,
+  },
+
+  // Image bubbles — no background wrapper, image clips to bubble radius
+  ownImageBubble: {
+    maxWidth: '75%',
+    borderTopLeftRadius: 10,
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
+    borderTopRightRadius: 2,
+    overflow: 'hidden',
+  },
+  otherImageBubble: {
+    borderTopRightRadius: 10,
+    borderBottomRightRadius: 10,
+    borderBottomLeftRadius: 10,
+    borderTopLeftRadius: 2,
+    overflow: 'hidden',
+  },
+  chatImage: {
+    width: 200,
+    height: 150,
+  },
+  imageCaption: {
+    marginTop: 6,
+    marginHorizontal: 6,
+    marginBottom: 4,
+  },
+
+  // Pending image preview strip
+  pendingStrip: {
+    marginBottom: 8,
+  },
+  pendingStripContent: {
+    gap: 8,
+    paddingHorizontal: 2,
+  },
+  pendingThumbWrap: {
+    position: 'relative',
+    width: 64,
+    height: 64,
+  },
+  pendingThumb: {
+    width: 64,
+    height: 64,
+    borderRadius: 8,
+  },
+  pendingThumbRemove: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+  },
+
+  // Full-screen image preview
+  previewOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
   },
 
   // ── Input bar ────────────────────────────────────────────────────────────────
