@@ -13,8 +13,6 @@
   import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
   import AanvraagDoenScreen from '../aanvraag/AanvraagDoenScreen';
   import AanvraagBevestigingScreen from '../aanvraag/AanvraagBevestigingScreen';
-  import MeldingenScreen from '../notifications/MeldingenScreen';
-  import { useNotifications } from '../../hooks/useNotifications';
   import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 
   const PROFILE_IMAGE = require('../../images/tuinzoeker_pfp.png');
@@ -39,10 +37,9 @@
     },
   ];
 
-  export default function HomeScreen({ badgeCounts = {}, onOpenConversation, selectedConversation: appSelectedConversation = null, onCloseConversation }) {
+  export default function HomeScreen({ badgeCounts = {}, onOpenConversation, selectedConversation: appSelectedConversation = null, onCloseConversation, unreadNotificationsCount = 0, onOpenNotifications }) {
     const [activeTab, setActiveTab] = useState('start');
     const [selectedConversation, setSelectedConversation] = useState(null);
-    const { notifications, isLoading: isLoadingNotifications, unreadCount: notificationCount, markAsRead, markAllAsRead } = useNotifications();
     const [profileImageSource, setProfileImageSource] = useState(PROFILE_IMAGE);
     const [activeDot, setActiveDot] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
@@ -189,20 +186,6 @@
       );
     }
 
-    if (activeTab === 'meldingen') {
-      return (
-        <MeldingenScreen
-          notifications={notifications}
-          isLoading={isLoadingNotifications}
-          onBack={() => setActiveTab('start')}
-          onMarkAsRead={markAsRead}
-          onMarkAllAsRead={markAllAsRead}
-          role="tuinzoeker"
-          onZoekPerceel={() => setActiveTab('start')}
-        />
-      );
-    }
-
     if (activeTab === 'berichten') {
       return (
         <BerichtenOverzichtScreen
@@ -237,8 +220,8 @@
             <HomeHeader
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
-              onPressNotifications={() => setActiveTab('meldingen')}
-              notificationCount={notificationCount}
+              onPressNotifications={onOpenNotifications}
+              notificationCount={unreadNotificationsCount}
             />
 
             <View style={styles.contentWrap}>

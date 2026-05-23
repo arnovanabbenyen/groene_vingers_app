@@ -23,10 +23,8 @@ import VerzoekenOverzichtScreen from '../aanvraag/VerzoekenOverzichtScreen';
 import AanvraagDetailScreen from '../aanvraag/AanvraagDetailScreen';
 import BerichtenOverzichtScreen from '../berichten/BerichtenOverzichtScreen';
 import ConversationDetailScreen from '../berichten/ConversationDetailScreen';
-import MeldingenScreen from '../notifications/MeldingenScreen';
 import { createConversationForAanvraag } from '../../services/conversations';
 import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
-import { useNotifications } from '../../hooks/useNotifications';
 
 const PROFILE_IMAGE = require('../../images/tuineigenaar_pfp.png');
 const PERCEEL_STATUS = {
@@ -229,10 +227,11 @@ export default function TuineigenaarHomeScreen({
   onOpenConversation,
   selectedConversation = null,
   onCloseConversation,
+  unreadNotificationsCount = 0,
+  onOpenNotifications,
 }) {
   const [activeTab, setActiveTab] = useState('start');
   const [profileImageSource, setProfileImageSource] = useState(PROFILE_IMAGE);
-  const { notifications, isLoading: isLoadingNotifications, unreadCount: notificationCount, markAsRead, markAllAsRead } = useNotifications();
   const [profile, setProfile] = useState(null);
   const [percelen, setPercelen] = useState([]);
   const [selectedPerceel, setSelectedPerceel] = useState(null);
@@ -476,19 +475,6 @@ export default function TuineigenaarHomeScreen({
     );
   }
 
-  if (activeTab === 'meldingen') {
-    return (
-      <MeldingenScreen
-        notifications={notifications}
-        isLoading={isLoadingNotifications}
-        onBack={() => setActiveTab('start')}
-        onMarkAsRead={markAsRead}
-        onMarkAllAsRead={markAllAsRead}
-        role="tuineigenaar"
-      />
-    );
-  }
-
   if (activeTab === 'berichten') {
     return (
       <BerichtenOverzichtScreen
@@ -542,14 +528,14 @@ export default function TuineigenaarHomeScreen({
             hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel="Meldingen"
-            onPress={() => setActiveTab('meldingen')}
+            onPress={onOpenNotifications}
             style={styles.bellWrap}
           >
             <BellIcon size={24} color={COLORS.surface} weight="regular" />
-            {notificationCount > 0 ? (
+            {unreadNotificationsCount > 0 ? (
               <View style={styles.bellBadge}>
                 <Text style={styles.bellBadgeText}>
-                  {notificationCount > 9 ? '9+' : String(notificationCount)}
+                  {unreadNotificationsCount > 9 ? '9+' : String(unreadNotificationsCount)}
                 </Text>
               </View>
             ) : null}

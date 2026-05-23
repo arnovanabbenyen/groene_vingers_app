@@ -1,10 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { ArrowLeftIcon, BellIcon, BellSlashIcon, HandshakeIcon, SealCheckIcon } from 'phosphor-react-native';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
+import { ArrowLeftIcon, BellSlashIcon, CheckCircleIcon } from 'phosphor-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
+import { useNotifications } from '../../hooks/useNotifications';
 
-function formatRelativeTime(timestamp) {
+const AANVRAAG_TYPES = [
+  'aanvraag_received',
+  'aanvraag_accepted',
+  'aanvraag_declined',
+  'aanvraag_confirmed',
+  'aanvraag_cancelled',
+];
+
+function formatRelative(timestamp) {
   if (!timestamp) return '';
   const now = new Date();
   const then = new Date(timestamp);
@@ -16,88 +25,57 @@ function formatRelativeTime(timestamp) {
   if (diffMin < 1) return 'zojuist';
   if (diffMin < 60) return `${diffMin} ${diffMin === 1 ? 'minuut' : 'minuten'} geleden`;
   if (diffHours < 24) return `${diffHours} uur geleden`;
-  if (diffDays === 1) return 'gisteren';
+  if (diffDays === 1) return '1 dag geleden';
   if (diffDays < 7) return `${diffDays} dagen geleden`;
-  return then.toLocaleDateString('nl-BE', { day: 'numeric', month: 'long' });
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} wkn geleden`;
+  return then.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' });
 }
 
-function isToday(dateStr) {
-  const d = new Date(dateStr);
+function groupNotificationsByTime(notifications) {
+  const groups = { vandaag: [], dezeWeek: [], eerder: [] };
   const now = new Date();
-  return (
-    d.getDate() === now.getDate() &&
-    d.getMonth() === now.getMonth() &&
-    d.getFullYear() === now.getFullYear()
-  );
-}
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfWeek = new Date(startOfToday);
+  startOfWeek.setDate(startOfWeek.getDate() - 7);
 
-function isThisWeek(dateStr) {
-  const diffDays = Math.floor((new Date() - new Date(dateStr)) / 86400000);
-  return diffDays < 7 && !isToday(dateStr);
-}
-
-function groupNotifications(notifications) {
-  const today = [], thisWeek = [], earlier = [];
-  for (const n of notifications) {
-    if (isToday(n.created_at)) today.push(n);
-    else if (isThisWeek(n.created_at)) thisWeek.push(n);
-    else earlier.push(n);
+  for (const notif of notifications) {
+    const created = new Date(notif.created_at);
+    if (created >= startOfToday) groups.vandaag.push(notif);
+    else if (created >= startOfWeek) groups.dezeWeek.push(notif);
+    else groups.eerder.push(notif);
   }
-  const sections = [];
-  if (today.length > 0) sections.push({ key: 'today', label: 'Vandaag', items: today });
-  if (thisWeek.length > 0) sections.push({ key: 'week', label: 'Deze week', items: thisWeek });
-  if (earlier.length > 0) sections.push({ key: 'earlier', label: 'Eerder', items: earlier });
-  return sections;
+  return groups;
 }
 
-function buildFlatData(notifications) {
-  const flat = [];
-  for (const section of groupNotifications(notifications)) {
-    flat.push({ kind: 'header', id: `header-${section.key}`, label: section.label });
-    for (const n of section.items) flat.push({ kind: 'row', id: n.id, notification: n });
-  }
-  return flat;
+function getInitials(actor) {
+  if (!actor) return '?';
+  const first = (actor.first_name || '').charAt(0);
+  const last = (actor.last_name || '').charAt(0);
+  return (first + last).toUpperCase() || '?';
 }
 
-function getInitials(name) {
-  if (!name) return '';
-  return name.trim().split(/\s+/).map((w) => w[0]).filter(Boolean).join('').slice(0, 2).toUpperCase();
-}
-
-function FallbackIcon({ type }) {
-  const props = { size: 22, weight: 'regular', color: COLORS.brand };
-  if (type === 'aanvraag_accepted' || type === 'aanvraag_confirmed') return <SealCheckIcon {...props} />;
-  if (type === 'aanvraag_received') return <HandshakeIcon {...props} />;
-  return <BellIcon {...props} />;
-}
-
-function ActorAvatar({ notification }) {
-  const [imageError, setImageError] = useState(false);
-  const avatarUrl = notification.data?.actor_avatar_url;
-  const actorName = notification.data?.actor_name || '';
-  const initials = getInitials(actorName);
-
-  if (avatarUrl && !imageError) {
+function NotificationAvatar({ notification }) {
+  if (notification.type === 'system') {
     return (
-      <Image
-        source={{ uri: avatarUrl }}
-        style={styles.avatarImage}
-        onError={() => setImageError(true)}
-      />
-    );
-  }
-
-  if (initials) {
-    return (
-      <View style={[styles.avatarCircle, styles.avatarInitialsBg]}>
-        <Text style={styles.avatarInitialsText}>{initials}</Text>
+      <View style={styles.iconCircle}>
+        <CheckCircleIcon size={24} color={COLORS.brand} weight="regular" />
       </View>
     );
   }
 
+  if (notification.actor?.avatar_url) {
+    return (
+      <Image
+        source={{ uri: notification.actor.avatar_url }}
+        style={styles.avatarImage}
+      />
+    );
+  }
+
   return (
-    <View style={styles.avatarCircle}>
-      <FallbackIcon type={notification.type} />
+    <View style={styles.initialsCircle}>
+      <Text style={styles.initialsText}>{getInitials(notification.actor)}</Text>
     </View>
   );
 }
@@ -107,46 +85,56 @@ function NotificationRow({ notification, onPress }) {
 
   return (
     <Pressable
+      onPress={() => onPress(notification)}
       style={[styles.row, isUnread && styles.rowUnread]}
-      onPress={() => onPress?.(notification)}
       accessibilityRole="button"
-      accessibilityLabel={notification.title}
+      accessibilityLabel={`${notification.title}, ${formatRelative(notification.created_at)}${isUnread ? ', ongelezen' : ''}`}
     >
-      <ActorAvatar notification={notification} />
+      <NotificationAvatar notification={notification} />
 
       <View style={styles.rowContent}>
-        <View style={styles.rowTitleRow}>
-          <Text style={[styles.rowTitle, isUnread && styles.rowTitleBold]} numberOfLines={2}>
-            {notification.title}
-          </Text>
-          {isUnread && <View style={styles.unreadDot} />}
-        </View>
+        <Text style={[styles.rowTitle, isUnread && styles.rowTitleUnread]} numberOfLines={2}>
+          {notification.title}
+        </Text>
         {notification.body ? (
-          <Text style={styles.rowBody} numberOfLines={2}>{notification.body}</Text>
+          <Text style={styles.rowBody} numberOfLines={1}>{notification.body}</Text>
         ) : null}
-        <Text style={styles.rowTime}>{formatRelativeTime(notification.created_at)}</Text>
+        <Text style={styles.rowTime}>{formatRelative(notification.created_at)}</Text>
       </View>
+
+      {isUnread && <View style={styles.unreadDot} />}
     </Pressable>
   );
 }
 
 export default function MeldingenScreen({
-  notifications = [],
-  isLoading = false,
-  onBack,
-  onMarkAsRead,
-  onMarkAllAsRead,
   role = 'tuinzoeker',
-  onZoekPerceel,
+  onBack,
+  onNavigateToHome,
+  onNavigateToAanvraag,
+  onNavigateToConversation,
 }) {
   const insets = useSafeAreaInsets();
+  const { notifications, isLoading, markAsRead, markAllAsRead } = useNotifications();
 
   useEffect(() => {
-    onMarkAllAsRead?.();
+    markAllAsRead();
   }, []);
 
-  const flatData = buildFlatData(notifications);
+  async function handlePress(notification) {
+    if (!notification.read_at) {
+      await markAsRead(notification.id);
+    }
+
+    if (AANVRAAG_TYPES.includes(notification.type) && notification.related_id) {
+      onNavigateToAanvraag?.(notification.related_id);
+    } else if (notification.type === 'message_received' && notification.related_id) {
+      onNavigateToConversation?.(notification.related_id);
+    }
+  }
+
   const isEmpty = !isLoading && notifications.length === 0;
+  const groups = groupNotificationsByTime(notifications);
 
   return (
     <View style={styles.container}>
@@ -172,51 +160,64 @@ export default function MeldingenScreen({
           <ActivityIndicator size="small" color={COLORS.brand} />
         </View>
       ) : isEmpty ? (
-        <View style={styles.emptyWrap}>
-          <View style={styles.emptyCenter}>
+        <View style={styles.emptyOuter}>
+          <View style={styles.emptyContainer}>
             <View style={styles.emptyIconCircle}>
-              <BellSlashIcon size={40} color={COLORS.brand} weight="regular" />
+              <BellSlashIcon size={32} color={COLORS.brand} weight="regular" />
             </View>
             <Text style={styles.emptyTitle}>Hier is het nog stil</Text>
             <Text style={styles.emptySubtext}>
               Nieuwe meldingen verschijnen hier zodra er iets verandert.
             </Text>
           </View>
+
           {role === 'tuinzoeker' ? (
-            <Pressable style={styles.findBtn} onPress={onZoekPerceel} accessibilityRole="button">
-              <Text style={styles.findBtnText}>Zoek een perceel</Text>
-            </Pressable>
+            <View style={[styles.emptyActionContainer, { paddingBottom: Math.max(insets.bottom, 16) + 24 }]}>
+              <Pressable
+                onPress={onNavigateToHome}
+                style={styles.emptyActionButton}
+                accessibilityRole="button"
+                accessibilityLabel="Zoek een perceel"
+              >
+                <Text style={styles.emptyActionText}>Zoek een perceel</Text>
+              </Pressable>
+            </View>
           ) : null}
         </View>
       ) : (
-        <FlatList
-          data={flatData}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => {
-            if (item.kind === 'header') {
-              return (
-                <Text style={[styles.sectionHeader, index > 0 && styles.sectionHeaderGap]}>
-                  {item.label}
-                </Text>
-              );
-            }
-            return (
-              <View>
-                <NotificationRow notification={item.notification} onPress={onMarkAsRead} />
-                <View style={styles.divider} />
-              </View>
-            );
-          }}
-          contentContainerStyle={styles.listContent}
-          ListFooterComponent={<View style={{ height: SIZES.bottomNavClearance }} />}
+        <ScrollView
           showsVerticalScrollIndicator={false}
-        />
+          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 24 }}
+        >
+          {groups.vandaag.length > 0 && (
+            <>
+              <Text style={styles.sectionHeader}>Vandaag</Text>
+              {groups.vandaag.map((n) => (
+                <NotificationRow key={n.id} notification={n} onPress={handlePress} />
+              ))}
+            </>
+          )}
+          {groups.dezeWeek.length > 0 && (
+            <>
+              <Text style={styles.sectionHeader}>Deze week</Text>
+              {groups.dezeWeek.map((n) => (
+                <NotificationRow key={n.id} notification={n} onPress={handlePress} />
+              ))}
+            </>
+          )}
+          {groups.eerder.length > 0 && (
+            <>
+              <Text style={styles.sectionHeader}>Eerder</Text>
+              {groups.eerder.map((n) => (
+                <NotificationRow key={n.id} notification={n} onPress={handlePress} />
+              ))}
+            </>
+          )}
+        </ScrollView>
       )}
     </View>
   );
 }
-
-const AVATAR_SIZE = 45;
 
 const styles = StyleSheet.create({
   container: {
@@ -260,146 +261,135 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyWrap: {
+  // ── Empty state ──────────────────────────────────────────────
+  emptyOuter: {
     flex: 1,
-    paddingHorizontal: SPACING.screenX,
-    paddingBottom: SPACING.xl,
   },
-  emptyCenter: {
+  emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: SPACING.md,
+    paddingHorizontal: SPACING.screenX,
+    gap: 12,
   },
   emptyIconCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: COLORS.surfaceBrand,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 8,
   },
   emptyTitle: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 25,
+    fontSize: 20,
     color: COLORS.textPrimary,
     textAlign: 'center',
   },
   emptySubtext: {
     fontFamily: FONTS.body,
-    fontSize: 16,
-    color: COLORS.textSecondary,
+    fontSize: 14,
+    color: COLORS.textMuted,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
     maxWidth: 280,
   },
-  findBtn: {
-    height: 44,
-    borderRadius: RADIUS.xs,
-    backgroundColor: COLORS.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: SPACING.xs,
+  emptyActionContainer: {
+    paddingHorizontal: SPACING.screenX,
   },
-  findBtnText: {
+  emptyActionButton: {
+    backgroundColor: COLORS.brand,
+    borderRadius: RADIUS.xl,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  emptyActionText: {
     fontFamily: FONTS.displayMedium,
     fontSize: 16,
     color: COLORS.surface,
   },
-  listContent: {
-    flexGrow: 1,
-    paddingTop: SPACING.md,
-  },
+  // ── Section header ────────────────────────────────────────────
   sectionHeader: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
+    fontSize: 18,
     color: COLORS.textPrimary,
     paddingHorizontal: SPACING.screenX,
-    paddingBottom: SPACING.sm,
+    paddingTop: 20,
+    paddingBottom: 12,
+    backgroundColor: COLORS.surface,
   },
-  sectionHeaderGap: {
-    marginTop: SPACING.lg,
-  },
+  // ── Notification row ──────────────────────────────────────────
   row: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: SPACING.md - 1,
-    paddingHorizontal: SPACING.screenX + SPACING.sm,
-    paddingVertical: 10,
+    alignItems: 'center',
+    paddingHorizontal: SPACING.screenX,
+    paddingVertical: 14,
+    gap: 12,
     backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.dividerSoft,
   },
   rowUnread: {
     backgroundColor: COLORS.accentSoft,
-    borderRadius: RADIUS.sm,
   },
   avatarImage: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: COLORS.surfaceMuted,
-    flexShrink: 0,
   },
-  avatarCircle: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
+  initialsCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: COLORS.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  initialsText: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
+  iconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: COLORS.surfaceBrand,
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
-  },
-  avatarInitialsBg: {
-    backgroundColor: COLORS.brandSoft,
-  },
-  avatarInitialsText: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
-    color: COLORS.brand,
   },
   rowContent: {
     flex: 1,
+    gap: 4,
     minWidth: 0,
   },
-  rowTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
-  },
   rowTitle: {
-    flex: 1,
     fontFamily: FONTS.body,
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.textPrimary,
-    lineHeight: 22,
+    lineHeight: 20,
   },
-  rowTitleBold: {
+  rowTitleUnread: {
     fontFamily: FONTS.bodyMedium,
-  },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.accent,
-    marginTop: 7,
-    flexShrink: 0,
   },
   rowBody: {
     fontFamily: FONTS.body,
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.textSecondary,
-    lineHeight: 20,
-    marginTop: 2,
+    lineHeight: 18,
   },
   rowTime: {
     fontFamily: FONTS.body,
-    fontSize: 12.8,
-    color: COLORS.textSecondary,
-    marginTop: 4,
+    fontSize: 13,
+    color: COLORS.textMuted,
   },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.dividerSoft,
-    marginHorizontal: SPACING.screenX,
+  unreadDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.accent,
+    flexShrink: 0,
   },
 });
