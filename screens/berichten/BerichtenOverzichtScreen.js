@@ -104,7 +104,7 @@ function ConversationRow({ conversation, onPress }) {
   );
 }
 
-export default function BerichtenOverzichtScreen({ onTabPress, profileImageSource, badgeCounts = {}, onOpenConversation }) {
+export default function BerichtenOverzichtScreen({ onTabPress, profileImageSource, badgeCounts = {}, onOpenConversation, role = 'tuinzoeker' }) {
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const { conversations, isLoading } = useConversations();
@@ -207,6 +207,7 @@ export default function BerichtenOverzichtScreen({ onTabPress, profileImageSourc
         onTabPress={onTabPress}
         profileImageSource={profileImageSource}
         badgeCounts={badgeCounts}
+        role={role}
       />
     </View>
   );
