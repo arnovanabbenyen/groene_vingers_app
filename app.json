@@ -37,7 +37,14 @@
       }
     },
     "plugins": [
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Groene Vingers heeft toegang tot je foto's nodig om afbeeldingen te kunnen delen in gesprekken.",
+          "cameraPermission": "Groene Vingers gebruikt je camera om foto's te maken voor je gesprekken."
+        }
+      ]
     ]
   }
 }

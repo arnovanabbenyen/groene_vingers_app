@@ -8,6 +8,7 @@
   import PlotCard from '../../components/home/PlotCard';
   import { supabase } from '../../services/supabase';
   import BerichtenOverzichtScreen from '../berichten/BerichtenOverzichtScreen';
+  import ConversationDetailScreen from '../berichten/ConversationDetailScreen';
   import PlansScreen from '../plans/PlansScreen';
   import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
   import AanvraagDoenScreen from '../aanvraag/AanvraagDoenScreen';
@@ -36,8 +37,9 @@
     },
   ];
 
-  export default function HomeScreen({ badgeCounts = {}, onOpenConversation }) {
+  export default function HomeScreen({ badgeCounts = {}, onOpenConversation, selectedConversation: appSelectedConversation = null, onCloseConversation }) {
     const [activeTab, setActiveTab] = useState('start');
+    const [selectedConversation, setSelectedConversation] = useState(null);
     const [profileImageSource, setProfileImageSource] = useState(PROFILE_IMAGE);
     const [activeDot, setActiveDot] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
@@ -167,13 +169,33 @@
       );
     }
 
+    const activeConversation = selectedConversation || appSelectedConversation;
+    if (activeConversation) {
+      return (
+        <ConversationDetailScreen
+          conversation={activeConversation}
+          onBack={() => {
+            setSelectedConversation(null);
+            onCloseConversation?.();
+          }}
+          onConfirmSamenwerking={() => {
+            setSelectedConversation(null);
+            onCloseConversation?.();
+          }}
+        />
+      );
+    }
+
     if (activeTab === 'berichten') {
       return (
         <BerichtenOverzichtScreen
           onTabPress={(item) => setActiveTab(item.key)}
           profileImageSource={profileImageSource}
           badgeCounts={badgeCounts}
-          onOpenConversation={onOpenConversation}
+          onOpenConversation={(conversation) => {
+            setSelectedConversation(conversation);
+            onOpenConversation?.(conversation);
+          }}
         />
       );
     }

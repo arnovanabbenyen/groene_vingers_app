@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { ChatCircleIcon, MagnifyingGlassIcon } from 'phosphor-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import BottomNav from '../../components/navigation/BottomNav';
-import { COLORS, FONTS, SIZES, SPACING } from '../../components/theme/tokens';
+import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 import { useConversations } from '../../hooks/useConversations';
 
 function formatRelativeTime(timestamp) {
@@ -30,7 +30,11 @@ function formatConversationName(conversation) {
 }
 
 function formatConversationPreview(conversation) {
-  return conversation.lastMessage?.content || 'Nog geen berichten';
+  const msg = conversation.lastMessage;
+  if (!msg) return 'Nog geen berichten';
+  if (msg.media_urls?.length > 1) return `📷 ${msg.media_urls.length} foto's`;
+  if (msg.media_urls?.length === 1 || msg.media_url) return '📷 Foto';
+  return msg.content || 'Nog geen berichten';
 }
 
 function ConversationAvatar({ conversation, size = 52 }) {
@@ -75,7 +79,7 @@ function ConversationRow({ conversation, onPress }) {
 
   return (
     <TouchableOpacity
-      style={styles.conversationRow}
+      style={[styles.conversationRow, unreadCount > 0 && styles.conversationRowUnread]}
       onPress={() => onPress?.(conversation)}
       activeOpacity={0.7}
       accessibilityRole="button"
@@ -84,8 +88,8 @@ function ConversationRow({ conversation, onPress }) {
       <ConversationAvatar conversation={conversation} size={52} />
 
       <View style={styles.conversationBody}>
-        <Text style={styles.conversationName} numberOfLines={1}>{name}</Text>
-        <Text style={styles.conversationPreview} numberOfLines={1}>{preview}</Text>
+        <Text style={[styles.conversationName, unreadCount > 0 && styles.conversationNameUnread]} numberOfLines={1}>{name}</Text>
+        <Text style={[styles.conversationPreview, unreadCount > 0 && styles.conversationPreviewUnread]} numberOfLines={1}>{preview}</Text>
       </View>
 
       <View style={styles.conversationMeta}>
@@ -150,48 +154,53 @@ export default function BerichtenOverzichtScreen({ onTabPress, profileImageSourc
         </View>
       </SafeAreaView>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.activeUsersSection}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.activeUsersRow}>
-            {activeParticipants.map((conversation) => (
-              <ActiveParticipant
-                key={conversation.id}
-                conversation={conversation}
-                onPress={onOpenConversation}
-              />
-            ))}
-          </ScrollView>
-        </View>
-
-        <View style={styles.divider} />
-
-        {isLoading ? (
-          <View style={styles.loadingWrap} accessibilityLabel="Berichten worden geladen">
-            <ActivityIndicator size="small" color={COLORS.brand} />
+      <FlatList
+        data={filteredConversations}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.rowWrap}>
+            <ConversationRow conversation={item} onPress={onOpenConversation} />
           </View>
-        ) : conversations.length === 0 ? (
-          <View style={styles.emptyState} accessible accessibilityRole="text">
-            <ChatCircleIcon size={40} color={COLORS.brand} weight="regular" />
-            <Text style={styles.emptyTitle}>Nog geen berichten</Text>
-            <Text style={styles.emptySubtext}>Wanneer je een aanvraag accepteert, kun je hier chatten met de aanvrager.</Text>
-          </View>
-        ) : filteredConversations.length === 0 ? (
-          <View style={styles.emptyState} accessible accessibilityRole="text">
-            <ChatCircleIcon size={40} color={COLORS.brand} weight="regular" />
-            <Text style={styles.emptyTitle}>Geen resultaten</Text>
-            <Text style={styles.emptySubtext}>Geen gesprekken gevonden voor je zoekopdracht.</Text>
-          </View>
-        ) : (
-          filteredConversations.map((conversation) => (
-            <View key={conversation.id} style={styles.rowWrap}>
-              <ConversationRow conversation={conversation} onPress={onOpenConversation} />
-              <View style={styles.rowDivider} />
-            </View>
-          ))
         )}
-
-        <View style={{ height: SIZES.bottomNavClearance }} />
-      </ScrollView>
+        ListHeaderComponent={
+          <View>
+            <View style={styles.activeUsersSection}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.activeUsersRow}>
+                {activeParticipants.map((conversation) => (
+                  <ActiveParticipant
+                    key={conversation.id}
+                    conversation={conversation}
+                    onPress={onOpenConversation}
+                  />
+                ))}
+              </ScrollView>
+            </View>
+            <View style={styles.divider} />
+          </View>
+        }
+        ListEmptyComponent={
+          isLoading ? (
+            <View style={styles.loadingWrap} accessibilityLabel="Berichten worden geladen">
+              <ActivityIndicator size="small" color={COLORS.brand} />
+            </View>
+          ) : conversations.length === 0 ? (
+            <View style={styles.emptyState} accessible accessibilityRole="text">
+              <ChatCircleIcon size={40} color={COLORS.brand} weight="regular" />
+              <Text style={styles.emptyTitle}>Nog geen berichten</Text>
+              <Text style={styles.emptySubtext}>Wanneer je een aanvraag accepteert, kun je hier chatten met de aanvrager.</Text>
+            </View>
+          ) : (
+            <View style={styles.emptyState} accessible accessibilityRole="text">
+              <ChatCircleIcon size={40} color={COLORS.brand} weight="regular" />
+              <Text style={styles.emptyTitle}>Geen resultaten</Text>
+              <Text style={styles.emptySubtext}>Geen gesprekken gevonden voor je zoekopdracht.</Text>
+            </View>
+          )
+        }
+        contentContainerStyle={styles.listContent}
+        ListFooterComponent={<View style={{ height: SIZES.bottomNavClearance }} />}
+        showsVerticalScrollIndicator={false}
+      />
 
       <BottomNav
         activeKey="berichten"
@@ -236,6 +245,7 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   content: { flex: 1, backgroundColor: COLORS.surface },
+  listContent: { flexGrow: 1, backgroundColor: COLORS.surface },
   activeUsersSection: {
     backgroundColor: COLORS.surface,
     paddingVertical: 16,
@@ -275,6 +285,7 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: COLORS.dividerSoft || COLORS.border,
+    marginBottom: SPACING.md,
   },
   loadingWrap: {
     minHeight: 220,
@@ -303,6 +314,10 @@ const styles = StyleSheet.create({
   },
   rowWrap: {
     backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
+    marginHorizontal: SPACING.screenX,
+    marginBottom: SPACING.sm,
+    overflow: 'hidden',
   },
   conversationRow: {
     flexDirection: 'row',
@@ -310,6 +325,9 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: SPACING.screenX,
     paddingVertical: 14,
+  },
+  conversationRowUnread: {
+    backgroundColor: 'rgba(255, 217, 94, 0.15)',
   },
   conversationBody: {
     flex: 1,
@@ -335,22 +353,26 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textMuted,
   },
+  conversationNameUnread: {
+    fontFamily: FONTS.bodyMedium,
+    color: COLORS.textPrimary,
+  },
+  conversationPreviewUnread: {
+    fontFamily: FONTS.bodyMedium,
+    color: COLORS.textPrimary,
+  },
   unreadBadge: {
-    width: 22,
+    minWidth: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: COLORS.brand,
+    backgroundColor: COLORS.accent,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 5,
   },
   unreadBadgeText: {
-    color: COLORS.surface,
+    color: COLORS.textPrimary,
     fontFamily: FONTS.bodyMedium,
     fontSize: 12,
-  },
-  rowDivider: {
-    height: 1,
-    backgroundColor: COLORS.dividerSoft || COLORS.border,
-    marginLeft: SPACING.screenX,
   },
 });
