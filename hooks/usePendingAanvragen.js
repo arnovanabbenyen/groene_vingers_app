@@ -16,10 +16,10 @@ export function usePendingAanvragen() {
       }
 
       try {
-        const { data: userData, error: userError } = await supabase.auth.getUser();
-        if (userError) throw userError;
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
 
-        const userId = userData?.user?.id;
+        const userId = sessionData?.session?.user?.id;
         if (!userId) {
           if (mounted) {
             setAanvragen([]);
@@ -27,6 +27,11 @@ export function usePendingAanvragen() {
           }
           return;
         }
+
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+
+        const verifiedUserId = userData?.user?.id || userId;
 
         const { data: rawAanvragen, error: aanvragenError } = await supabase
           .from('aanvragen')
@@ -47,7 +52,7 @@ export function usePendingAanvragen() {
               owner_id
             )
           `)
-          .eq('perceel.owner_id', userId)
+          .eq('perceel.owner_id', verifiedUserId)
           .eq('status', 'pending')
           .order('created_at', { ascending: false });
 
@@ -83,6 +88,14 @@ export function usePendingAanvragen() {
           setIsLoading(false);
         }
       } catch (err) {
+        if (err?.name === 'AuthSessionMissingError' || String(err?.message || '').includes('Auth session missing')) {
+          if (mounted) {
+            setAanvragen([]);
+            setIsLoading(false);
+          }
+          return;
+        }
+
         console.warn('Failed to load aanvragen', err);
         if (mounted) {
           setError(err);
