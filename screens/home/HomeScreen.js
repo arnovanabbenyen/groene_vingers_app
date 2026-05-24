@@ -13,6 +13,7 @@
   import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
   import AanvraagDoenScreen from '../aanvraag/AanvraagDoenScreen';
   import AanvraagBevestigingScreen from '../aanvraag/AanvraagBevestigingScreen';
+  import LogboekScreen from '../loggen/LogboekScreen';
   import { MagnifyingGlassIcon } from 'phosphor-react-native';
   import { COLORS, FONTS, LAYOUT, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 
@@ -220,6 +221,17 @@
             setSelectedConversation(null);
             onCloseConversation?.();
           }}
+        />
+      );
+    }
+
+    if (activeTab === 'loggen') {
+      return (
+        <LogboekScreen
+          onTabPress={(item) => setActiveTab(item.key)}
+          profileImageSource={profileImageSource}
+          badgeCounts={badgeCounts}
+          onNavigateToHome={() => setActiveTab('start')}
         />
       );
     }
