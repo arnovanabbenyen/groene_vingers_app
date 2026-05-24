@@ -9,15 +9,14 @@ import {
   LeafIcon,
   MapPinIcon,
   PlusCircleIcon,
-  StarIcon,
-  HouseIcon,
 } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
 import BottomNav from '../../components/navigation/BottomNav';
+import PercelenCarousel from '../../components/perceel/PercelenCarousel';
 import { supabase } from '../../services/supabase';
 import PerceelToevoegenScreen from '../parcel/PerceelToevoegenScreen';
 import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
-import AanvraagCard, { normalizeSize } from '../../components/aanvraag/AanvraagCard';
+import AanvraagCard from '../../components/aanvraag/AanvraagCard';
 import { usePendingAanvragen } from '../../hooks/usePendingAanvragen';
 import VerzoekenOverzichtScreen from '../aanvraag/VerzoekenOverzichtScreen';
 import AanvraagDetailScreen from '../aanvraag/AanvraagDetailScreen';
@@ -69,150 +68,7 @@ function PlanningEmpty() {
   );
 }
 
-function PercelenEmpty({ onAddPress }) {
-  return (
-    <View style={styles.percelenEmptyCard} accessible accessibilityRole="text">
-      <LeafIcon size={40} color={COLORS.brand} weight="regular" />
-      <Text style={styles.emptyFeatureTitle}>Nog geen percelen</Text>
-      <Text style={styles.emptyFeatureSubtext}>
-        Voeg je eerste perceel toe om aanvragen te ontvangen.
-      </Text>
-      <Pressable
-        onPress={onAddPress}
-        style={styles.perceelAddButton}
-        accessibilityRole="button"
-        accessibilityLabel="Perceel toevoegen"
-        accessibilityHint="Open het scherm om een nieuw perceel toe te voegen"
-      >
-        <Text style={styles.perceelAddButtonText}>Perceel toevoegen</Text>
-      </Pressable>
-    </View>
-  );
-}
 
-function PerceelCarouselCard({ perceel, onPress }) {
-  const [imageError, setImageError] = useState(false);
-  const firstPhoto = Array.isArray(perceel?.fotos) ? perceel.fotos[0] : null;
-  const location = perceel?.plaats || 'Locatie nog niet beschikbaar';
-  const title = perceel?.naam || 'Perceel';
-  const size = normalizeSize(perceel?.grootte);
-  const chips = Array.isArray(perceel?.voorzieningen) ? perceel.voorzieningen.filter(Boolean) : [];
-  const amenities = chips.slice(0, 3);
-
-  return (
-    <Pressable
-      onPress={() => onPress(perceel)}
-      style={styles.perceelCard}
-      accessibilityRole="button"
-      accessibilityLabel={`Perceel ${title}`}
-      accessibilityHint="Open perceelbeheer"
-    >
-      <View style={styles.perceelImageWrap}>
-        {firstPhoto && !imageError ? (
-          <Image
-            source={{ uri: firstPhoto }}
-            style={styles.perceelImage}
-            resizeMode="cover"
-            onError={() => setImageError(true)}
-          />
-        ) : (
-          <View style={[styles.perceelImage, styles.perceelPlaceholder]}>
-            <LeafIcon size={34} color={COLORS.brand} weight="regular" />
-          </View>
-        )}
-
-        <View style={styles.perceelStatusPill}>
-          <Text style={styles.perceelStatusText}>actief</Text>
-        </View>
-
-        <View style={styles.perceelMetaOverlay}>
-          <View style={styles.perceelLocationPill}>
-            <MapPinIcon size={14} color={COLORS.textPrimary} weight="regular" />
-            <Text style={styles.perceelLocationText}>{location}</Text>
-          </View>
-
-          <View style={styles.perceelRatingPill}>
-            <StarIcon size={14} color={COLORS.accent} weight="fill" />
-            <Text style={styles.perceelRatingText}>4,5</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.perceelHeaderRow}>
-        <Text style={styles.perceelTitle} numberOfLines={1}>{title}</Text>
-        <Text style={styles.perceelSize}>{size}</Text>
-      </View>
-
-      <View style={styles.perceelMetaRow}>
-        {amenities.map((amenity, index) => (
-          <View key={`${perceel?.id || 'perceel'}-${amenity}-${index}`} style={styles.perceelMetaItem}>
-            <PerceelAmenityIcon label={amenity} />
-            <Text style={styles.perceelMetaText}>{amenity}</Text>
-            {index < amenities.length - 1 ? <View style={styles.perceelMetaDivider} /> : null}
-          </View>
-        ))}
-      </View>
-    </Pressable>
-  );
-}
-
-function PerceelAmenityIcon({ label }) {
-  const normalized = String(label || '').toLowerCase();
-
-  if (normalized.includes('water')) {
-    return <MapPinIcon size={14} color={COLORS.textPrimary} weight="regular" />;
-  }
-
-  if (normalized.includes('tool') || normalized.includes('materiaal')) {
-    return <MapPinIcon size={14} color={COLORS.textPrimary} weight="regular" />;
-  }
-
-  if (normalized.includes('zaden') || normalized.includes('plant')) {
-    return <LeafIcon size={14} color={COLORS.textPrimary} weight="regular" />;
-  }
-
-  if (normalized.includes('boom')) {
-    return <LeafIcon size={14} color={COLORS.textPrimary} weight="regular" />;
-  }
-
-  return <HouseIcon size={14} color={COLORS.textPrimary} weight="regular" />;
-}
-
-function PercelenCarousel({ percelen, onAddPress, onPerceelPress }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  if (!percelen || percelen.length === 0) {
-    return <PercelenEmpty onAddPress={onAddPress} />;
-  }
-
-  return (
-    <View>
-      <ScrollView
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={(event) => {
-          const slideWidth = event.nativeEvent.layoutMeasurement.width;
-          const offset = event.nativeEvent.contentOffset.x;
-          setActiveIndex(Math.round(offset / slideWidth));
-        }}
-        contentContainerStyle={styles.percelenScroller}
-      >
-        {percelen.map((perceel) => (
-          <PerceelCarouselCard key={perceel.id} perceel={perceel} onPress={onPerceelPress} />
-        ))}
-      </ScrollView>
-
-      {percelen.length > 1 ? (
-        <View style={styles.percelenDotsRow}>
-          {percelen.map((perceel, index) => (
-            <View key={`${perceel.id}-dot`} style={[styles.percelenDot, index === activeIndex && styles.percelenDotActive]} />
-          ))}
-        </View>
-      ) : null}
-    </View>
-  );
-}
 
 export default function TuineigenaarHomeScreen({
   onLogout,
@@ -229,6 +85,7 @@ export default function TuineigenaarHomeScreen({
   onCloseConversation,
   unreadNotificationsCount = 0,
   onOpenNotifications,
+  onOpenProfiel,
 }) {
   const [activeTab, setActiveTab] = useState('start');
   const [profileImageSource, setProfileImageSource] = useState(PROFILE_IMAGE);
@@ -240,11 +97,8 @@ export default function TuineigenaarHomeScreen({
   const { aanvragen, isLoading: isLoadingAanvragen, setAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
 
   function handleTabPress(item) {
-    if (item.key === 'perceel') {
-      setActiveTab('perceel');
-      return;
-    }
-
+    if (item.key === 'perceel') { setActiveTab('perceel'); return; }
+    if (item.key === 'profiel') { onOpenProfiel?.(); return; }
     setActiveTab(item.key);
   }
 
@@ -717,172 +571,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: 'center',
     maxWidth: 280,
-  },
-  percelenEmptyCard: {
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: 'rgba(54, 57, 43, 0.08)',
-    backgroundColor: COLORS.surface,
-    padding: SPACING.lg,
-    alignItems: 'center',
-    gap: SPACING.sm,
-    ...SHADOWS.card,
-  },
-  perceelAddButton: {
-    height: 44,
-    paddingHorizontal: SPACING.lg,
-    borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: SPACING.xs,
-  },
-  perceelAddButtonText: {
-    color: COLORS.surface,
-    fontFamily: FONTS.displayMedium,
-    fontSize: 16,
-  },
-  percelenScroller: {
-    gap: SPACING.md,
-    paddingRight: SPACING.screenX,
-    paddingBottom: SPACING.xs,
-  },
-  perceelCard: {
-    width: 266,
-    backgroundColor: COLORS.background,
-    borderRadius: RADIUS.sm,
-    padding: 8,
-    gap: 10,
-    ...SHADOWS.card,
-  },
-  perceelImageWrap: {
-    position: 'relative',
-    borderRadius: RADIUS.sm,
-    overflow: 'hidden',
-  },
-  perceelImage: {
-    width: '100%',
-    height: 167,
-    borderRadius: RADIUS.sm,
-  },
-  perceelPlaceholder: {
-    backgroundColor: COLORS.surfaceMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  perceelStatusPill: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  perceelStatusText: {
-    color: COLORS.brand,
-    fontFamily: FONTS.body,
-    fontSize: 12.8,
-  },
-  perceelMetaOverlay: {
-    position: 'absolute',
-    left: 8,
-    right: 8,
-    bottom: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 8,
-  },
-  perceelLocationPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    maxWidth: '68%',
-  },
-  perceelLocationText: {
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.body,
-    fontSize: 12.8,
-    flexShrink: 1,
-  },
-  perceelRatingPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  perceelRatingText: {
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.body,
-    fontSize: 12.8,
-  },
-  perceelHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  perceelTitle: {
-    flex: 1,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.displayMedium,
-    fontSize: 16,
-  },
-  perceelSize: {
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.body,
-    fontSize: 12.8,
-  },
-  perceelMetaRow: {
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    paddingTop: 4,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-  },
-  perceelMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginRight: 10,
-    marginBottom: 6,
-  },
-  perceelMetaText: {
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.body,
-    fontSize: 12.8,
-  },
-  perceelMetaDivider: {
-    width: 1,
-    height: 18,
-    backgroundColor: COLORS.border,
-    marginLeft: 10,
-  },
-  percelenDotsRow: {
-    marginTop: SPACING.sm,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-  },
-  percelenDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.indicatorMuted,
-  },
-  percelenDotActive: {
-    width: 14,
-    backgroundColor: COLORS.brand,
   },
   bellWrap: {
     position: 'relative',
