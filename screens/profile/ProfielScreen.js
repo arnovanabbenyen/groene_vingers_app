@@ -135,7 +135,6 @@ export default function ProfielScreen({
   refreshKey = 0,
   onOpenEdit,
   onOpenSettings,
-  onLogout,
   onTabPress,
   profileImageSource,
   badgeCounts = {},
@@ -229,29 +228,7 @@ export default function ProfielScreen({
     Alert.alert('Binnenkort beschikbaar', 'Instellingen komen binnenkort.');
   }
 
-  function handleLogoutPress() {
-    Alert.alert(
-      'Uitloggen',
-      'Weet je zeker dat je wilt uitloggen?',
-      [
-        { text: 'Annuleren', style: 'cancel' },
-        {
-          text: 'Uitloggen',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await supabase?.auth.signOut();
-            } catch (e) {
-              console.warn('signOut error', e);
-            }
-            onLogout?.();
-          },
-        },
-      ],
-    );
-  }
-
-  const displayName = profile
+const displayName = profile
     ? [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim() || 'Profiel'
     : '';
 
@@ -424,14 +401,6 @@ export default function ProfielScreen({
           </>
         )}
 
-        <Pressable
-          style={styles.logoutButton}
-          onPress={handleLogoutPress}
-          accessibilityRole="button"
-          accessibilityLabel="Uitloggen"
-        >
-          <Text style={styles.logoutText}>Uitloggen</Text>
-        </Pressable>
       </ScrollView>
 
       <BottomNav
@@ -650,16 +619,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     maxWidth: 260,
-  },
-  // Logout
-  logoutButton: {
-    alignItems: 'center',
-    paddingVertical: 16,
-    marginTop: SPACING.xl,
-  },
-  logoutText: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: 15,
-    color: COLORS.negative,
   },
 });

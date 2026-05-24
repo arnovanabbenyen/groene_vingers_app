@@ -382,7 +382,6 @@ export default function App() {
               setCurrentScreen('profiel-bewerken');
             }}
             onOpenSettings={() => setCurrentScreen('instellingen')}
-            onLogout={handleLogout}
             onTabPress={(item) => {
               if (item.key === 'profiel') return;
               homeInitialTabRef.current = item.key;
