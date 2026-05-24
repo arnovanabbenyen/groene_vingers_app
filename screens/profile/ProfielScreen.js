@@ -16,7 +16,7 @@ import {
   MapPinIcon,
   PencilSimpleIcon,
 } from 'phosphor-react-native';
-import { COLORS, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
+import { COLORS, FONTS, LAYOUT, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
 import BottomNav from '../../components/navigation/BottomNav';
 import PercelenCarousel from '../../components/perceel/PercelenCarousel';
 import { supabase } from '../../services/supabase';
@@ -43,21 +43,11 @@ const STATUS_CONFIG = {
     bg: COLORS.brand,
     color: COLORS.surface,
   },
-  [AANVRAAG_STATUS.DECLINED]: {
-    label: 'Afgewezen',
-    bg: COLORS.negativeSoft,
-    color: COLORS.negative,
-  },
-  [AANVRAAG_STATUS.CANCELLED]: {
-    label: 'Ingetrokken',
-    bg: COLORS.surfaceMuted,
-    color: COLORS.textSecondary,
-  },
 };
 
 const PERCEEL_STATUS_DELETED = 'deleted';
 
-function AanvraagRij({ aanvraag }) {
+function AanvraagPerceelCard({ aanvraag }) {
   const [imageError, setImageError] = useState(false);
   const statusConfig = STATUS_CONFIG[aanvraag.status] ?? STATUS_CONFIG[AANVRAAG_STATUS.PENDING];
   const perceel = aanvraag.perceel;
@@ -65,35 +55,35 @@ function AanvraagRij({ aanvraag }) {
     ? [aanvraag.owner.first_name, aanvraag.owner.last_name].filter(Boolean).join(' ').trim()
     : 'Eigenaar';
   const firstPhoto = Array.isArray(perceel?.fotos) ? perceel.fotos[0] : null;
+  const hasImage = firstPhoto != null && !imageError;
 
   return (
-    <View style={styles.aanvraagRij} accessible accessibilityRole="text">
-      <View style={styles.aanvraagThumb}>
-        {firstPhoto && !imageError ? (
+    <View style={styles.perceelCard} accessible accessibilityRole="text">
+      <View style={styles.perceelCardImageWrap}>
+        {hasImage ? (
           <Image
             source={{ uri: firstPhoto }}
-            style={styles.aanvraagThumbImg}
+            style={styles.perceelCardImageEl}
             resizeMode="cover"
             onError={() => setImageError(true)}
           />
         ) : (
-          <View style={[styles.aanvraagThumbImg, styles.aanvraagThumbPlaceholder]}>
-            <LeafIcon size={20} color={COLORS.brand} weight="regular" />
+          <View style={styles.perceelCardPlaceholder}>
+            <LeafIcon size={34} color={COLORS.brand} weight="regular" />
           </View>
         )}
+        <View style={[styles.perceelStatusChip, { backgroundColor: statusConfig.bg }]}>
+          <Text style={[styles.perceelStatusChipText, { color: statusConfig.color }]}>
+            {statusConfig.label}
+          </Text>
+        </View>
       </View>
 
-      <View style={styles.aanvraagInfo}>
-        <Text style={styles.aanvraagTitle} numberOfLines={1}>
+      <View style={styles.perceelCardBody}>
+        <Text style={styles.perceelCardTitle} numberOfLines={1}>
           {perceel?.naam || 'Perceel'}
         </Text>
-        <Text style={styles.aanvraagOwner} numberOfLines={1}>{ownerName}</Text>
-      </View>
-
-      <View style={[styles.statusPill, { backgroundColor: statusConfig.bg }]}>
-        <Text style={[styles.statusPillText, { color: statusConfig.color }]}>
-          {statusConfig.label}
-        </Text>
+        <Text style={styles.perceelCardOwner} numberOfLines={1}>{ownerName}</Text>
       </View>
     </View>
   );
@@ -279,8 +269,6 @@ export default function ProfielScreen({
           )}
         </View>
 
-        <View style={styles.divider} />
-
         {/* Role-specific sections */}
         {role === 'tuinzoeker' ? (
           <>
@@ -297,15 +285,18 @@ export default function ProfielScreen({
                   </Text>
                 </View>
               ) : (
-                <View style={styles.aanvraagList}>
+                <ScrollView
+                  horizontal
+                  nestedScrollEnabled
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.perceelCardScroller}
+                >
                   {aanvragen.map((aanvraag) => (
-                    <AanvraagRij key={aanvraag.id} aanvraag={aanvraag} />
+                    <AanvraagPerceelCard key={aanvraag.id} aanvraag={aanvraag} />
                   ))}
-                </View>
+                </ScrollView>
               )}
             </View>
-
-            <View style={styles.divider} />
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Jouw opgeslagen percelen</Text>
@@ -328,8 +319,6 @@ export default function ProfielScreen({
             />
           </View>
         )}
-
-        <View style={styles.divider} />
 
         <Pressable
           style={styles.logoutButton}
@@ -462,76 +451,77 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     lineHeight: 24,
   },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: SPACING.lg,
-  },
   // Sections
   section: {
     gap: SPACING.md,
+    marginTop: SPACING.xl,
   },
   sectionTitle: {
     fontFamily: FONTS.displaySemiBold,
     fontSize: 20,
     color: COLORS.textPrimary,
   },
-  // Aanvraag list
-  aanvraagList: {
-    gap: 12,
+  // Aanvraag perceel cards (horizontal scroll)
+  perceelCardScroller: {
+    gap: SPACING.md,
+    paddingBottom: SPACING.xxs,
   },
-  aanvraagRij: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: 'rgba(54, 57, 43, 0.08)',
-    padding: 12,
+  perceelCard: {
+    width: SIZES.plotCardWidth,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.background,
+    padding: LAYOUT.plot.cardPadding,
+    gap: LAYOUT.plot.cardGap,
     ...SHADOWS.card,
   },
-  aanvraagThumb: {
-    width: 52,
-    height: 52,
+  perceelCardImageWrap: {
+    width: '100%',
+    height: SIZES.plotCardImageHeight,
     borderRadius: RADIUS.sm,
     overflow: 'hidden',
-    flexShrink: 0,
+    position: 'relative',
   },
-  aanvraagThumbImg: {
-    width: 52,
-    height: 52,
+  perceelCardImageEl: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
   },
-  aanvraagThumbPlaceholder: {
+  perceelCardPlaceholder: {
+    flex: 1,
     backgroundColor: COLORS.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  aanvraagInfo: {
-    flex: 1,
-    gap: 4,
-    minWidth: 0,
+  perceelStatusChip: {
+    position: 'absolute',
+    top: LAYOUT.plot.badgeInset,
+    left: LAYOUT.plot.badgeInset,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    zIndex: 10,
   },
-  aanvraagTitle: {
+  perceelStatusChipText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 12,
+    lineHeight: 14,
+  },
+  perceelCardBody: {
+    gap: 4,
+  },
+  perceelCardTitle: {
     fontFamily: FONTS.displayMedium,
-    fontSize: 14,
+    fontSize: 16,
     color: COLORS.textPrimary,
   },
-  aanvraagOwner: {
+  perceelCardOwner: {
     fontFamily: FONTS.body,
     fontSize: 12.8,
     color: COLORS.textSecondary,
-  },
-  statusPill: {
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    flexShrink: 0,
-  },
-  statusPillText: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: 11,
-    lineHeight: 14,
   },
   // Empty state
   emptyState: {
@@ -558,6 +548,7 @@ const styles = StyleSheet.create({
   logoutButton: {
     alignItems: 'center',
     paddingVertical: 16,
+    marginTop: SPACING.xl,
   },
   logoutText: {
     fontFamily: FONTS.bodyMedium,

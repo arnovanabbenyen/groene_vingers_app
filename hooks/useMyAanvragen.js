@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
+import { AANVRAAG_STATUS } from '../services/aanvraagStatus';
 
 export function useMyAanvragen(refreshKey = 0) {
   const [aanvragen, setAanvragen] = useState([]);
@@ -35,6 +36,7 @@ export function useMyAanvragen(refreshKey = 0) {
             )
           `)
           .eq('sender_id', userId)
+          .in('status', [AANVRAAG_STATUS.PENDING, AANVRAAG_STATUS.ACCEPTED, AANVRAAG_STATUS.CONFIRMED])
           .order('created_at', { ascending: false });
 
         if (aanvragenError) throw aanvragenError;
