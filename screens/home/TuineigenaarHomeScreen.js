@@ -86,8 +86,9 @@ export default function TuineigenaarHomeScreen({
   unreadNotificationsCount = 0,
   onOpenNotifications,
   onOpenProfiel,
+  getInitialTab,
 }) {
-  const [activeTab, setActiveTab] = useState('start');
+  const [activeTab, setActiveTab] = useState(() => getInitialTab?.() ?? 'start');
   const [profileImageSource, setProfileImageSource] = useState(PROFILE_IMAGE);
   const [profile, setProfile] = useState(null);
   const [percelen, setPercelen] = useState([]);
