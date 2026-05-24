@@ -16,8 +16,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { decode as decodeBase64 } from 'base64-arraybuffer';
-import { CameraIcon, LeafIcon, XIcon } from 'phosphor-react-native';
-import { COLORS, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
+import { CameraIcon, FloppyDiskIcon, LeafIcon, XIcon } from 'phosphor-react-native';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 import { supabase } from '../../services/supabase';
 
 const BIO_MAX = 300;
@@ -276,6 +276,30 @@ export default function ProfielBewerkenScreen({ onBack, onSaved }) {
 
             {/* Form fields */}
             <View style={styles.form}>
+              <Text style={styles.formSectionTitle} accessibilityRole="header">Account</Text>
+
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>E-mailadres</Text>
+                <View style={styles.inputShell}>
+                  <TextInput
+                    style={styles.input}
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="naam@voorbeeld.be"
+                    placeholderTextColor={COLORS.border}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="next"
+                  />
+                </View>
+                <Text style={styles.fieldHint}>
+                  Bij een wijziging ontvang je een bevestigingsmail.
+                </Text>
+              </View>
+
+              <Text style={[styles.formSectionTitle, styles.formSectionTitleSpaced]} accessibilityRole="header">Profiel</Text>
+
               <View style={styles.fieldRow}>
                 <View style={styles.fieldHalf}>
                   <Text style={styles.fieldLabel}>Voornaam</Text>
@@ -343,37 +367,20 @@ export default function ProfielBewerkenScreen({ onBack, onSaved }) {
                 </View>
               </View>
 
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>E-mailadres</Text>
-                <View style={styles.inputShell}>
-                  <TextInput
-                    style={styles.input}
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="naam@voorbeeld.be"
-                    placeholderTextColor={COLORS.border}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    returnKeyType="done"
-                  />
-                </View>
-                <Text style={styles.fieldHint}>
-                  Bij een wijziging ontvang je een bevestigingsmail.
-                </Text>
-              </View>
-
               <Pressable
                 style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
                 onPress={handleSave}
                 disabled={isSaving}
                 accessibilityRole="button"
-                accessibilityLabel="Opslaan"
+                accessibilityLabel="Wijzigingen bewaren"
               >
                 {isSaving ? (
                   <ActivityIndicator size="small" color={COLORS.textInverse} />
                 ) : (
-                  <Text style={styles.saveButtonText}>Opslaan</Text>
+                  <>
+                    <FloppyDiskIcon size={20} color={COLORS.textInverse} weight="regular" />
+                    <Text style={styles.saveButtonText}>Wijzigingen bewaren</Text>
+                  </>
                 )}
               </Pressable>
             </View>
@@ -402,7 +409,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
+    fontSize: FONT_SIZES.xl,
     color: COLORS.textInverse,
   },
   loadingWrap: {
@@ -418,13 +425,16 @@ const styles = StyleSheet.create({
   },
   // Cover picker
   coverPicker: {
-    width: '100%',
-    height: 200,
+    marginHorizontal: SPACING.screenX,
+    marginTop: SPACING.xl,
+    height: SIZES.profileCoverHeight,
+    borderRadius: RADIUS.sm,
+    overflow: 'hidden',
     position: 'relative',
   },
   coverImg: {
     width: '100%',
-    height: 200,
+    height: SIZES.profileCoverHeight,
   },
   coverPlaceholder: {
     flex: 1,
@@ -442,7 +452,7 @@ const styles = StyleSheet.create({
   },
   coverOverlayText: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     color: COLORS.surface,
   },
   // Avatar picker
@@ -468,7 +478,7 @@ const styles = StyleSheet.create({
   },
   avatarInitials: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 22,
+    fontSize: FONT_SIZES.xxl,
     color: COLORS.textPrimary,
   },
   avatarCameraWrap: {
@@ -502,7 +512,7 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontFamily: FONTS.body,
-    fontSize: 12.8,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textPrimary,
     marginBottom: 8,
   },
@@ -523,7 +533,7 @@ const styles = StyleSheet.create({
   },
   input: {
     fontFamily: FONTS.body,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textPrimary,
     paddingVertical: 0,
   },
@@ -538,29 +548,40 @@ const styles = StyleSheet.create({
   },
   bioCounter: {
     fontFamily: FONTS.body,
-    fontSize: 12,
+    fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
+  },
+  formSectionTitle: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.textSecondary,
+    marginBottom: 12,
+  },
+  formSectionTitleSpaced: {
+    marginTop: SPACING.xl,
   },
   fieldHint: {
     fontFamily: FONTS.body,
-    fontSize: 12,
+    fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
     marginTop: 6,
   },
   saveButton: {
     marginTop: SPACING.xl,
     backgroundColor: COLORS.brand,
-    borderRadius: RADIUS.md,
-    paddingVertical: 16,
+    borderRadius: RADIUS.xl,
+    paddingVertical: 14,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: SPACING.sm,
   },
   saveButtonDisabled: {
     opacity: 0.6,
   },
   saveButtonText: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.textInverse,
   },
 });

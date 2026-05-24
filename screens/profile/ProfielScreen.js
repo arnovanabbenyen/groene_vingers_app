@@ -25,7 +25,6 @@ import { useMyAanvragen } from '../../hooks/useMyAanvragen';
 
 const AVATAR_SIZE = 75;
 const AVATAR_OVERHANG = 38;
-const COVER_HEIGHT = 201;
 
 const STATUS_CONFIG = {
   [AANVRAAG_STATUS.PENDING]: {
@@ -491,7 +490,7 @@ const styles = StyleSheet.create({
   },
   cover: {
     width: '100%',
-    height: COVER_HEIGHT,
+    height: SIZES.profileCoverHeight,
     borderRadius: RADIUS.sm,
     backgroundColor: COLORS.surfaceMuted,
   },
