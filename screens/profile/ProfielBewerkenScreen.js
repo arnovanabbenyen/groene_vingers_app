@@ -276,29 +276,7 @@ export default function ProfielBewerkenScreen({ onBack, onSaved }) {
 
             {/* Form fields */}
             <View style={styles.form}>
-              <Text style={styles.formSectionTitle} accessibilityRole="header">Account</Text>
-
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>E-mailadres</Text>
-                <View style={styles.inputShell}>
-                  <TextInput
-                    style={styles.input}
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="naam@voorbeeld.be"
-                    placeholderTextColor={COLORS.border}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    returnKeyType="next"
-                  />
-                </View>
-                <Text style={styles.fieldHint}>
-                  Bij een wijziging ontvang je een bevestigingsmail.
-                </Text>
-              </View>
-
-              <Text style={[styles.formSectionTitle, styles.formSectionTitleSpaced]} accessibilityRole="header">Profiel</Text>
+              <Text style={styles.formSectionTitle} accessibilityRole="header">Profiel</Text>
 
               <View style={styles.fieldRow}>
                 <View style={styles.fieldHalf}>
@@ -365,6 +343,28 @@ export default function ProfielBewerkenScreen({ onBack, onSaved }) {
                     maxLength={BIO_MAX}
                   />
                 </View>
+              </View>
+
+              <Text style={[styles.formSectionTitle, styles.formSectionTitleSpaced]} accessibilityRole="header">Account</Text>
+
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>E-mailadres</Text>
+                <View style={styles.inputShell}>
+                  <TextInput
+                    style={styles.input}
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="naam@voorbeeld.be"
+                    placeholderTextColor={COLORS.border}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="next"
+                  />
+                </View>
+                <Text style={styles.fieldHint}>
+                  Bij een wijziging ontvang je een bevestigingsmail.
+                </Text>
               </View>
 
               <Pressable
