@@ -89,6 +89,48 @@ function AanvraagPerceelCard({ aanvraag }) {
   );
 }
 
+function SamenwerkingCard({ samenwerking }) {
+  const [imageError, setImageError] = useState(false);
+  const perceel = samenwerking.perceel;
+  const sender = samenwerking.sender;
+  const senderName = sender
+    ? [sender.first_name, sender.last_name].filter(Boolean).join(' ').trim()
+    : 'Tuinzoeker';
+  const firstPhoto = Array.isArray(perceel?.fotos) ? perceel.fotos[0] : null;
+  const hasImage = firstPhoto != null && !imageError;
+
+  return (
+    <View style={styles.perceelCard} accessible accessibilityRole="text">
+      <View style={styles.perceelCardImageWrap}>
+        {hasImage ? (
+          <Image
+            source={{ uri: firstPhoto }}
+            style={styles.perceelCardImageEl}
+            resizeMode="cover"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <View style={styles.perceelCardPlaceholder}>
+            <LeafIcon size={34} color={COLORS.brand} weight="regular" />
+          </View>
+        )}
+        <View style={[styles.perceelStatusChip, { backgroundColor: COLORS.brand }]}>
+          <Text style={[styles.perceelStatusChipText, { color: COLORS.surface }]}>
+            Samenwerking actief
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.perceelCardBody}>
+        <Text style={styles.perceelCardTitle} numberOfLines={1}>
+          {perceel?.naam || 'Perceel'}
+        </Text>
+        <Text style={styles.perceelCardOwner} numberOfLines={1}>{senderName}</Text>
+      </View>
+    </View>
+  );
+}
+
 export default function ProfielScreen({
   role = 'tuinzoeker',
   refreshKey = 0,
@@ -102,6 +144,7 @@ export default function ProfielScreen({
   const insets = useSafeAreaInsets();
   const [profile, setProfile] = useState(null);
   const [percelen, setPercelen] = useState([]);
+  const [samenwerkingen, setSamenwerkingen] = useState([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   const { aanvragen, isLoading: isLoadingAanvragen } = useMyAanvragen(refreshKey);
@@ -136,6 +179,39 @@ export default function ProfielScreen({
 
           if (percelenError) console.warn('Failed to load percelen', percelenError);
           if (mounted) setPercelen(percelenData || []);
+
+          const perceelIds = (percelenData || []).map((p) => p.id);
+          if (perceelIds.length > 0) {
+            const { data: samenwerkingenRaw, error: swError } = await supabase
+              .from('aanvragen')
+              .select('id, created_at, sender_id, perceel_id')
+              .in('perceel_id', perceelIds)
+              .eq('status', AANVRAAG_STATUS.CONFIRMED)
+              .order('created_at', { ascending: false });
+
+            if (swError) console.warn('Failed to load samenwerkingen', swError);
+
+            const swData = samenwerkingenRaw || [];
+            const percelenById = (percelenData || []).reduce((acc, p) => { acc[p.id] = p; return acc; }, {});
+
+            const senderIds = [...new Set(swData.map((a) => a.sender_id).filter(Boolean))];
+            let sendersById = {};
+            if (senderIds.length > 0) {
+              const { data: senders } = await supabase
+                .from('profiles')
+                .select('id, first_name, last_name')
+                .in('id', senderIds);
+              sendersById = (senders || []).reduce((acc, s) => { acc[s.id] = s; return acc; }, {});
+            }
+
+            const enriched = swData.map((a) => ({
+              ...a,
+              perceel: percelenById[a.perceel_id] || null,
+              sender: sendersById[a.sender_id] || null,
+            }));
+
+            if (mounted) setSamenwerkingen(enriched);
+          }
         }
       } catch (e) {
         console.warn('loadProfile error', e);
@@ -315,13 +391,38 @@ export default function ProfielScreen({
             </View>
           </>
         ) : (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Jouw percelen</Text>
-            <PercelenCarousel
-              percelen={percelen}
-              onPerceelPress={null}
-            />
-          </View>
+          <>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Samenwerkingen</Text>
+              {isLoadingProfile ? (
+                <ActivityIndicator size="small" color={COLORS.brand} />
+              ) : samenwerkingen.length === 0 ? (
+                <View style={styles.emptyState} accessible accessibilityRole="text">
+                  <LeafIcon size={40} color={COLORS.brand} weight="regular" />
+                  <Text style={styles.emptyTitle}>Nog geen samenwerkingen</Text>
+                  <Text style={styles.emptySubtext}>
+                    Bevestigde samenwerkingen met tuinzoekers verschijnen hier.
+                  </Text>
+                </View>
+              ) : (
+                <ScrollView
+                  horizontal
+                  nestedScrollEnabled
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.perceelCardScroller}
+                >
+                  {samenwerkingen.map((s) => (
+                    <SamenwerkingCard key={s.id} samenwerking={s} />
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Jouw percelen</Text>
+              <PercelenCarousel percelen={percelen} onPerceelPress={null} />
+            </View>
+          </>
         )}
 
         <Pressable
