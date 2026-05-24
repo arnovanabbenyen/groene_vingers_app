@@ -44,8 +44,8 @@
     confirmed: { label: 'Samenwerking bevestigd', bg: 'rgba(87,98,56,0.92)', color: COLORS.textInverse },
   };
 
-  export default function HomeScreen({ badgeCounts = {}, onOpenConversation, selectedConversation: appSelectedConversation = null, onCloseConversation, unreadNotificationsCount = 0, onOpenNotifications }) {
-    const [activeTab, setActiveTab] = useState('start');
+  export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConversation, selectedConversation: appSelectedConversation = null, onCloseConversation, unreadNotificationsCount = 0, onOpenNotifications, onOpenProfiel }) {
+    const [activeTab, setActiveTab] = useState(() => getInitialTab?.() ?? 'start');
     const [selectedConversation, setSelectedConversation] = useState(null);
     const [profileImageSource, setProfileImageSource] = useState(PROFILE_IMAGE);
     const [activeDot, setActiveDot] = useState(0);
@@ -353,7 +353,10 @@
 
           <BottomNav
             activeKey={activeTab}
-            onTabPress={(item) => setActiveTab(item.key)}
+            onTabPress={(item) => {
+              if (item.key === 'profiel') { onOpenProfiel?.(); return; }
+              setActiveTab(item.key);
+            }}
             profileImageSource={profileImageSource}
             badgeCounts={badgeCounts}
             style={styles.bottomNav}

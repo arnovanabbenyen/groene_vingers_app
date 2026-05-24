@@ -51,6 +51,7 @@ export const SIZES = {
   promoBadgeRadius: 19,
   promoButtonHeight: 28,
   bottomNavClearance: 110,
+  profileCoverHeight: 201,
 };
 
 export const LAYOUT = {
@@ -75,6 +76,16 @@ export const LAYOUT = {
     badgeInset: 8,
     dividerSpacing: 8,
   },
+};
+
+export const FONT_SIZES = {
+  xxs: 11,
+  xs: 12,
+  sm: 12.8,
+  md: 14,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
 };
 
 export const FONTS = {

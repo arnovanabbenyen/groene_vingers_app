@@ -8,6 +8,8 @@ import PasswordResetScreen from './screens/auth/PasswordResetScreen';
 import PasswordResetSentScreen from './screens/auth/PasswordResetSentScreen';
 import TuineigenaarHomeScreen from './screens/home/TuineigenaarHomeScreen';
 import MeldingenScreen from './screens/notifications/MeldingenScreen';
+import ProfielScreen from './screens/profile/ProfielScreen';
+import ProfielBewerkenScreen from './screens/profile/ProfielBewerkenScreen';
 import { usePendingAanvragen } from './hooks/usePendingAanvragen';
 import { useNotifications } from './hooks/useNotifications';
 import InfoScreen from './screens/auth/InfoScreen';
@@ -42,6 +44,8 @@ export default function App() {
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [conversationsRefreshKey, setConversationsRefreshKey] = useState(0);
   const [selectedConversation, setSelectedConversation] = useState(null);
+  const [profielRefreshKey, setProfielRefreshKey] = useState(0);
+  const homeInitialTabRef = useRef('start');
   const { aanvragen: pendingAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
   const pendingProfilePhotoRef = useRef({ uri: null, userId: null });
 
@@ -343,7 +347,30 @@ export default function App() {
   return (
     <AppProviders>
       {isLoggedIn ? (
-        currentScreen === 'meldingen' ? (
+        currentScreen === 'profiel-bewerken' ? (
+          <ProfielBewerkenScreen
+            onBack={() => setCurrentScreen('profiel')}
+            onSaved={() => {
+              setProfielRefreshKey((k) => k + 1);
+              setCurrentScreen('profiel');
+            }}
+          />
+        ) : currentScreen === 'profiel' ? (
+          <ProfielScreen
+            role={selectedRole}
+            refreshKey={profielRefreshKey}
+            onOpenEdit={() => setCurrentScreen('profiel-bewerken')}
+            onLogout={handleLogout}
+            onTabPress={(item) => {
+              if (item.key === 'profiel') return;
+              homeInitialTabRef.current = item.key;
+              setCurrentScreen('home');
+            }}
+            profileImageSource={null}
+            badgeCounts={{ berichten: unreadMessagesCount }}
+            unreadNotificationsCount={unreadNotificationsCount}
+          />
+        ) : currentScreen === 'meldingen' ? (
           <MeldingenScreen
             role={selectedRole}
             onBack={() => {
@@ -365,6 +392,7 @@ export default function App() {
           />
         ) : selectedRole === 'tuineigenaar' ? (
           <TuineigenaarHomeScreen
+            getInitialTab={() => { const t = homeInitialTabRef.current; homeInitialTabRef.current = 'start'; return t; }}
             onLogout={handleLogout}
             currentScreen={currentScreen}
             selectedAanvraag={selectedAanvraag}
@@ -379,9 +407,11 @@ export default function App() {
             onCloseConversation={handleCloseConversation}
             unreadNotificationsCount={unreadNotificationsCount}
             onOpenNotifications={() => setCurrentScreen('meldingen')}
+            onOpenProfiel={() => setCurrentScreen('profiel')}
           />
         ) : (
           <HomeScreen
+            getInitialTab={() => { const t = homeInitialTabRef.current; homeInitialTabRef.current = 'start'; return t; }}
             onLogout={handleLogout}
             badgeCounts={{ berichten: unreadMessagesCount }}
             onOpenConversation={handleOpenConversation}
@@ -389,6 +419,7 @@ export default function App() {
             onCloseConversation={handleCloseConversation}
             unreadNotificationsCount={unreadNotificationsCount}
             onOpenNotifications={() => setCurrentScreen('meldingen')}
+            onOpenProfiel={() => setCurrentScreen('profiel')}
           />
         )
       ) : screen === 'login' ? (
