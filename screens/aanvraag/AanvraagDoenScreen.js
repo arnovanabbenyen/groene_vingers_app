@@ -147,6 +147,25 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
         throw new Error('Je bent niet ingelogd. Log opnieuw in en probeer het opnieuw.');
       }
 
+      const { data: existing, error: checkError } = await supabase
+        .from('aanvragen')
+        .select('id, status')
+        .eq('perceel_id', perceel?.id)
+        .eq('sender_id', senderId)
+        .not('status', 'in', '("declined","cancelled")')
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      if (existing) {
+        const statusLabel = {
+          pending: 'nog in behandeling',
+          accepted: 'al geaccepteerd',
+          confirmed: 'al bevestigd',
+        }[existing.status] ?? 'al ingediend';
+        throw new Error(`Je hebt al een aanvraag voor dit perceel die ${statusLabel} is.`);
+      }
+
       const formattedDate = startDate.toISOString().split('T')[0];
 
       const row = {
@@ -158,8 +177,6 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
         start_date: formattedDate,
         status: AANVRAAG_STATUS.PENDING,
       };
-
-      console.log('Submitting aanvraag:', row);
 
       const { error: insertError } = await supabase
         .from('aanvragen')

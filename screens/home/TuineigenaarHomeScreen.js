@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   BellIcon,
   HandshakeIcon,
@@ -226,6 +227,8 @@ export default function TuineigenaarHomeScreen({
   onOpenConversation,
   selectedConversation = null,
   onCloseConversation,
+  unreadNotificationsCount = 0,
+  onOpenNotifications,
 }) {
   const [activeTab, setActiveTab] = useState('start');
   const [profileImageSource, setProfileImageSource] = useState(PROFILE_IMAGE);
@@ -513,6 +516,7 @@ export default function TuineigenaarHomeScreen({
 
   return (
     <View style={styles.container}>
+      <SafeAreaView edges={['top']} style={styles.headerSafe}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View style={styles.locationRow}>
@@ -520,13 +524,27 @@ export default function TuineigenaarHomeScreen({
             {/* TODO: replace hardcoded location once the location feature ships. */}
             <Text style={styles.locationText}>Kessel-Lo</Text>
           </View>
-          <Pressable hitSlop={8} accessibilityRole="button" accessibilityLabel="Meldingen">
+          <Pressable
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Meldingen"
+            onPress={onOpenNotifications}
+            style={styles.bellWrap}
+          >
             <BellIcon size={24} color={COLORS.surface} weight="regular" />
+            {unreadNotificationsCount > 0 ? (
+              <View style={styles.bellBadge}>
+                <Text style={styles.bellBadgeText}>
+                  {unreadNotificationsCount > 9 ? '9+' : String(unreadNotificationsCount)}
+                </Text>
+              </View>
+            ) : null}
           </Pressable>
         </View>
 
         <Text style={styles.greeting}>Hallo, {profile?.first_name || 'Arno'}</Text>
       </View>
+      </SafeAreaView>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
@@ -600,9 +618,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.surface,
   },
+  headerSafe: {
+    backgroundColor: COLORS.brand,
+  },
   header: {
     backgroundColor: COLORS.brand,
-    paddingTop: 16,
+    paddingTop: SPACING.md,
     paddingHorizontal: SPACING.screenX,
     paddingBottom: SPACING.lg,
   },
@@ -862,5 +883,28 @@ const styles = StyleSheet.create({
   percelenDotActive: {
     width: 14,
     backgroundColor: COLORS.brand,
+  },
+  bellWrap: {
+    position: 'relative',
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.negative,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: COLORS.brand,
+  },
+  bellBadgeText: {
+    color: COLORS.surface,
+    fontSize: 9,
+    fontFamily: FONTS.bodyMedium,
+    lineHeight: 11,
   },
 });

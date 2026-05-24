@@ -18,6 +18,12 @@ const PERCEEL_STATUS = {
   DELETED: 'deleted',
 };
 
+const AANVRAAG_STATUS_LABEL = {
+  pending: 'Aanvraag in behandeling',
+  accepted: 'Aanvraag geaccepteerd',
+  confirmed: 'Samenwerking bevestigd',
+};
+
 export default function ParcelDetailScreen({
   perceel = {},
   onBack,
@@ -31,6 +37,7 @@ export default function ParcelDetailScreen({
 }) {
   const insets = useSafeAreaInsets();
   const [ownerProfile, setOwnerProfile] = useState(null);
+  const [existingAanvraag, setExistingAanvraag] = useState(null);
   const handleAanvraag = onAanvraag || onRequest || (() => {});
   const perceelStatus = perceel.status || PERCEEL_STATUS.ACTIVE;
   const hiddenBannerVisible = isOwner && perceelStatus === PERCEEL_STATUS.HIDDEN;
@@ -73,6 +80,28 @@ export default function ParcelDetailScreen({
       mounted = false;
     };
   }, [ownerId]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function checkExistingAanvraag() {
+      if (isOwner || !perceel?.id || !supabase) return;
+      const { data: userData } = await supabase.auth.getUser().catch(() => ({ data: null }));
+      const userId = userData?.user?.id;
+      if (!userId) return;
+
+      const { data } = await supabase
+        .from('aanvragen')
+        .select('id, status')
+        .eq('perceel_id', perceel.id)
+        .eq('sender_id', userId)
+        .not('status', 'in', '("declined","cancelled")')
+        .maybeSingle();
+
+      if (mounted) setExistingAanvraag(data || null);
+    }
+    checkExistingAanvraag();
+    return () => { mounted = false; };
+  }, [perceel?.id, isOwner]);
 
   const ownerDisplayName = ownerProfile
     ? [ownerProfile.first_name, ownerProfile.last_name].filter(Boolean).join(' ').trim() || 'Eigenaar'
@@ -137,9 +166,17 @@ export default function ParcelDetailScreen({
         <View style={styles.divider} />
 
         {!isOwner ? (
-          <Pressable style={styles.primaryButton} onPress={handleAanvraag}>
-            <Text style={styles.primaryButtonText}>Stuur verzoek</Text>
-          </Pressable>
+          existingAanvraag ? (
+            <View style={styles.aanvraagBanner}>
+              <Text style={styles.aanvraagBannerText}>
+                {AANVRAAG_STATUS_LABEL[existingAanvraag.status] ?? 'Aanvraag ingediend'}
+              </Text>
+            </View>
+          ) : (
+            <Pressable style={styles.primaryButton} onPress={handleAanvraag}>
+              <Text style={styles.primaryButtonText}>Stuur verzoek</Text>
+            </Pressable>
+          )
         ) : (
           <View style={[styles.ownerActionStack, { paddingBottom: insets.bottom + 16 }]}>
             <TouchableOpacity
@@ -252,6 +289,22 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     fontFamily: FONTS.displayMedium,
     fontWeight: '500',
+  },
+  aanvraagBanner: {
+    marginTop: 18,
+    height: 41,
+    borderRadius: RADIUS.xs,
+    backgroundColor: COLORS.surfaceBrand,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.brand,
+  },
+  aanvraagBannerText: {
+    color: COLORS.brand,
+    fontSize: 16,
+    lineHeight: 16,
+    fontFamily: FONTS.displayMedium,
   },
   ownerActionStack: {
     paddingTop: 18,

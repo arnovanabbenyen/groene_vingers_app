@@ -7,7 +7,9 @@ import LoginScreen from './screens/auth/LoginScreen';
 import PasswordResetScreen from './screens/auth/PasswordResetScreen';
 import PasswordResetSentScreen from './screens/auth/PasswordResetSentScreen';
 import TuineigenaarHomeScreen from './screens/home/TuineigenaarHomeScreen';
+import MeldingenScreen from './screens/notifications/MeldingenScreen';
 import { usePendingAanvragen } from './hooks/usePendingAanvragen';
+import { useNotifications } from './hooks/useNotifications';
 import InfoScreen from './screens/auth/InfoScreen';
 import InfoScreen2 from './screens/auth/InfoScreen2';
 import InfoScreen3 from './screens/auth/InfoScreen3';
@@ -21,6 +23,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { decode as decodeBase64 } from 'base64-arraybuffer';
 
 export default function App() {
+  const [notificationsRefreshKey, setNotificationsRefreshKey] = useState(0);
+  const { unreadCount: unreadNotificationsCount } = useNotifications(notificationsRefreshKey);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [screen, setScreen] = useState('intro');
   const [selectedRole, setSelectedRole] = useState('tuinzoeker');
@@ -339,7 +343,27 @@ export default function App() {
   return (
     <AppProviders>
       {isLoggedIn ? (
-        selectedRole === 'tuineigenaar' ? (
+        currentScreen === 'meldingen' ? (
+          <MeldingenScreen
+            role={selectedRole}
+            onBack={() => {
+              setCurrentScreen('home');
+              setNotificationsRefreshKey((k) => k + 1);
+            }}
+            onNavigateToHome={() => {
+              setCurrentScreen('home');
+              setNotificationsRefreshKey((k) => k + 1);
+            }}
+            onNavigateToAanvraag={() => {
+              setCurrentScreen('home');
+              setNotificationsRefreshKey((k) => k + 1);
+            }}
+            onNavigateToConversation={() => {
+              setCurrentScreen('home');
+              setNotificationsRefreshKey((k) => k + 1);
+            }}
+          />
+        ) : selectedRole === 'tuineigenaar' ? (
           <TuineigenaarHomeScreen
             onLogout={handleLogout}
             currentScreen={currentScreen}
@@ -353,6 +377,8 @@ export default function App() {
             onOpenConversation={handleOpenConversation}
             selectedConversation={selectedConversation}
             onCloseConversation={handleCloseConversation}
+            unreadNotificationsCount={unreadNotificationsCount}
+            onOpenNotifications={() => setCurrentScreen('meldingen')}
           />
         ) : (
           <HomeScreen
@@ -361,6 +387,8 @@ export default function App() {
             onOpenConversation={handleOpenConversation}
             selectedConversation={selectedConversation}
             onCloseConversation={handleCloseConversation}
+            unreadNotificationsCount={unreadNotificationsCount}
+            onOpenNotifications={() => setCurrentScreen('meldingen')}
           />
         )
       ) : screen === 'login' ? (
