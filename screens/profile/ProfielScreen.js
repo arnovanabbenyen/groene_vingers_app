@@ -253,12 +253,16 @@ export default function ProfielScreen({
               <View style={styles.identityRow}>
                 <View style={styles.identityLeft}>
                   <Text style={styles.displayName}>{displayName}</Text>
-                  {profile?.plaats ? (
-                    <View style={styles.locationPill}>
-                      <MapPinIcon size={14} color={COLORS.textPrimary} weight="regular" />
-                      <Text style={styles.locationText}>{profile.plaats}</Text>
-                    </View>
-                  ) : null}
+                  <View style={styles.locationPill}>
+                    <MapPinIcon
+                      size={14}
+                      color={profile?.plaats ? COLORS.textPrimary : COLORS.textSecondary}
+                      weight="regular"
+                    />
+                    <Text style={[styles.locationText, !profile?.plaats && styles.locationTextMuted]}>
+                      {profile?.plaats || 'Stad nog niet ingesteld'}
+                    </Text>
+                  </View>
                 </View>
               </View>
 
@@ -444,6 +448,9 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     fontSize: 12.8,
     color: COLORS.textPrimary,
+  },
+  locationTextMuted: {
+    color: COLORS.textSecondary,
   },
   bio: {
     fontFamily: FONTS.body,

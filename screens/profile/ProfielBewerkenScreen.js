@@ -72,6 +72,9 @@ export default function ProfielBewerkenScreen({ onBack, onSaved }) {
   const [lastName, setLastName] = useState('');
   const [plaats, setPlaats] = useState('');
   const [bio, setBio] = useState('');
+  const [email, setEmail] = useState('');
+
+  const originalEmailRef = useRef('');
 
   const [avatarUri, setAvatarUri] = useState(null);
   const [coverUri, setCoverUri] = useState(null);
@@ -89,9 +92,12 @@ export default function ProfielBewerkenScreen({ onBack, onSaved }) {
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const userId = sessionData?.session?.user?.id;
+        const userEmail = sessionData?.session?.user?.email || '';
         if (!userId) { if (mounted) setIsLoading(false); return; }
 
         userIdRef.current = userId;
+        originalEmailRef.current = userEmail;
+        if (mounted) setEmail(userEmail);
 
         const { data: profile, error } = await supabase
           .from('profiles')
@@ -148,6 +154,14 @@ export default function ProfielBewerkenScreen({ onBack, onSaved }) {
         newCoverUrl = await uploadProfileImage('profile-covers', userId, 'cover', coverUri);
       }
 
+      const trimmedEmail = email.trim();
+      let emailChanged = false;
+      if (trimmedEmail && trimmedEmail !== originalEmailRef.current) {
+        const { error: emailError } = await supabase.auth.updateUser({ email: trimmedEmail });
+        if (emailError) throw emailError;
+        emailChanged = true;
+      }
+
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -163,7 +177,15 @@ export default function ProfielBewerkenScreen({ onBack, onSaved }) {
 
       if (updateError) throw updateError;
 
-      onSaved?.();
+      if (emailChanged) {
+        Alert.alert(
+          'Bevestigingsmail verstuurd',
+          'Controleer je inbox om je nieuwe e-mailadres te bevestigen.',
+          [{ text: 'OK', onPress: () => onSaved?.() }],
+        );
+      } else {
+        onSaved?.();
+      }
     } catch (err) {
       console.warn('Save profile error', err);
       Alert.alert('Opslaan mislukt', err?.message || 'Er liep iets mis. Probeer opnieuw.');
@@ -192,19 +214,7 @@ export default function ProfielBewerkenScreen({ onBack, onSaved }) {
             <XIcon size={22} color={COLORS.textInverse} weight="regular" />
           </Pressable>
           <Text style={styles.headerTitle}>Profiel bewerken</Text>
-          <Pressable
-            onPress={handleSave}
-            hitSlop={8}
-            disabled={isSaving}
-            accessibilityRole="button"
-            accessibilityLabel="Opslaan"
-          >
-            {isSaving ? (
-              <ActivityIndicator size="small" color={COLORS.textInverse} />
-            ) : (
-              <Text style={styles.headerSaveText}>Opslaan</Text>
-            )}
-          </Pressable>
+          <View style={{ width: 22 }} />
         </View>
       </SafeAreaView>
 
@@ -332,6 +342,40 @@ export default function ProfielBewerkenScreen({ onBack, onSaved }) {
                   />
                 </View>
               </View>
+
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>E-mailadres</Text>
+                <View style={styles.inputShell}>
+                  <TextInput
+                    style={styles.input}
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="naam@voorbeeld.be"
+                    placeholderTextColor={COLORS.border}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="done"
+                  />
+                </View>
+                <Text style={styles.fieldHint}>
+                  Bij een wijziging ontvang je een bevestigingsmail.
+                </Text>
+              </View>
+
+              <Pressable
+                style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+                onPress={handleSave}
+                disabled={isSaving}
+                accessibilityRole="button"
+                accessibilityLabel="Opslaan"
+              >
+                {isSaving ? (
+                  <ActivityIndicator size="small" color={COLORS.textInverse} />
+                ) : (
+                  <Text style={styles.saveButtonText}>Opslaan</Text>
+                )}
+              </Pressable>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -359,11 +403,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: FONTS.displaySemiBold,
     fontSize: 20,
-    color: COLORS.textInverse,
-  },
-  headerSaveText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: 16,
     color: COLORS.textInverse,
   },
   loadingWrap: {
@@ -501,5 +540,27 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     fontSize: 12,
     color: COLORS.textSecondary,
+  },
+  fieldHint: {
+    fontFamily: FONTS.body,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 6,
+  },
+  saveButton: {
+    marginTop: SPACING.xl,
+    backgroundColor: COLORS.brand,
+    borderRadius: RADIUS.md,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  saveButtonText: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: 16,
+    color: COLORS.textInverse,
   },
 });
