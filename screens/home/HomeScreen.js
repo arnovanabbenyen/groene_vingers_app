@@ -12,6 +12,7 @@
   import ConversationDetailScreen from '../berichten/ConversationDetailScreen';
   import PlansScreen from '../plans/PlansScreen';
   import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
+  import GeenToegangScreen from '../aanvraag/GeenToegangScreen';
   import AanvraagDoenScreen from '../aanvraag/AanvraagDoenScreen';
   import AanvraagBevestigingScreen from '../aanvraag/AanvraagBevestigingScreen';
   import LogboekScreen from '../loggen/LogboekScreen';
@@ -56,9 +57,30 @@
     const [selectedPlot, setSelectedPlot] = useState(null);
     const [requestPlot, setRequestPlot] = useState(null);
     const [requestSuccessPerceel, setRequestSuccessPerceel] = useState(null);
+    const [geenToegangActive, setGeenToegangActive] = useState(false);
     const [plots, setPlots] = useState(null); // null = loading not attempted
     const [myAanvragen, setMyAanvragen] = useState([]);
     const { isFavorite, toggleFavorite } = useFavorites();
+
+    async function handleRequestWithGate(plot) {
+      if (!supabase) { setRequestPlot(plot); return; }
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { setRequestPlot(plot); return; }
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('plan')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (profile?.plan === 'pro') {
+          setRequestPlot(plot);
+        } else {
+          setGeenToegangActive(true);
+        }
+      } catch {
+        setRequestPlot(plot);
+      }
+    }
 
     useEffect(() => {
       let mounted = true;
@@ -201,12 +223,24 @@
       );
     }
 
+    if (geenToegangActive && selectedPlot) {
+      return (
+        <GeenToegangScreen
+          onBack={() => setGeenToegangActive(false)}
+          onUpgrade={() => {
+            setGeenToegangActive(false);
+            setActiveTab('pro-plan');
+          }}
+        />
+      );
+    }
+
     if (selectedPlot) {
       return (
         <ParcelDetailScreen
           perceel={selectedPlot}
           onBack={() => setSelectedPlot(null)}
-          onRequest={() => setRequestPlot(selectedPlot)}
+          onRequest={() => handleRequestWithGate(selectedPlot)}
           isFavorited={isFavorite(selectedPlot?.id)}
           onToggleFavorite={() => toggleFavorite(selectedPlot?.id)}
           showFavoriteButton
@@ -268,7 +302,15 @@
     }
 
     if (activeTab === 'pro-plan') {
-      return <PlansScreen onBack={() => setActiveTab('start')} />;
+      return (
+        <PlansScreen
+          onBack={() => setActiveTab('start')}
+          onUpgradeSuccess={() => {
+            setGeenToegangActive(false);
+            setActiveTab('start');
+          }}
+        />
+      );
     }
 
     return (

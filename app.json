@@ -53,7 +53,13 @@
         }
       ],
       "expo-location",
-      "@stripe/stripe-react-native"
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.arnovan.groenevingers",
+          "enableGooglePay": false
+        }
+      ]
     ]
   }
 }

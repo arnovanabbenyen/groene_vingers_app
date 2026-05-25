@@ -24,6 +24,7 @@ export default function InstellingenScreen({
   onBack,
   onOpenProfielBewerken,
   onOpenNotificaties,
+  onOpenKiesPlan,
   onLogout,
 }) {
   const [plan, setPlan] = useState('free');
@@ -154,10 +155,7 @@ export default function InstellingenScreen({
             {showProFeatures && (
               <TouchableOpacity
                 style={styles.proBanner}
-                onPress={() => {
-                  // TODO: integrate Stripe payment flow for Pro upgrade
-                  Alert.alert('Binnenkort beschikbaar', 'Pro-abonnement is binnenkort beschikbaar.');
-                }}
+                onPress={() => onOpenKiesPlan?.()}
                 accessibilityRole="button"
                 accessibilityLabel="Upgrade naar Pro voor onbeperkte aanvragen"
               >
@@ -185,10 +183,7 @@ export default function InstellingenScreen({
               <>
                 <TouchableOpacity
                   style={styles.row}
-                  onPress={() => {
-                    // TODO: link to subscription management (Stripe customer portal)
-                    Alert.alert('Binnenkort beschikbaar', 'Abonnementbeheer is binnenkort beschikbaar.');
-                  }}
+                  onPress={() => onOpenKiesPlan?.()}
                   accessibilityRole="button"
                 >
                   <View style={styles.rowLabelWrap}>
