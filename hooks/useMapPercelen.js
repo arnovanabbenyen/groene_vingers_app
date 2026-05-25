@@ -17,7 +17,7 @@ export function useMapPercelen() {
       // Try with approximate coords (requires migration to be applied)
       const { data, error } = await supabase
         .from('percelen')
-        .select('id, naam, beschrijving, plaats, adres, grootte, fotos, voorzieningen, approximate_lat, approximate_lng, owner_id')
+        .select('id, naam, beschrijving, plaats, adres, grootte, fotos, voorzieningen, voorkeur_samenwerking, approximate_lat, approximate_lng, owner_id')
         .eq('status', 'active')
         .not('approximate_lat', 'is', null);
 
