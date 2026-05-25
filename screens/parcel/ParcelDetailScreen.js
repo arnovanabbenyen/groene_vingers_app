@@ -34,6 +34,9 @@ export default function ParcelDetailScreen({
   onToggleVisibility,
   onDelete,
   onMorePress = () => {},
+  isFavorited = false,
+  onToggleFavorite,
+  showFavoriteButton = false,
 }) {
   const insets = useSafeAreaInsets();
   const [ownerProfile, setOwnerProfile] = useState(null);
@@ -142,6 +145,9 @@ export default function ParcelDetailScreen({
             { value: 'Nu vrij', label: 'Beschikbaar' },
             { value: '4.5', label: 'Score' },
           ]}
+          isFavorited={isFavorited}
+          onFavoritePress={onToggleFavorite}
+          showFavoriteButton={showFavoriteButton && !isOwner}
         />
 
         <View style={styles.divider} />

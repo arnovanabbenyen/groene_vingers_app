@@ -1,4 +1,5 @@
   import { useMemo, useState, useEffect } from 'react';
+  import { useFavorites } from '../../hooks/useFavorites';
   import { StatusBar } from 'expo-status-bar';
   import { ScrollView, StyleSheet, Text, View } from 'react-native';
   import BottomNav from '../../components/navigation/BottomNav';
@@ -46,7 +47,7 @@
     confirmed: { label: 'Samenwerking bevestigd', bg: 'rgba(87,98,56,0.92)', color: COLORS.textInverse },
   };
 
-  export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConversation, selectedConversation: appSelectedConversation = null, onCloseConversation, unreadNotificationsCount = 0, onOpenNotifications, onOpenProfiel }) {
+  export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConversation, selectedConversation: appSelectedConversation = null, onCloseConversation, unreadNotificationsCount = 0, onOpenNotifications, onOpenProfiel, onOpenSaved }) {
     const [activeTab, setActiveTab] = useState(() => getInitialTab?.() ?? 'start');
     const [selectedConversation, setSelectedConversation] = useState(null);
     const [profileImageSource, setProfileImageSource] = useState(PROFILE_IMAGE);
@@ -57,6 +58,7 @@
     const [requestSuccessPerceel, setRequestSuccessPerceel] = useState(null);
     const [plots, setPlots] = useState(null); // null = loading not attempted
     const [myAanvragen, setMyAanvragen] = useState([]);
+    const { isFavorite, toggleFavorite } = useFavorites();
 
     useEffect(() => {
       let mounted = true;
@@ -205,6 +207,9 @@
           perceel={selectedPlot}
           onBack={() => setSelectedPlot(null)}
           onRequest={() => setRequestPlot(selectedPlot)}
+          isFavorited={isFavorite(selectedPlot?.id)}
+          onToggleFavorite={() => toggleFavorite(selectedPlot?.id)}
+          showFavoriteButton
         />
       );
     }
@@ -284,6 +289,7 @@
               onSearchChange={setSearchQuery}
               onPressNotifications={onOpenNotifications}
               notificationCount={unreadNotificationsCount}
+              onPressHeart={onOpenSaved}
             />
 
             <View style={styles.contentWrap}>
@@ -325,7 +331,12 @@
                       const chipConfig = AANVRAAG_STATUS_CHIP[aanvraag.status] ?? AANVRAAG_STATUS_CHIP.pending;
                       return (
                         <View key={aanvraag.id} style={styles.aanvraagCardWrap}>
-                          <PlotCard plot={plot} onPress={() => setSelectedPlot(plot)} />
+                          <PlotCard
+                            plot={plot}
+                            onPress={() => setSelectedPlot(plot)}
+                            isFavorited={isFavorite(plot.id)}
+                            onToggleFavorite={() => toggleFavorite(plot.id)}
+                          />
                           <View style={[styles.statusChip, { backgroundColor: chipConfig.bg }]}>
                             <Text style={[styles.statusChipText, { color: chipConfig.color }]}>{chipConfig.label}</Text>
                           </View>
@@ -351,7 +362,13 @@
                   }}
                 >
                   {filteredPlots.map((plot, index) => (
-                    <PlotCard key={`${plot.id}-${index}`} plot={plot} onPress={() => setSelectedPlot(plot)} />
+                    <PlotCard
+                      key={`${plot.id}-${index}`}
+                      plot={plot}
+                      onPress={() => setSelectedPlot(plot)}
+                      isFavorited={isFavorite(plot.id)}
+                      onToggleFavorite={() => toggleFavorite(plot.id)}
+                    />
                   ))}
                 </ScrollView>
 
