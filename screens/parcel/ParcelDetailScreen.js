@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { EyeIcon, EyeSlashIcon, PencilSimpleIcon } from 'phosphor-react-native';
+import { EyeIcon, EyeSlashIcon, MapPinIcon, PencilSimpleIcon } from 'phosphor-react-native';
 import ParcelDetailHeader from '../../components/parcel/ParcelDetailHeader';
 import ParcelOverviewSection from '../../components/parcel/ParcelOverviewSection';
 import ParcelPresenceSection from '../../components/parcel/ParcelPresenceSection';
@@ -103,6 +103,8 @@ export default function ParcelDetailScreen({
     return () => { mounted = false; };
   }, [perceel?.id, isOwner]);
 
+  const hasConfirmedSamenwerking = existingAanvraag?.status === 'confirmed';
+
   const ownerDisplayName = ownerProfile
     ? [ownerProfile.first_name, ownerProfile.last_name].filter(Boolean).join(' ').trim() || 'Eigenaar'
     : '';
@@ -150,6 +152,22 @@ export default function ParcelDetailScreen({
             {description}
           </Text>
         </View>
+
+        {!isOwner && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Locatie</Text>
+            {hasConfirmedSamenwerking && perceel.adres ? (
+              <Text style={[styles.description, { marginTop: 8 }]}>{perceel.adres}</Text>
+            ) : (
+              <View style={styles.locationNotice}>
+                <MapPinIcon size={14} color={COLORS.textSecondary} weight="regular" />
+                <Text style={styles.locationNoticeText}>
+                  Exacte locatie zichtbaar na bevestigde samenwerking
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
 
         <View style={styles.section}>
           <ParcelPresenceSection voorzieningen={perceel.voorzieningen || []} />
@@ -352,5 +370,21 @@ const styles = StyleSheet.create({
     color: COLORS.negative,
     fontFamily: FONTS.bodyMedium,
     fontSize: 15,
+  },
+  locationNotice: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.surfaceBrand,
+    borderRadius: RADIUS.sm,
+    padding: 10,
+  },
+  locationNoticeText: {
+    flex: 1,
+    fontFamily: FONTS.body,
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
   },
 });

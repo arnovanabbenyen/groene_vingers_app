@@ -14,6 +14,7 @@
   import AanvraagDoenScreen from '../aanvraag/AanvraagDoenScreen';
   import AanvraagBevestigingScreen from '../aanvraag/AanvraagBevestigingScreen';
   import LogboekScreen from '../loggen/LogboekScreen';
+  import KaartScreen from '../kaart/KaartScreen';
   import { MagnifyingGlassIcon } from 'phosphor-react-native';
   import { COLORS, FONTS, LAYOUT, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 
@@ -225,6 +226,17 @@
       );
     }
 
+    if (activeTab === 'kaart') {
+      return (
+        <KaartScreen
+          onTabPress={(item) => setActiveTab(item.key)}
+          profileImageSource={profileImageSource}
+          badgeCounts={badgeCounts}
+          onOpenPerceel={(plot) => setSelectedPlot(plot)}
+        />
+      );
+    }
+
     if (activeTab === 'loggen') {
       return (
         <LogboekScreen
@@ -283,7 +295,7 @@
                   Je hebt nog geen perceel gematched. Bekijk wat er beschikbaar is
                 </Text>
 
-                <HomeSectionCta />
+                <HomeSectionCta onPress={() => setActiveTab('kaart')} />
               </View>
 
               {myAanvragen.length > 0 && (

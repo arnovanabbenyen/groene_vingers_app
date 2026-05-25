@@ -18,7 +18,8 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Groene Vingers gebruikt je camera om foto's van je perceel te maken.",
-        "NSPhotoLibraryUsageDescription": "Groene Vingers heeft toegang tot je foto's nodig om perceelfoto's en profielfoto's te kunnen kiezen."
+        "NSPhotoLibraryUsageDescription": "Groene Vingers heeft toegang tot je foto's nodig om perceelfoto's en profielfoto's te kunnen kiezen.",
+        "NSLocationWhenInUseUsageDescription": "Groene Vingers gebruikt je locatie om percelen in jouw buurt te tonen."
       }
     },
     "android": {
@@ -26,7 +27,13 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.arnovan.groenevingers"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -44,7 +51,8 @@
           "photosPermission": "Groene Vingers heeft toegang tot je foto's nodig om afbeeldingen te kunnen delen in gesprekken.",
           "cameraPermission": "Groene Vingers gebruikt je camera om foto's te maken voor je gesprekken."
         }
-      ]
+      ],
+      "expo-location"
     ]
   }
 }

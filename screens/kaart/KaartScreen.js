@@ -1,0 +1,902 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  Image,
+  PanResponder,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Location from 'expo-location';
+import {
+  DropIcon,
+  FunnelIcon,
+  LeafIcon,
+  MagnifyingGlassIcon,
+  MapPinIcon,
+  NavigationArrowIcon,
+  PlantIcon,
+  ShovelIcon,
+  TreeIcon,
+  XIcon,
+} from 'phosphor-react-native';
+// TODO: voor productie EAS builds op Android, voeg een Google Maps API key toe aan
+//       app.json onder android.config.googleMaps.apiKey.
+import MapView, { Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import BottomNav from '../../components/navigation/BottomNav';
+import { useMapPercelen } from '../../hooks/useMapPercelen';
+import {
+  COLORS,
+  FONTS,
+  FONT_SIZES,
+  RADIUS,
+  SHADOWS,
+  SIZES,
+  SPACING,
+} from '../../components/theme/tokens';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const COLLAPSED_HEIGHT = 72;
+const EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.72;
+
+const LEUVEN_REGION = {
+  latitude: 50.8798,
+  longitude: 4.7005,
+  latitudeDelta: 0.05,
+  longitudeDelta: 0.05,
+};
+
+function AmenityIcon({ label }) {
+  const n = (label || '').toLowerCase();
+  if (n.includes('water')) return <DropIcon size={13} color={COLORS.textSecondary} weight="regular" />;
+  if (n.includes('shovel') || n.includes('materiaal')) return <ShovelIcon size={13} color={COLORS.textSecondary} weight="regular" />;
+  if (n.includes('plant') || n.includes('zaden')) return <PlantIcon size={13} color={COLORS.textSecondary} weight="regular" />;
+  if (n.includes('boom') || n.includes('tree')) return <TreeIcon size={13} color={COLORS.textSecondary} weight="regular" />;
+  return <LeafIcon size={13} color={COLORS.textSecondary} weight="regular" />;
+}
+
+export default function KaartScreen({
+  onTabPress,
+  profileImageSource,
+  badgeCounts = {},
+  onOpenPerceel,
+}) {
+  const insets = useSafeAreaInsets();
+  const mapRef = useRef(null);
+  const { percelen, isLoading } = useMapPercelen();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPerceel, setSelectedPerceel] = useState(null);
+  const [trackingMarkerId, setTrackingMarkerId] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const suggestionsTimer = useRef(null);
+
+  const sheetHeight = useRef(new Animated.Value(COLLAPSED_HEIGHT)).current;
+  const currentHeightRef = useRef(COLLAPSED_HEIGHT);
+
+  useEffect(() => {
+    const id = sheetHeight.addListener(({ value }) => { currentHeightRef.current = value; });
+    return () => sheetHeight.removeListener(id);
+  }, [sheetHeight]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 3,
+      onPanResponderGrant: () => {
+        sheetHeight.setOffset(currentHeightRef.current);
+        sheetHeight.setValue(0);
+      },
+      onPanResponderMove: (_, gs) => {
+        sheetHeight.setValue(-gs.dy);
+      },
+      onPanResponderRelease: () => {
+        sheetHeight.flattenOffset();
+        const mid = (COLLAPSED_HEIGHT + EXPANDED_HEIGHT) / 2;
+        const target = currentHeightRef.current > mid ? EXPANDED_HEIGHT : COLLAPSED_HEIGHT;
+        Animated.spring(sheetHeight, {
+          toValue: target,
+          useNativeDriver: false,
+          bounciness: 4,
+        }).start();
+      },
+    }),
+  ).current;
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+        mapRef.current?.animateToRegion(
+          {
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
+          },
+          600,
+        );
+      } catch (_) {
+        // keep Leuven default
+      }
+    })();
+  }, []);
+
+  const filteredPercelen = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return percelen;
+    return percelen.filter((p) =>
+      [p.naam, p.plaats].join(' ').toLowerCase().includes(q),
+    );
+  }, [searchQuery, percelen]);
+
+  useEffect(() => {
+    if (suggestionsTimer.current) clearTimeout(suggestionsTimer.current);
+    if (searchQuery.trim().length < 2) { setSuggestions([]); return; }
+    suggestionsTimer.current = setTimeout(async () => {
+      try {
+        const key = process.env.EXPO_PUBLIC_LOCATIONIQ_KEY;
+        const url = `https://api.locationiq.com/v1/autocomplete?key=${key}&q=${encodeURIComponent(searchQuery.trim())}&limit=5&dedupe=1&countrycodes=be`;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const json = await res.json();
+        setSuggestions(Array.isArray(json) ? json.slice(0, 5) : []);
+      } catch (_) { setSuggestions([]); }
+    }, 300);
+    return () => clearTimeout(suggestionsTimer.current);
+  }, [searchQuery]);
+
+  function handleSuggestionSelect(suggestion) {
+    setSearchQuery(suggestion.display_name.split(',')[0].trim());
+    setSuggestions([]);
+    if (mapRef.current && suggestion.lat && suggestion.lon) {
+      mapRef.current.animateToRegion({
+        latitude: parseFloat(suggestion.lat),
+        longitude: parseFloat(suggestion.lon),
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.02,
+      }, 500);
+    }
+  }
+
+  async function handleSearchSubmit() {
+    setSuggestions([]);
+    if (!searchQuery.trim() || !mapRef.current) return;
+    try {
+      const key = process.env.EXPO_PUBLIC_LOCATIONIQ_KEY;
+      const url = `https://us1.locationiq.com/v1/search?key=${key}&q=${encodeURIComponent(searchQuery.trim())}&format=json&limit=1&countrycodes=be`;
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const json = await res.json();
+      if (!json?.[0]) return;
+      const { lat, lon } = json[0];
+      mapRef.current.animateToRegion(
+        { latitude: parseFloat(lat), longitude: parseFloat(lon), latitudeDelta: 0.02, longitudeDelta: 0.02 },
+        500,
+      );
+    } catch (_) {}
+  }
+
+  const perceelenWithCoords = filteredPercelen.filter(
+    (p) => p.approximate_lat != null && p.approximate_lng != null,
+  );
+
+  function handlePinPress(perceel) {
+    setSelectedPerceel((prev) => (prev?.id === perceel.id ? null : perceel));
+    setTrackingMarkerId(perceel.id);
+    setTimeout(() => setTrackingMarkerId(null), 150);
+    if (perceel.approximate_lat && perceel.approximate_lng) {
+      mapRef.current?.animateToRegion(
+        {
+          latitude: parseFloat(perceel.approximate_lat),
+          longitude: parseFloat(perceel.approximate_lng),
+          latitudeDelta: 0.015,
+          longitudeDelta: 0.015,
+        },
+        400,
+      );
+    }
+  }
+
+  function toPlotShape(perceel) {
+    return {
+      id: perceel.id,
+      image: perceel.fotos?.[0] || null,
+      fotos: perceel.fotos || [],
+      location: perceel.plaats || 'Locatie niet beschikbaar',
+      title: perceel.naam,
+      naam: perceel.naam,
+      plaats: perceel.plaats,
+      adres: perceel.adres || null,
+      beschrijving: perceel.beschrijving || null,
+      size: perceel.grootte ? `${perceel.grootte}m²` : null,
+      grootte: perceel.grootte,
+      chips: perceel.voorzieningen || [],
+      voorzieningen: perceel.voorzieningen || [],
+      ownerId: perceel.owner_id,
+      owner_id: perceel.owner_id,
+    };
+  }
+
+  return (
+    <View style={styles.screen}>
+      {/* Green header */}
+      <View style={[styles.headerBg, { paddingTop: insets.top }]}>
+        <View style={styles.headerContent}>
+          <View style={styles.searchRow}>
+            <View style={styles.searchPill}>
+              <MagnifyingGlassIcon size={18} color={COLORS.textSecondary} weight="regular" />
+              <TextInput
+                style={styles.searchInput}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Zoek percelen op naam of plaats..."
+                placeholderTextColor={COLORS.textSecondary}
+                returnKeyType="search"
+                onSubmitEditing={handleSearchSubmit}
+              />
+              {searchQuery.length > 0 && (
+                <Pressable onPress={() => { setSearchQuery(''); setSuggestions([]); }} hitSlop={8}>
+                  <XIcon size={16} color={COLORS.textSecondary} weight="regular" />
+                </Pressable>
+              )}
+            </View>
+            <Pressable style={styles.filterBtn} hitSlop={8}>
+              <FunnelIcon size={20} color={COLORS.textInverse} weight="regular" />
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
+      {/* Body: map full-screen + overlays */}
+      <View style={styles.body}>
+        <MapView
+          ref={mapRef}
+          style={StyleSheet.absoluteFill}
+          provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+          initialRegion={LEUVEN_REGION}
+          showsUserLocation
+          showsMyLocationButton={false}
+          showsCompass={false}
+          pitchEnabled={false}
+          rotateEnabled={false}
+        >
+          {perceelenWithCoords.map((perceel) => {
+            const isSelected = selectedPerceel?.id === perceel.id;
+            return (
+              <Marker
+                key={perceel.id}
+                coordinate={{
+                  latitude: parseFloat(perceel.approximate_lat),
+                  longitude: parseFloat(perceel.approximate_lng),
+                }}
+                onPress={() => handlePinPress(perceel)}
+                tracksViewChanges={trackingMarkerId === perceel.id}
+                anchor={{ x: 0.5, y: 0.5 }}
+              >
+                <View style={[styles.pin, isSelected && styles.pinSelected]} pointerEvents="none">
+                  <LeafIcon
+                    size={isSelected ? 20 : 16}
+                    color={COLORS.textInverse}
+                    weight="fill"
+                  />
+                </View>
+              </Marker>
+            );
+          })}
+
+          {selectedPerceel?.approximate_lat && selectedPerceel?.approximate_lng && (
+            <Circle
+              center={{
+                latitude: parseFloat(selectedPerceel.approximate_lat),
+                longitude: parseFloat(selectedPerceel.approximate_lng),
+              }}
+              radius={200}
+              strokeColor="rgba(87,98,56,0.45)"
+              strokeWidth={1.5}
+              fillColor="rgba(87,98,56,0.12)"
+            />
+          )}
+        </MapView>
+
+        {/* Suggesties dropdown */}
+        {suggestions.length > 0 && (
+          <View style={styles.suggestionsDropdown}>
+            {suggestions.map((s, i) => (
+              <Pressable
+                key={s.place_id ?? i}
+                style={[styles.suggestionItem, i < suggestions.length - 1 && styles.suggestionBorder]}
+                onPress={() => handleSuggestionSelect(s)}
+              >
+                <MapPinIcon size={14} color={COLORS.textSecondary} weight="regular" />
+                <Text style={styles.suggestionText} numberOfLines={1}>{s.display_name}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {/* Popup card — centered in map area */}
+        {selectedPerceel && (
+          <Pressable style={styles.popupBackdrop} onPress={() => setSelectedPerceel(null)}>
+            <Pressable style={styles.popupOverlay} onPress={(e) => e.stopPropagation()}>
+              <PerceelPopupCard
+                perceel={selectedPerceel}
+                onClose={() => setSelectedPerceel(null)}
+                onOpen={() => onOpenPerceel?.(toPlotShape(selectedPerceel))}
+              />
+            </Pressable>
+          </Pressable>
+        )}
+
+        {/* Locatie-knop */}
+        {userLocation && (
+          <Pressable
+            style={styles.locationBtn}
+            onPress={() => mapRef.current?.animateToRegion(
+              { ...userLocation, latitudeDelta: 0.05, longitudeDelta: 0.05 },
+              500,
+            )}
+          >
+            <NavigationArrowIcon size={24} color={COLORS.brand} weight="fill" />
+          </Pressable>
+        )}
+
+        {/* Snap bottom sheet */}
+        <Animated.View style={[styles.sheet, { height: sheetHeight }]}>
+          <View style={styles.dragHandleWrap} {...panResponder.panHandlers}>
+            <View style={styles.dragHandle} />
+          </View>
+          <Text style={styles.countText}>
+            {isLoading
+              ? 'Laden...'
+              : filteredPercelen.length > 0
+                ? `Meer dan ${filteredPercelen.length} ${filteredPercelen.length === 1 ? 'tuin' : 'tuinen'}`
+                : searchQuery.length > 0
+                  ? `Geen resultaten voor "${searchQuery}"`
+                  : 'Geen percelen beschikbaar'}
+          </Text>
+          <ScrollView
+            style={styles.listScroll}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color={COLORS.brand} style={styles.loader} />
+            ) : (
+              filteredPercelen.map((perceel) => (
+                <MapPerceelCard
+                  key={perceel.id}
+                  perceel={perceel}
+                  onPress={() => onOpenPerceel?.(toPlotShape(perceel))}
+                />
+              ))
+            )}
+          </ScrollView>
+        </Animated.View>
+      </View>
+
+      <BottomNav
+        activeKey="kaart"
+        onTabPress={onTabPress}
+        profileImageSource={profileImageSource}
+        badgeCounts={badgeCounts}
+      />
+    </View>
+  );
+}
+
+/* Sub-components */
+
+function MapPerceelCard({ perceel, onPress }) {
+  const [imageError, setImageError] = useState(false);
+  const imageUrl = perceel.fotos?.[0];
+  const hasImage = imageUrl && !imageError;
+  const amenities = (perceel.voorzieningen || []).slice(0, 4);
+
+  return (
+    <Pressable style={card.container} onPress={onPress}>
+      <View style={card.imageWrap}>
+        {hasImage ? (
+          <Image
+            source={{ uri: imageUrl }}
+            style={card.image}
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <View style={[card.image, card.imagePlaceholder]}>
+            <LeafIcon size={32} color={COLORS.brand} weight="regular" />
+          </View>
+        )}
+        <View style={card.badgeRow}>
+          <View style={card.locationPill}>
+            <MapPinIcon size={13} color={COLORS.textPrimary} weight="regular" />
+            <Text style={card.pillText} numberOfLines={1}>
+              {perceel.plaats || 'Locatie niet beschikbaar'}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={card.body}>
+        <View style={card.titleRow}>
+          <Text style={card.title} numberOfLines={1}>
+            {perceel.naam}
+          </Text>
+          {perceel.grootte != null && (
+            <Text style={card.size}>{perceel.grootte}m²</Text>
+          )}
+        </View>
+
+        {perceel.beschrijving ? (
+          <Text style={card.description} numberOfLines={3}>
+            {perceel.beschrijving}
+          </Text>
+        ) : null}
+
+        {amenities.length > 0 && (
+          <View style={card.amenityRow}>
+            {amenities.map((label, i) => (
+              <View key={label} style={card.amenityItem}>
+                {i > 0 && <View style={card.amenityDivider} />}
+                <AmenityIcon label={label} />
+                <Text style={card.amenityText}>{label}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    </Pressable>
+  );
+}
+
+function PerceelPopupCard({ perceel, onClose, onOpen }) {
+  const [imageError, setImageError] = useState(false);
+  const imageUrl = perceel.fotos?.[0];
+  const hasImage = imageUrl && !imageError;
+  const amenities = (perceel.voorzieningen || []).slice(0, 3);
+
+  return (
+    <Pressable style={popup.card} onPress={onOpen}>
+      {/* Image */}
+      <View style={popup.imageWrap}>
+        {hasImage ? (
+          <Image
+            source={{ uri: imageUrl }}
+            style={popup.image}
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <View style={[popup.image, popup.imagePlaceholder]}>
+            <LeafIcon size={32} color={COLORS.brand} weight="regular" />
+          </View>
+        )}
+        {/* Location pill */}
+        <View style={popup.locationPill}>
+          <MapPinIcon size={13} color={COLORS.textPrimary} weight="regular" />
+          <Text style={popup.locationText} numberOfLines={1}>{perceel.plaats}</Text>
+        </View>
+        {/* Close button */}
+        <Pressable style={popup.closeBtn} onPress={onClose} hitSlop={8}>
+          <XIcon size={11} color={COLORS.textPrimary} weight="bold" />
+        </Pressable>
+      </View>
+
+      {/* Content */}
+      <View style={popup.content}>
+        {/* Title + size */}
+        <View style={popup.titleRow}>
+          <Text style={popup.title} numberOfLines={1}>{perceel.naam}</Text>
+          {perceel.grootte != null && (
+            <Text style={popup.size}>{perceel.grootte}m²</Text>
+          )}
+        </View>
+
+        {/* Description */}
+        {perceel.beschrijving ? (
+          <Text style={popup.description} numberOfLines={4}>{perceel.beschrijving}</Text>
+        ) : null}
+
+        {/* Amenities */}
+        {amenities.length > 0 && (
+          <View style={popup.amenityRow}>
+            {amenities.map((label, i) => (
+              <View key={label} style={popup.amenityCell}>
+                {i > 0 && <View style={popup.amenityDivider} />}
+                <View style={popup.amenityItem}>
+                  <AmenityIcon label={label} />
+                  <Text style={popup.amenityText}>{label}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    </Pressable>
+  );
+}
+
+/* Styles */
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: COLORS.surface },
+
+  // Header
+  headerBg: { backgroundColor: COLORS.brand },
+  headerContent: {
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: 12,
+    paddingBottom: 16,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  searchPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: SPACING.md,
+    height: SIZES.searchBarHeight,
+    gap: SPACING.sm,
+    ...SHADOWS.search,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
+    paddingVertical: 0,
+  },
+  filterBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Body
+  body: { flex: 1 },
+
+  // Pins
+  pin: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.card,
+  },
+  pinSelected: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.brandMid,
+  },
+
+  // Locatie-knop
+  locationBtn: {
+    position: 'absolute',
+    bottom: COLLAPSED_HEIGHT + 16,
+    right: SPACING.screenX,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.card,
+  },
+
+  // Suggestions dropdown
+  suggestionsDropdown: {
+    position: 'absolute',
+    top: 4,
+    left: SPACING.screenX,
+    right: SPACING.screenX,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.sm,
+    overflow: 'hidden',
+    zIndex: 50,
+    ...SHADOWS.card,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 12,
+  },
+  suggestionBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  suggestionText: {
+    flex: 1,
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
+  },
+
+  // Popup — centered in map area
+  popupBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.screenX,
+  },
+  popupOverlay: {
+    width: '100%',
+  },
+
+  // Snap bottom sheet
+  sheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  dragHandleWrap: {
+    alignItems: 'center',
+    paddingTop: 10,
+    paddingBottom: 8,
+  },
+  dragHandle: {
+    width: 69,
+    height: 5,
+    borderRadius: RADIUS.pill,
+    backgroundColor: '#D9D9D9',
+  },
+  countText: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: SPACING.md,
+  },
+  listScroll: { flex: 1 },
+  listContent: { paddingBottom: SPACING.xl },
+  loader: { marginTop: SPACING.lg },
+});
+
+const card = StyleSheet.create({
+  container: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.sm,
+    marginHorizontal: SPACING.screenX,
+    marginBottom: SPACING.md,
+    overflow: 'hidden',
+    ...SHADOWS.card,
+  },
+  imageWrap: {
+    width: '100%',
+    height: 201,
+    backgroundColor: COLORS.surfaceMuted,
+    position: 'relative',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  imagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeRow: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    right: 8,
+    flexDirection: 'row',
+  },
+  locationPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    maxWidth: '70%',
+  },
+  pillText: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textPrimary,
+  },
+  body: {
+    padding: SPACING.md,
+    gap: SPACING.sm,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.sm,
+  },
+  title: {
+    flex: 1,
+    fontFamily: FONTS.displayMedium,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.textPrimary,
+  },
+  size: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+  },
+  description: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
+  },
+  amenityRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingTop: SPACING.sm,
+    gap: SPACING.xs,
+  },
+  amenityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  amenityDivider: {
+    width: 1,
+    height: 14,
+    backgroundColor: COLORS.border,
+    marginRight: 4,
+  },
+  amenityText: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+  },
+});
+
+const popup = StyleSheet.create({
+  card: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.sm,
+    overflow: 'hidden',
+    gap: SPACING.md,
+    padding: SPACING.md,
+    ...SHADOWS.card,
+  },
+  imageWrap: {
+    height: 201,
+    borderRadius: RADIUS.sm,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  imagePlaceholder: {
+    backgroundColor: COLORS.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  locationPill: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    maxWidth: '65%',
+  },
+  locationText: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textPrimary,
+  },
+  closeBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
+    gap: SPACING.sm,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.sm,
+  },
+  title: {
+    flex: 1,
+    fontFamily: FONTS.displayMedium,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.textPrimary,
+  },
+  size: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textPrimary,
+  },
+  description: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
+    textAlign: 'justify',
+    lineHeight: 22,
+  },
+  amenityRow: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingTop: 4,
+  },
+  amenityCell: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  amenityDivider: {
+    width: 1,
+    alignSelf: 'stretch',
+    backgroundColor: COLORS.border,
+    marginRight: 4,
+  },
+  amenityItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  amenityText: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textPrimary,
+  },
+});

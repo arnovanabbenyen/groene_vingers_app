@@ -2,9 +2,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { CaretRightIcon, MapTrifoldIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS } from '../theme/tokens';
 
-export default function HomeSectionCta() {
+export default function HomeSectionCta({ onPress }) {
   return (
-    <Pressable style={styles.card}>
+    <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.iconWrap}>
         <MapTrifoldIcon size={24} color={COLORS.textInverse} weight="regular" />
       </View>
