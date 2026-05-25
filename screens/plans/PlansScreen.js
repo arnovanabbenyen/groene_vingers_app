@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useStripe } from '@stripe/stripe-react-native';
+import * as Linking from 'expo-linking';
 import ScreenHeader from '../../components/headers/ScreenHeader';
 import PlanOptionCard from '../../components/plans/PlanOptionCard';
 import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
@@ -56,6 +57,7 @@ export default function PlansScreen({ onBack, onUpgradeSuccess }) {
         customerEphemeralKeySecret: session.ephemeralKeySecret,
         paymentIntentClientSecret: session.paymentIntentClientSecret,
         allowsDelayedPaymentMethods: false,
+        returnURL: Linking.createURL('stripe-redirect'),
       });
 
       if (initError) throw new Error(initError.message);

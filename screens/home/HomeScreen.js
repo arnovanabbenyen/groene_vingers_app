@@ -58,27 +58,16 @@
     const [requestPlot, setRequestPlot] = useState(null);
     const [requestSuccessPerceel, setRequestSuccessPerceel] = useState(null);
     const [geenToegangActive, setGeenToegangActive] = useState(false);
+    const [userPlan, setUserPlan] = useState('free');
     const [plots, setPlots] = useState(null); // null = loading not attempted
     const [myAanvragen, setMyAanvragen] = useState([]);
     const { isFavorite, toggleFavorite } = useFavorites();
 
-    async function handleRequestWithGate(plot) {
-      if (!supabase) { setRequestPlot(plot); return; }
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) { setRequestPlot(plot); return; }
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('plan')
-          .eq('id', user.id)
-          .maybeSingle();
-        if (profile?.plan === 'pro') {
-          setRequestPlot(plot);
-        } else {
-          setGeenToegangActive(true);
-        }
-      } catch {
+    function handleRequestWithGate(plot) {
+      if (userPlan === 'pro') {
         setRequestPlot(plot);
+      } else {
+        setGeenToegangActive(true);
       }
     }
 
@@ -158,7 +147,7 @@
 
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
-            .select('avatar_url')
+            .select('avatar_url, plan')
             .eq('id', user.id)
             .single();
 
@@ -167,8 +156,9 @@
             return;
           }
 
-          if (mounted && profile?.avatar_url) {
-            setProfileImageSource(profile.avatar_url);
+          if (mounted) {
+            if (profile?.avatar_url) setProfileImageSource(profile.avatar_url);
+            if (profile?.plan) setUserPlan(profile.plan);
           }
         } catch (e) {
           console.log('loadProfileAvatar error', e);
@@ -228,6 +218,7 @@
         <PlansScreen
           onBack={() => setActiveTab('start')}
           onUpgradeSuccess={() => {
+            setUserPlan('pro');
             setGeenToegangActive(false);
             setActiveTab('start');
           }}
@@ -335,7 +326,9 @@
             />
 
             <View style={styles.contentWrap}>
-              <HomePromoCard onPressUpgrade={() => setActiveTab('pro-plan')} />
+              {userPlan !== 'pro' && (
+                <HomePromoCard onPressUpgrade={() => setActiveTab('pro-plan')} />
+              )}
 
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Tijd om te beginnen!</Text>

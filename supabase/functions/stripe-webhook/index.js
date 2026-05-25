@@ -133,7 +133,6 @@ async function handleEvent(event) {
 }
 
 async function syncSubscription(subscription) {
-  // Look up the user_id from stripe_customer_id
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('id')
@@ -142,15 +141,22 @@ async function syncSubscription(subscription) {
 
   if (profileError || !profile) {
     console.error(`No profile found for customer ${subscription.customer}`);
-    // Throw so Stripe retries — by next retry the checkout.session.completed
-    // event may have set the customer ID.
     throw new Error(`No profile for Stripe customer ${subscription.customer}`);
   }
 
   const userId = profile.id;
-  const priceId = subscription.items.data[0]?.price.id;
+  const firstItem = subscription.items.data[0];
+  const priceId = firstItem?.price.id;
 
-  // Upsert the subscription
+  // Stripe API >= 2025-03-31 moved current_period_* to the subscription item
+  const periodStart = firstItem?.current_period_start ?? subscription.current_period_start;
+  const periodEnd = firstItem?.current_period_end ?? subscription.current_period_end;
+
+  const toIsoString = (timestamp) => {
+    if (timestamp == null || typeof timestamp !== 'number') return null;
+    return new Date(timestamp * 1000).toISOString();
+  };
+
   const { error: upsertError } = await supabase
     .from('subscriptions')
     .upsert(
@@ -160,28 +166,23 @@ async function syncSubscription(subscription) {
         stripe_customer_id: subscription.customer,
         stripe_price_id: priceId,
         status: subscription.status,
-        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-        cancel_at_period_end: subscription.cancel_at_period_end,
-        canceled_at: subscription.canceled_at
-          ? new Date(subscription.canceled_at * 1000).toISOString()
-          : null,
+        current_period_start: toIsoString(periodStart),
+        current_period_end: toIsoString(periodEnd),
+        cancel_at_period_end: subscription.cancel_at_period_end ?? false,
+        canceled_at: toIsoString(subscription.canceled_at),
       },
       { onConflict: 'stripe_subscription_id' }
     );
 
   if (upsertError) throw upsertError;
 
-  // Sync profiles.plan based on subscription status
   const { error: syncError } = await supabase.rpc('sync_user_plan_from_subscription', {
     p_user_id: userId,
   });
 
   if (syncError) throw syncError;
 
-  console.log(
-    `Synced subscription ${subscription.id} for user ${userId}, status=${subscription.status}`
-  );
+  console.log(`Synced subscription ${subscription.id} for user ${userId}, status=${subscription.status}`);
 }
 
 async function handleSubscriptionDeleted(subscription) {
