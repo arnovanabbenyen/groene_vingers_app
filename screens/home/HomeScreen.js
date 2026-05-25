@@ -295,7 +295,7 @@
                   Je hebt nog geen perceel gematched. Bekijk wat er beschikbaar is
                 </Text>
 
-                <HomeSectionCta />
+                <HomeSectionCta onPress={() => setActiveTab('kaart')} />
               </View>
 
               {myAanvragen.length > 0 && (
