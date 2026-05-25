@@ -9,6 +9,8 @@ import PasswordResetSentScreen from './screens/auth/PasswordResetSentScreen';
 import TuineigenaarHomeScreen from './screens/home/TuineigenaarHomeScreen';
 import MeldingenScreen from './screens/notifications/MeldingenScreen';
 import ProfielScreen from './screens/profile/ProfielScreen';
+import OpgeslagenScreen from './screens/saved/OpgeslagenScreen';
+import ParcelDetailScreen from './screens/parcel/ParcelDetailScreen';
 import ProfielBewerkenScreen from './screens/profile/ProfielBewerkenScreen';
 import InstellingenScreen from './screens/settings/InstellingenScreen';
 import NotificatieInstellingenScreen from './screens/settings/NotificatieInstellingenScreen';
@@ -48,6 +50,8 @@ export default function App() {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [profielRefreshKey, setProfielRefreshKey] = useState(0);
   const [profielBewerkenSource, setProfielBewerkenSource] = useState('profiel');
+  const [selectedSavedPerceel, setSelectedSavedPerceel] = useState(null);
+  const [opgeslagenSource, setOpgeslagenSource] = useState('home');
   const homeInitialTabRef = useRef('start');
   const { aanvragen: pendingAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
   const pendingProfilePhotoRef = useRef({ uri: null, userId: null });
@@ -350,7 +354,24 @@ export default function App() {
   return (
     <AppProviders>
       {isLoggedIn ? (
-        currentScreen === 'notificatie-instellingen' ? (
+        currentScreen === 'opgeslagen-detail' ? (
+          <ParcelDetailScreen
+            perceel={selectedSavedPerceel || {}}
+            onBack={() => {
+              setCurrentScreen('opgeslagen');
+              setSelectedSavedPerceel(null);
+            }}
+            showFavoriteButton
+          />
+        ) : currentScreen === 'opgeslagen' ? (
+          <OpgeslagenScreen
+            onBack={() => setCurrentScreen(opgeslagenSource)}
+            onPerceelPress={(plot) => {
+              setSelectedSavedPerceel(plot);
+              setCurrentScreen('opgeslagen-detail');
+            }}
+          />
+        ) : currentScreen === 'notificatie-instellingen' ? (
           <NotificatieInstellingenScreen
             onBack={() => setCurrentScreen('instellingen')}
           />
@@ -382,6 +403,11 @@ export default function App() {
               setCurrentScreen('profiel-bewerken');
             }}
             onOpenSettings={() => setCurrentScreen('instellingen')}
+            onOpenSavedScreen={() => { setOpgeslagenSource('profiel'); setCurrentScreen('opgeslagen'); }}
+            onPerceelPress={(plot) => {
+              setSelectedSavedPerceel(plot);
+              setCurrentScreen('opgeslagen-detail');
+            }}
             onTabPress={(item) => {
               if (item.key === 'profiel') return;
               homeInitialTabRef.current = item.key;
@@ -441,6 +467,7 @@ export default function App() {
             unreadNotificationsCount={unreadNotificationsCount}
             onOpenNotifications={() => setCurrentScreen('meldingen')}
             onOpenProfiel={() => setCurrentScreen('profiel')}
+            onOpenSaved={() => { setOpgeslagenSource('home'); setCurrentScreen('opgeslagen'); }}
           />
         )
       ) : screen === 'login' ? (

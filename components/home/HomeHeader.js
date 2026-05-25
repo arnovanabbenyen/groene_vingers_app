@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BellIcon, HeartIcon, MapPinIcon, MagnifyingGlassIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../theme/tokens';
 
-export default function HomeHeader({ searchQuery, onSearchChange, onPressNotifications, notificationCount = 0 }) {
+export default function HomeHeader({ searchQuery, onSearchChange, onPressNotifications, notificationCount = 0, onPressHeart }) {
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(46, insets.top + 18);
 
@@ -36,7 +36,7 @@ export default function HomeHeader({ searchQuery, onSearchChange, onPressNotific
                 </View>
               ) : null}
             </Pressable>
-            <Pressable>
+            <Pressable onPress={onPressHeart} hitSlop={8}>
               <HeartIcon size={24} color={COLORS.textInverse} weight="regular" />
             </Pressable>
           </View>

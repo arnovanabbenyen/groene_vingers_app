@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { HeartIcon, DropIcon, LeafIcon, MapPinIcon, ShovelIcon, PlantIcon, TreeIcon } from 'phosphor-react-native';
+import { DropIcon, LeafIcon, MapPinIcon, ShovelIcon, PlantIcon, TreeIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, LAYOUT, RADIUS, SHADOWS, SIZES } from '../theme/tokens';
+import FavoriteHeartButton from '../parcel/FavoriteHeartButton';
 
 function AmenityIcon({ label }) {
   const normalized = (label || '').toLowerCase();
@@ -25,7 +26,7 @@ function AmenityIcon({ label }) {
   return <LeafIcon size={14} color={COLORS.textPrimary} weight="regular" />;
 }
 
-export default function PlotCard({ plot, onPress }) {
+export default function PlotCard({ plot, onPress, isFavorited = false, onToggleFavorite, showFavoriteButton = true }) {
   const [imageError, setImageError] = useState(false);
   const imageSource = typeof plot.image === 'string' ? { uri: plot.image } : plot.image;
   const hasImage = plot.image != null && plot.image !== '';
@@ -55,9 +56,15 @@ export default function PlotCard({ plot, onPress }) {
               </View>
             </View>
 
-            <Pressable style={styles.heartButton}>
-              <HeartIcon size={19} color={COLORS.textPrimary} weight="regular" />
-            </Pressable>
+            {showFavoriteButton && (
+              <View style={styles.heartButton}>
+                <FavoriteHeartButton
+                  isFavorited={isFavorited}
+                  onToggle={onToggleFavorite}
+                  size="small"
+                />
+              </View>
+            )}
           </View>
         ) : (
           <View style={[styles.image, styles.placeholderImage]}>
@@ -75,9 +82,15 @@ export default function PlotCard({ plot, onPress }) {
               </View>
             </View>
 
-            <Pressable style={styles.heartButton}>
-              <HeartIcon size={19} color={COLORS.textPrimary} weight="regular" />
-            </Pressable>
+            {showFavoriteButton && (
+              <View style={styles.heartButton}>
+                <FavoriteHeartButton
+                  isFavorited={isFavorited}
+                  onToggle={onToggleFavorite}
+                  size="small"
+                />
+              </View>
+            )}
           </View>
         )}
       </View>

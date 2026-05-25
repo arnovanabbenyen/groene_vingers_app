@@ -32,7 +32,9 @@ import {
 import MapView, { Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import BottomNav from '../../components/navigation/BottomNav';
 import FilterScreen from './FilterScreen';
+import FavoriteHeartButton from '../../components/parcel/FavoriteHeartButton';
 import { useMapPercelen } from '../../hooks/useMapPercelen';
+import { useFavorites } from '../../hooks/useFavorites';
 import {
   COLORS,
   FONTS,
@@ -81,6 +83,7 @@ export default function KaartScreen({
   const suggestionsTimer = useRef(null);
   const [filterVisible, setFilterVisible] = useState(false);
   const [activeFilters, setActiveFilters] = useState(DEFAULT_FILTERS);
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   const sheetHeight = useRef(new Animated.Value(COLLAPSED_HEIGHT)).current;
   const currentHeightRef = useRef(COLLAPSED_HEIGHT);
@@ -340,6 +343,8 @@ export default function KaartScreen({
                 perceel={selectedPerceel}
                 onClose={() => setSelectedPerceel(null)}
                 onOpen={() => onOpenPerceel?.(toPlotShape(selectedPerceel))}
+                isFavorited={isFavorite(selectedPerceel?.id)}
+                onToggleFavorite={() => toggleFavorite(selectedPerceel?.id)}
               />
             </Pressable>
           </Pressable>
@@ -386,6 +391,8 @@ export default function KaartScreen({
                   key={perceel.id}
                   perceel={perceel}
                   onPress={() => onOpenPerceel?.(toPlotShape(perceel))}
+                  isFavorited={isFavorite(perceel.id)}
+                  onToggleFavorite={() => toggleFavorite(perceel.id)}
                 />
               ))
             )}
@@ -417,7 +424,7 @@ export default function KaartScreen({
 
 /* Sub-components */
 
-function MapPerceelCard({ perceel, onPress }) {
+function MapPerceelCard({ perceel, onPress, isFavorited = false, onToggleFavorite }) {
   const [imageError, setImageError] = useState(false);
   const imageUrl = perceel.fotos?.[0];
   const hasImage = imageUrl && !imageError;
@@ -444,6 +451,9 @@ function MapPerceelCard({ perceel, onPress }) {
               {perceel.plaats || 'Locatie niet beschikbaar'}
             </Text>
           </View>
+        </View>
+        <View style={card.heartBtn}>
+          <FavoriteHeartButton isFavorited={isFavorited} onToggle={onToggleFavorite} size="small" />
         </View>
       </View>
 
@@ -479,7 +489,7 @@ function MapPerceelCard({ perceel, onPress }) {
   );
 }
 
-function PerceelPopupCard({ perceel, onClose, onOpen }) {
+function PerceelPopupCard({ perceel, onClose, onOpen, isFavorited = false, onToggleFavorite }) {
   const [imageError, setImageError] = useState(false);
   const imageUrl = perceel.fotos?.[0];
   const hasImage = imageUrl && !imageError;
@@ -509,6 +519,10 @@ function PerceelPopupCard({ perceel, onClose, onOpen }) {
         <Pressable style={popup.closeBtn} onPress={onClose} hitSlop={8}>
           <XIcon size={11} color={COLORS.textPrimary} weight="bold" />
         </Pressable>
+        {/* Favorite button */}
+        <View style={popup.heartBtn}>
+          <FavoriteHeartButton isFavorited={isFavorited} onToggle={onToggleFavorite} size="small" />
+        </View>
       </View>
 
       {/* Content */}
@@ -813,6 +827,11 @@ const card = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
   },
+  heartBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
 });
 
 const popup = StyleSheet.create({
@@ -868,6 +887,11 @@ const popup = StyleSheet.create({
     backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  heartBtn: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
   },
   content: {
     gap: SPACING.sm,

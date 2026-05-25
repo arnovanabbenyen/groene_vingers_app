@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Dimensions, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { HeartStraightIcon, MapPinIcon, UserCircleIcon, LeafIcon } from 'phosphor-react-native';
+import { MapPinIcon, UserCircleIcon, LeafIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS, SPACING } from '../theme/tokens';
+import FavoriteHeartButton from './FavoriteHeartButton';
 
 const HERO_HEIGHT = 201;
 const HERO_WIDTH = Dimensions.get('window').width - (SPACING.screenX * 2);
@@ -32,6 +33,8 @@ export default function ParcelOverviewSection({
     { value: 'Nu vrij', label: 'Beschikbaar' },
   ],
   onFavoritePress,
+  isFavorited = false,
+  showFavoriteButton = false,
 }) {
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [failedPhotoIndexes, setFailedPhotoIndexes] = useState({});
@@ -119,9 +122,13 @@ export default function ParcelOverviewSection({
 
         <View style={styles.titleRow}>
           <Text style={styles.title}>{title}</Text>
-          <Pressable style={styles.favoriteButton} onPress={onFavoritePress} hitSlop={8}>
-            <HeartStraightIcon size={24} color={COLORS.textPrimary} weight="regular" />
-          </Pressable>
+          {showFavoriteButton && (
+            <FavoriteHeartButton
+              isFavorited={isFavorited}
+              onToggle={onFavoritePress}
+              size="large"
+            />
+          )}
         </View>
 
         <View style={styles.metaRow}>

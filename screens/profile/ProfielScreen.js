@@ -11,11 +11,14 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
+  ArrowRightIcon,
   GearSixIcon,
+  HeartIcon,
   LeafIcon,
   MapPinIcon,
   PencilSimpleIcon,
 } from 'phosphor-react-native';
+import { useSavedPercelen } from '../../hooks/useSavedPercelen';
 import { COLORS, FONTS, LAYOUT, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
 import BottomNav from '../../components/navigation/BottomNav';
 import PercelenCarousel from '../../components/perceel/PercelenCarousel';
@@ -130,11 +133,46 @@ function SamenwerkingCard({ samenwerking }) {
   );
 }
 
+function SavedPerceelMiniCard({ perceel, onPress }) {
+  const [imageError, setImageError] = useState(false);
+  const firstPhoto = Array.isArray(perceel?.fotos) ? perceel.fotos[0] : null;
+  const hasImage = firstPhoto != null && !imageError;
+
+  return (
+    <Pressable style={styles.perceelCard} onPress={onPress} accessible accessibilityRole="button">
+      <View style={styles.perceelCardImageWrap}>
+        {hasImage ? (
+          <Image
+            source={{ uri: firstPhoto }}
+            style={styles.perceelCardImageEl}
+            resizeMode="cover"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <View style={styles.perceelCardPlaceholder}>
+            <LeafIcon size={34} color={COLORS.brand} weight="regular" />
+          </View>
+        )}
+      </View>
+      <View style={styles.perceelCardBody}>
+        <Text style={styles.perceelCardTitle} numberOfLines={1}>
+          {perceel?.naam || 'Perceel'}
+        </Text>
+        <Text style={styles.perceelCardOwner} numberOfLines={1}>
+          {perceel?.plaats || 'Locatie onbekend'}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
 export default function ProfielScreen({
   role = 'tuinzoeker',
   refreshKey = 0,
   onOpenEdit,
   onOpenSettings,
+  onOpenSavedScreen,
+  onPerceelPress,
   onTabPress,
   profileImageSource,
   badgeCounts = {},
@@ -146,6 +184,7 @@ export default function ProfielScreen({
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   const { aanvragen, isLoading: isLoadingAanvragen } = useMyAanvragen(refreshKey);
+  const { percelen: savedPercelen, isLoading: isLoadingSaved } = useSavedPercelen(refreshKey);
 
   useEffect(() => {
     let mounted = true;
@@ -355,15 +394,57 @@ const displayName = profile
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Jouw opgeslagen percelen</Text>
-              {/* TODO: implement favorites feature — show percelen the user has hearted once the favorites table and heart button on PlotCard exist */}
-              <View style={styles.emptyState} accessible accessibilityRole="text">
-                <LeafIcon size={40} color={COLORS.brand} weight="regular" />
-                <Text style={styles.emptyTitle}>Nog geen opgeslagen percelen</Text>
-                <Text style={styles.emptySubtext}>
-                  Percelen die je opslaat verschijnen hier.
-                </Text>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Jouw opgeslagen percelen</Text>
+                {savedPercelen.length > 0 && (
+                  <Pressable style={styles.allesBekijkenBtn} onPress={onOpenSavedScreen} hitSlop={8}>
+                    <Text style={styles.allesBekijkenText}>Alles bekijken</Text>
+                    <ArrowRightIcon size={14} color={COLORS.brand} weight="regular" />
+                  </Pressable>
+                )}
               </View>
+              {isLoadingSaved ? (
+                <ActivityIndicator size="small" color={COLORS.brand} />
+              ) : savedPercelen.length === 0 ? (
+                <View style={styles.emptyState} accessible accessibilityRole="text">
+                  <HeartIcon size={40} color={COLORS.brand} weight="regular" />
+                  <Text style={styles.emptyTitle}>Nog geen opgeslagen percelen</Text>
+                  <Text style={styles.emptySubtext}>
+                    Percelen die je opslaat verschijnen hier.
+                  </Text>
+                </View>
+              ) : (
+                <ScrollView
+                  horizontal
+                  nestedScrollEnabled
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.perceelCardScroller}
+                >
+                  {savedPercelen.slice(0, 5).map((perceel) => (
+                    <SavedPerceelMiniCard
+                      key={perceel.id}
+                      perceel={perceel}
+                      onPress={() => onPerceelPress?.({
+                        id: perceel.id,
+                        image: perceel.fotos?.[0] || null,
+                        fotos: perceel.fotos || [],
+                        location: perceel.plaats || 'Locatie niet beschikbaar',
+                        title: perceel.naam,
+                        naam: perceel.naam,
+                        plaats: perceel.plaats,
+                        adres: perceel.adres || null,
+                        beschrijving: perceel.beschrijving || null,
+                        size: perceel.grootte ? `${perceel.grootte}m²` : null,
+                        grootte: perceel.grootte,
+                        chips: perceel.voorzieningen || [],
+                        voorzieningen: perceel.voorzieningen || [],
+                        ownerId: perceel.owner_id,
+                        owner_id: perceel.owner_id,
+                      })}
+                    />
+                  ))}
+                </ScrollView>
+              )}
             </View>
           </>
         ) : (
@@ -532,10 +613,25 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
     marginTop: SPACING.xl,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   sectionTitle: {
     fontFamily: FONTS.displaySemiBold,
     fontSize: 20,
     color: COLORS.textPrimary,
+  },
+  allesBekijkenBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  allesBekijkenText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 14,
+    color: COLORS.brand,
   },
   // Aanvraag perceel cards (horizontal scroll)
   perceelCardScroller: {
