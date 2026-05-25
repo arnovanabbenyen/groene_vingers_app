@@ -72,6 +72,7 @@ export default function KaartScreen({
   const { percelen, isLoading } = useMapPercelen();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPerceel, setSelectedPerceel] = useState(null);
+  const [trackingMarkerId, setTrackingMarkerId] = useState(null);
 
   const sheetHeight = useRef(new Animated.Value(COLLAPSED_HEIGHT)).current;
   const currentHeightRef = useRef(COLLAPSED_HEIGHT);
@@ -142,6 +143,8 @@ export default function KaartScreen({
 
   function handlePinPress(perceel) {
     setSelectedPerceel((prev) => (prev?.id === perceel.id ? null : perceel));
+    setTrackingMarkerId(perceel.id);
+    setTimeout(() => setTrackingMarkerId(null), 150);
     if (perceel.approximate_lat && perceel.approximate_lng) {
       mapRef.current?.animateToRegion(
         {
@@ -227,7 +230,7 @@ export default function KaartScreen({
                   longitude: parseFloat(perceel.approximate_lng),
                 }}
                 onPress={() => handlePinPress(perceel)}
-                tracksViewChanges={isSelected}
+                tracksViewChanges={trackingMarkerId === perceel.id}
                 anchor={{ x: 0.5, y: 0.5 }}
               >
                 <View style={[styles.pin, isSelected && styles.pinSelected]} pointerEvents="none">

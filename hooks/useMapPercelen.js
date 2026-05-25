@@ -31,7 +31,8 @@ export function useMapPercelen() {
             .select('id, naam, beschrijving, plaats, adres, grootte, fotos, voorzieningen, owner_id')
             .eq('status', 'active');
           if (mounted) {
-            setPercelen(fallback || []);
+            const unique = [...new Map((fallback || []).map(p => [p.id, p])).values()];
+            setPercelen(unique);
             setIsLoading(false);
           }
         } else {
@@ -42,7 +43,8 @@ export function useMapPercelen() {
       }
 
       if (mounted) {
-        setPercelen(data || []);
+        const unique = [...new Map((data || []).map(p => [p.id, p])).values()];
+        setPercelen(unique);
         setIsLoading(false);
       }
     }
