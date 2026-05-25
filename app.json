@@ -52,7 +52,8 @@
           "cameraPermission": "Groene Vingers gebruikt je camera om foto's te maken voor je gesprekken."
         }
       ],
-      "expo-location"
+      "expo-location",
+      "@stripe/stripe-react-native"
     ]
   }
 }

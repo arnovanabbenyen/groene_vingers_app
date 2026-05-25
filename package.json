@@ -12,6 +12,7 @@
     "@gorhom/bottom-sheet": "^5.2.14",
     "@react-native-community/datetimepicker": "8.4.4",
     "@react-native-picker/picker": "2.11.1",
+    "@stripe/stripe-react-native": "0.50.3",
     "@supabase/supabase-js": "^2.105.3",
     "babel-preset-expo": "^54.0.10",
     "base64-arraybuffer": "^1.0.2",
