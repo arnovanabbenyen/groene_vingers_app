@@ -73,6 +73,8 @@ export default function KaartScreen({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPerceel, setSelectedPerceel] = useState(null);
   const [trackingMarkerId, setTrackingMarkerId] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const suggestionsTimer = useRef(null);
 
   const sheetHeight = useRef(new Animated.Value(COLLAPSED_HEIGHT)).current;
   const currentHeightRef = useRef(COLLAPSED_HEIGHT);
@@ -137,6 +139,53 @@ export default function KaartScreen({
     );
   }, [searchQuery, percelen]);
 
+  useEffect(() => {
+    if (suggestionsTimer.current) clearTimeout(suggestionsTimer.current);
+    if (searchQuery.trim().length < 2) { setSuggestions([]); return; }
+    suggestionsTimer.current = setTimeout(async () => {
+      try {
+        const key = process.env.EXPO_PUBLIC_LOCATIONIQ_KEY;
+        const url = `https://api.locationiq.com/v1/autocomplete?key=${key}&q=${encodeURIComponent(searchQuery.trim())}&limit=5&dedupe=1&countrycodes=be`;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const json = await res.json();
+        setSuggestions(Array.isArray(json) ? json.slice(0, 5) : []);
+      } catch (_) { setSuggestions([]); }
+    }, 300);
+    return () => clearTimeout(suggestionsTimer.current);
+  }, [searchQuery]);
+
+  function handleSuggestionSelect(suggestion) {
+    setSearchQuery(suggestion.display_name.split(',')[0].trim());
+    setSuggestions([]);
+    if (mapRef.current && suggestion.lat && suggestion.lon) {
+      mapRef.current.animateToRegion({
+        latitude: parseFloat(suggestion.lat),
+        longitude: parseFloat(suggestion.lon),
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.02,
+      }, 500);
+    }
+  }
+
+  async function handleSearchSubmit() {
+    setSuggestions([]);
+    if (!searchQuery.trim() || !mapRef.current) return;
+    try {
+      const key = process.env.EXPO_PUBLIC_LOCATIONIQ_KEY;
+      const url = `https://us1.locationiq.com/v1/search?key=${key}&q=${encodeURIComponent(searchQuery.trim())}&format=json&limit=1&countrycodes=be`;
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const json = await res.json();
+      if (!json?.[0]) return;
+      const { lat, lon } = json[0];
+      mapRef.current.animateToRegion(
+        { latitude: parseFloat(lat), longitude: parseFloat(lon), latitudeDelta: 0.02, longitudeDelta: 0.02 },
+        500,
+      );
+    } catch (_) {}
+  }
+
   const perceelenWithCoords = filteredPercelen.filter(
     (p) => p.approximate_lat != null && p.approximate_lng != null,
   );
@@ -193,9 +242,10 @@ export default function KaartScreen({
                 placeholder="Zoek percelen op naam of plaats..."
                 placeholderTextColor={COLORS.textSecondary}
                 returnKeyType="search"
+                onSubmitEditing={handleSearchSubmit}
               />
               {searchQuery.length > 0 && (
-                <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+                <Pressable onPress={() => { setSearchQuery(''); setSuggestions([]); }} hitSlop={8}>
                   <XIcon size={16} color={COLORS.textSecondary} weight="regular" />
                 </Pressable>
               )}
@@ -257,6 +307,22 @@ export default function KaartScreen({
             />
           )}
         </MapView>
+
+        {/* Suggesties dropdown */}
+        {suggestions.length > 0 && (
+          <View style={styles.suggestionsDropdown}>
+            {suggestions.map((s, i) => (
+              <Pressable
+                key={s.place_id ?? i}
+                style={[styles.suggestionItem, i < suggestions.length - 1 && styles.suggestionBorder]}
+                onPress={() => handleSuggestionSelect(s)}
+              >
+                <MapPinIcon size={14} color={COLORS.textSecondary} weight="regular" />
+                <Text style={styles.suggestionText} numberOfLines={1}>{s.display_name}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
 
         {/* Popup card — centered in map area */}
         {selectedPerceel && (
@@ -508,6 +574,36 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     backgroundColor: COLORS.brandMid,
+  },
+
+  // Suggestions dropdown
+  suggestionsDropdown: {
+    position: 'absolute',
+    top: 4,
+    left: SPACING.screenX,
+    right: SPACING.screenX,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.sm,
+    overflow: 'hidden',
+    zIndex: 50,
+    ...SHADOWS.card,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 12,
+  },
+  suggestionBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  suggestionText: {
+    flex: 1,
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
   },
 
   // Popup — centered in map area
