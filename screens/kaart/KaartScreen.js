@@ -21,6 +21,7 @@ import {
   LeafIcon,
   MagnifyingGlassIcon,
   MapPinIcon,
+  NavigationArrowIcon,
   PlantIcon,
   ShovelIcon,
   TreeIcon,
@@ -73,6 +74,7 @@ export default function KaartScreen({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPerceel, setSelectedPerceel] = useState(null);
   const [trackingMarkerId, setTrackingMarkerId] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const suggestionsTimer = useRef(null);
 
@@ -116,6 +118,7 @@ export default function KaartScreen({
         const loc = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
+        setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
         mapRef.current?.animateToRegion(
           {
             latitude: loc.coords.latitude,
@@ -334,6 +337,19 @@ export default function KaartScreen({
                 onOpen={() => onOpenPerceel?.(toPlotShape(selectedPerceel))}
               />
             </Pressable>
+          </Pressable>
+        )}
+
+        {/* Locatie-knop */}
+        {userLocation && (
+          <Pressable
+            style={styles.locationBtn}
+            onPress={() => mapRef.current?.animateToRegion(
+              { ...userLocation, latitudeDelta: 0.05, longitudeDelta: 0.05 },
+              500,
+            )}
+          >
+            <NavigationArrowIcon size={24} color={COLORS.brand} weight="fill" />
           </Pressable>
         )}
 
@@ -574,6 +590,20 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     backgroundColor: COLORS.brandMid,
+  },
+
+  // Locatie-knop
+  locationBtn: {
+    position: 'absolute',
+    bottom: COLLAPSED_HEIGHT + 16,
+    right: SPACING.screenX,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.card,
   },
 
   // Suggestions dropdown
