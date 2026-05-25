@@ -223,6 +223,18 @@
       );
     }
 
+    if (activeTab === 'pro-plan') {
+      return (
+        <PlansScreen
+          onBack={() => setActiveTab('start')}
+          onUpgradeSuccess={() => {
+            setGeenToegangActive(false);
+            setActiveTab('start');
+          }}
+        />
+      );
+    }
+
     if (geenToegangActive && selectedPlot) {
       return (
         <GeenToegangScreen
@@ -296,18 +308,6 @@
           onOpenConversation={(conversation) => {
             setSelectedConversation(conversation);
             onOpenConversation?.(conversation);
-          }}
-        />
-      );
-    }
-
-    if (activeTab === 'pro-plan') {
-      return (
-        <PlansScreen
-          onBack={() => setActiveTab('start')}
-          onUpgradeSuccess={() => {
-            setGeenToegangActive(false);
-            setActiveTab('start');
           }}
         />
       );
