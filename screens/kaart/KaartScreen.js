@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Dimensions,
   Image,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -38,6 +41,10 @@ import {
   SPACING,
 } from '../../components/theme/tokens';
 
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const COLLAPSED_HEIGHT = 72;
+const EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.72;
+
 const LEUVEN_REGION = {
   latitude: 50.8798,
   longitude: 4.7005,
@@ -65,8 +72,38 @@ export default function KaartScreen({
   const { percelen, isLoading } = useMapPercelen();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPerceel, setSelectedPerceel] = useState(null);
-  const [userLat, setUserLat] = useState(null);
-  const [userLng, setUserLng] = useState(null);
+
+  const sheetHeight = useRef(new Animated.Value(COLLAPSED_HEIGHT)).current;
+  const currentHeightRef = useRef(COLLAPSED_HEIGHT);
+
+  useEffect(() => {
+    const id = sheetHeight.addListener(({ value }) => { currentHeightRef.current = value; });
+    return () => sheetHeight.removeListener(id);
+  }, [sheetHeight]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 3,
+      onPanResponderGrant: () => {
+        sheetHeight.setOffset(currentHeightRef.current);
+        sheetHeight.setValue(0);
+      },
+      onPanResponderMove: (_, gs) => {
+        sheetHeight.setValue(-gs.dy);
+      },
+      onPanResponderRelease: () => {
+        sheetHeight.flattenOffset();
+        const mid = (COLLAPSED_HEIGHT + EXPANDED_HEIGHT) / 2;
+        const target = currentHeightRef.current > mid ? EXPANDED_HEIGHT : COLLAPSED_HEIGHT;
+        Animated.spring(sheetHeight, {
+          toValue: target,
+          useNativeDriver: false,
+          bounciness: 4,
+        }).start();
+      },
+    }),
+  ).current;
 
   useEffect(() => {
     (async () => {
@@ -76,8 +113,6 @@ export default function KaartScreen({
         const loc = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
-        setUserLat(loc.coords.latitude);
-        setUserLng(loc.coords.longitude);
         mapRef.current?.animateToRegion(
           {
             latitude: loc.coords.latitude,
@@ -169,76 +204,72 @@ export default function KaartScreen({
         </View>
       </View>
 
-      {/* Body: map + list */}
+      {/* Body: map full-screen + overlays */}
       <View style={styles.body}>
-        {/* Map section */}
-        <View style={styles.mapSection}>
-          <MapView
-            ref={mapRef}
-            style={styles.map}
-            provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-            initialRegion={LEUVEN_REGION}
-            showsUserLocation
-            showsMyLocationButton={false}
-            showsCompass={false}
-            pitchEnabled={false}
-            rotateEnabled={false}
-            onPress={() => setSelectedPerceel(null)}
-          >
-            {/* TODO: add react-native-maps-super-cluster when percelen >100 */}
-            {perceelenWithCoords.map((perceel) => {
-              const isSelected = selectedPerceel?.id === perceel.id;
-              return (
-                <Marker
-                  key={`${perceel.id}-${isSelected}`}
-                  coordinate={{
-                    latitude: parseFloat(perceel.approximate_lat),
-                    longitude: parseFloat(perceel.approximate_lng),
-                  }}
-                  onPress={() => handlePinPress(perceel)}
-                  tracksViewChanges={false}
-                  anchor={{ x: 0.5, y: 0.5 }}
-                >
-                  <View style={[styles.pin, isSelected && styles.pinSelected]}>
-                    <LeafIcon
-                      size={isSelected ? 20 : 16}
-                      color={COLORS.textInverse}
-                      weight="fill"
-                    />
-                  </View>
-                </Marker>
-              );
-            })}
-
-            {selectedPerceel?.approximate_lat && selectedPerceel?.approximate_lng && (
-              <Circle
-                center={{
-                  latitude: parseFloat(selectedPerceel.approximate_lat),
-                  longitude: parseFloat(selectedPerceel.approximate_lng),
+        <MapView
+          ref={mapRef}
+          style={StyleSheet.absoluteFill}
+          provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+          initialRegion={LEUVEN_REGION}
+          showsUserLocation
+          showsMyLocationButton={false}
+          showsCompass={false}
+          pitchEnabled={false}
+          rotateEnabled={false}
+          onPress={() => setSelectedPerceel(null)}
+        >
+          {perceelenWithCoords.map((perceel) => {
+            const isSelected = selectedPerceel?.id === perceel.id;
+            return (
+              <Marker
+                key={perceel.id}
+                coordinate={{
+                  latitude: parseFloat(perceel.approximate_lat),
+                  longitude: parseFloat(perceel.approximate_lng),
                 }}
-                radius={200}
-                strokeColor="rgba(87,98,56,0.45)"
-                strokeWidth={1.5}
-                fillColor="rgba(87,98,56,0.12)"
-              />
-            )}
-          </MapView>
+                onPress={() => handlePinPress(perceel)}
+                tracksViewChanges={isSelected}
+                anchor={{ x: 0.5, y: 0.5 }}
+              >
+                <View style={[styles.pin, isSelected && styles.pinSelected]} pointerEvents="none">
+                  <LeafIcon
+                    size={isSelected ? 20 : 16}
+                    color={COLORS.textInverse}
+                    weight="fill"
+                  />
+                </View>
+              </Marker>
+            );
+          })}
 
-          {/* Popup card for tapped pin */}
-          {selectedPerceel && (
-            <View style={styles.popupOverlay}>
-              <PerceelPopupCard
-                perceel={selectedPerceel}
-                onClose={() => setSelectedPerceel(null)}
-                onOpen={() => onOpenPerceel?.(toPlotShape(selectedPerceel))}
-              />
-            </View>
+          {selectedPerceel?.approximate_lat && selectedPerceel?.approximate_lng && (
+            <Circle
+              center={{
+                latitude: parseFloat(selectedPerceel.approximate_lat),
+                longitude: parseFloat(selectedPerceel.approximate_lng),
+              }}
+              radius={200}
+              strokeColor="rgba(87,98,56,0.45)"
+              strokeWidth={1.5}
+              fillColor="rgba(87,98,56,0.12)"
+            />
           )}
-        </View>
+        </MapView>
 
-        {/* List section — bottom sheet style */}
-        <View style={styles.listWrapper}>
-          <View style={styles.dragHandleWrap}>
+        {/* Popup card — floats above the collapsed sheet */}
+        {selectedPerceel && (
+          <Animated.View style={[styles.popupOverlay, { bottom: Animated.add(sheetHeight, 16) }]}>
+            <PerceelPopupCard
+              perceel={selectedPerceel}
+              onClose={() => setSelectedPerceel(null)}
+              onOpen={() => onOpenPerceel?.(toPlotShape(selectedPerceel))}
+            />
+          </Animated.View>
+        )}
+
+        {/* Snap bottom sheet */}
+        <Animated.View style={[styles.sheet, { height: sheetHeight }]}>
+          <View style={styles.dragHandleWrap} {...panResponder.panHandlers}>
             <View style={styles.dragHandle} />
           </View>
           <Text style={styles.countText}>
@@ -268,7 +299,7 @@ export default function KaartScreen({
               ))
             )}
           </ScrollView>
-        </View>
+        </Animated.View>
       </View>
 
       <BottomNav
@@ -429,12 +460,7 @@ const styles = StyleSheet.create({
   // Body
   body: { flex: 1 },
 
-  // Map
-  mapSection: {
-    flex: 1.8,
-    position: 'relative',
-  },
-  map: { flex: 1 },
+  // Pins
   pin: {
     width: 40,
     height: 40,
@@ -450,25 +476,29 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: COLORS.brandMid,
   },
+
+  // Popup — volgt de sheetHeight via Animated.add
   popupOverlay: {
     position: 'absolute',
-    bottom: 16,
     left: SPACING.screenX,
     right: SPACING.screenX,
   },
 
-  // List bottom sheet
-  listWrapper: {
-    flex: 1,
+  // Snap bottom sheet
+  sheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: COLORS.surface,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    marginTop: -16,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 8,
+    overflow: 'hidden',
   },
   dragHandleWrap: {
     alignItems: 'center',
