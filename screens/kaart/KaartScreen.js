@@ -31,6 +31,7 @@ import {
 //       app.json onder android.config.googleMaps.apiKey.
 import MapView, { Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import BottomNav from '../../components/navigation/BottomNav';
+import FilterScreen from './FilterScreen';
 import { useMapPercelen } from '../../hooks/useMapPercelen';
 import {
   COLORS,
@@ -41,6 +42,7 @@ import {
   SIZES,
   SPACING,
 } from '../../components/theme/tokens';
+import { DEFAULT_FILTERS, hasActiveFilters, passesFilters } from '../../services/perceelFilters';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const COLLAPSED_HEIGHT = 72;
@@ -77,6 +79,8 @@ export default function KaartScreen({
   const [userLocation, setUserLocation] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const suggestionsTimer = useRef(null);
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [activeFilters, setActiveFilters] = useState(DEFAULT_FILTERS);
 
   const sheetHeight = useRef(new Animated.Value(COLLAPSED_HEIGHT)).current;
   const currentHeightRef = useRef(COLLAPSED_HEIGHT);
@@ -136,11 +140,11 @@ export default function KaartScreen({
 
   const filteredPercelen = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return percelen;
-    return percelen.filter((p) =>
-      [p.naam, p.plaats].join(' ').toLowerCase().includes(q),
-    );
-  }, [searchQuery, percelen]);
+    return percelen.filter((p) => {
+      if (q && ![p.naam, p.plaats].join(' ').toLowerCase().includes(q)) return false;
+      return passesFilters(p, activeFilters, userLocation);
+    });
+  }, [searchQuery, percelen, activeFilters, userLocation]);
 
   useEffect(() => {
     if (suggestionsTimer.current) clearTimeout(suggestionsTimer.current);
@@ -253,8 +257,9 @@ export default function KaartScreen({
                 </Pressable>
               )}
             </View>
-            <Pressable style={styles.filterBtn} hitSlop={8}>
+            <Pressable style={styles.filterBtn} hitSlop={8} onPress={() => setFilterVisible(true)}>
               <FunnelIcon size={20} color={COLORS.textInverse} weight="regular" />
+              {hasActiveFilters(activeFilters) && <View style={styles.filterDot} />}
             </Pressable>
           </View>
         </View>
@@ -393,6 +398,18 @@ export default function KaartScreen({
         onTabPress={onTabPress}
         profileImageSource={profileImageSource}
         badgeCounts={badgeCounts}
+      />
+
+      <FilterScreen
+        visible={filterVisible}
+        onClose={() => setFilterVisible(false)}
+        onApply={(newFilters) => {
+          setActiveFilters(newFilters);
+          setFilterVisible(false);
+        }}
+        initialFilters={activeFilters}
+        percelen={percelen}
+        userLocation={userLocation}
       />
     </View>
   );
@@ -570,6 +587,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  filterDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.accent,
   },
 
   // Body

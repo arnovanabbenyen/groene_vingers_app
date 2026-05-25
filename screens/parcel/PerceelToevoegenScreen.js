@@ -24,7 +24,8 @@ import AuthTextField from '../../components/auth/AuthTextField';
 import FieldError from '../../components/notifications/FieldError';
 import ScreenHeader from '../../components/headers/ScreenHeader';
 import { supabase } from '../../services/supabase';
-import { BinocularsIcon, InfoIcon, CalendarIcon, CameraIcon, MapPinIcon, DropIcon, FrameCornersIcon, RulerIcon, LeafIcon, PaintBrushIcon, PlusCircleIcon, XCircleIcon, ToolboxIcon, ShovelIcon, PlantIcon, RecycleIcon, TreeIcon } from 'phosphor-react-native';
+import { BinocularsIcon, InfoIcon, CalendarIcon, CameraIcon, MapPinIcon, DropIcon, FrameCornersIcon, RulerIcon, LeafIcon, PaintBrushIcon, PlusCircleIcon, XCircleIcon, ToolboxIcon, ShovelIcon, PlantIcon, RecycleIcon, TreeIcon, HandshakeIcon } from 'phosphor-react-native';
+import { SAMENWERKING_TYPES } from '../../services/samenwerkingTypes';
 
 const IMG_ARROW_LEFT = 'http://localhost:3845/assets/823f067bbf1763ad90d2dac8f9d3bad9ec4cf79f.svg';
 const IMG_POPUP_ICON = 'http://localhost:3845/assets/4c6187f5874a7cc596bcee028d8ed521433957b7.svg';
@@ -134,6 +135,9 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {}, ini
   const [extraInfoDraft, setExtraInfoDraft] = useState('');
   const [extraInfoItems, setExtraInfoItems] = useState(() => createInitialExtraInfo(initialPerceel));
   const [selectedAmenities, setSelectedAmenities] = useState(() => createInitialAmenities(initialPerceel));
+  const [selectedSamenwerking, setSelectedSamenwerking] = useState(
+    () => Array.isArray(initialPerceel?.voorkeur_samenwerking) ? initialPerceel.voorkeur_samenwerking : [],
+  );
   const [photos, setPhotos] = useState(() => createInitialPhotoSlots(initialPerceel));
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
@@ -159,6 +163,9 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {}, ini
     setExtraInfoDraft('');
     setExtraInfoItems(createInitialExtraInfo(initialPerceel));
     setSelectedAmenities(createInitialAmenities(initialPerceel));
+    setSelectedSamenwerking(
+      Array.isArray(initialPerceel?.voorkeur_samenwerking) ? initialPerceel.voorkeur_samenwerking : [],
+    );
     setPhotos(createInitialPhotoSlots(initialPerceel));
     setErrors({});
     setSubmitError('');
@@ -498,6 +505,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {}, ini
         lng: adresCoords?.lng ?? null,
         extra_info: extraInfoItems,
         voorzieningen: selectedAmenities,
+        voorkeur_samenwerking: selectedSamenwerking,
         fotos: uploadedUrls,
         updated_at: new Date().toISOString(),
       };
@@ -799,6 +807,40 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {}, ini
                 );
               })
             )}
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <HandshakeIcon size={32} color={COLORS.accent} weight="regular" />
+            <Text style={styles.sectionTitle}>Type samenwerking</Text>
+          </View>
+
+          <View style={styles.samenwerkingList}>
+            {SAMENWERKING_TYPES.map((type) => {
+              const selected = selectedSamenwerking.includes(type);
+              return (
+                <Pressable
+                  key={type}
+                  style={[styles.samenwerkingItem, selected && styles.samenwerkingItemSelected]}
+                  onPress={() => {
+                    setSelectedSamenwerking((current) =>
+                      current.includes(type)
+                        ? current.filter((v) => v !== type)
+                        : [...current, type],
+                    );
+                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={type}
+                >
+                  <View style={[styles.samenwerkingCheck, selected && styles.samenwerkingCheckSelected]}>
+                    {selected && <View style={styles.samenwerkingCheckInner} />}
+                  </View>
+                  <Text style={styles.samenwerkingLabel}>{type}</Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
@@ -1265,6 +1307,45 @@ const styles = StyleSheet.create({
   },
   submitWrap: {
     marginTop: SPACING.sm,
+  },
+  samenwerkingList: {
+    gap: SPACING.sm,
+  },
+  samenwerkingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingVertical: 10,
+    paddingHorizontal: SPACING.sm,
+    borderRadius: RADIUS.sm,
+    backgroundColor: 'rgba(87,98,56,0.05)',
+  },
+  samenwerkingItemSelected: {
+    backgroundColor: 'rgba(87,98,56,0.12)',
+  },
+  samenwerkingCheck: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  samenwerkingCheckSelected: {
+    borderColor: COLORS.brand,
+  },
+  samenwerkingCheckInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.brand,
+  },
+  samenwerkingLabel: {
+    fontFamily: FONTS.body,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    fontWeight: '600',
   },
   modalBackdrop: {
     flex: 1,
