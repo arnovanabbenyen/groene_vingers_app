@@ -216,7 +216,6 @@ export default function KaartScreen({
           showsCompass={false}
           pitchEnabled={false}
           rotateEnabled={false}
-          onPress={() => setSelectedPerceel(null)}
         >
           {perceelenWithCoords.map((perceel) => {
             const isSelected = selectedPerceel?.id === perceel.id;
@@ -256,15 +255,17 @@ export default function KaartScreen({
           )}
         </MapView>
 
-        {/* Popup card — floats above the collapsed sheet */}
+        {/* Popup card — centered in map area */}
         {selectedPerceel && (
-          <Animated.View style={[styles.popupOverlay, { bottom: Animated.add(sheetHeight, 16) }]}>
-            <PerceelPopupCard
-              perceel={selectedPerceel}
-              onClose={() => setSelectedPerceel(null)}
-              onOpen={() => onOpenPerceel?.(toPlotShape(selectedPerceel))}
-            />
-          </Animated.View>
+          <Pressable style={styles.popupBackdrop} onPress={() => setSelectedPerceel(null)}>
+            <Pressable style={styles.popupOverlay} onPress={(e) => e.stopPropagation()}>
+              <PerceelPopupCard
+                perceel={selectedPerceel}
+                onClose={() => setSelectedPerceel(null)}
+                onOpen={() => onOpenPerceel?.(toPlotShape(selectedPerceel))}
+              />
+            </Pressable>
+          </Pressable>
         )}
 
         {/* Snap bottom sheet */}
@@ -380,36 +381,65 @@ function PerceelPopupCard({ perceel, onClose, onOpen }) {
   const [imageError, setImageError] = useState(false);
   const imageUrl = perceel.fotos?.[0];
   const hasImage = imageUrl && !imageError;
+  const amenities = (perceel.voorzieningen || []).slice(0, 3);
 
   return (
-    <View style={popup.card}>
-      {hasImage ? (
-        <Image
-          source={{ uri: imageUrl }}
-          style={popup.image}
-          onError={() => setImageError(true)}
-        />
-      ) : (
-        <View style={[popup.image, popup.imagePlaceholder]}>
-          <LeafIcon size={22} color={COLORS.brand} weight="regular" />
+    <Pressable style={popup.card} onPress={onOpen}>
+      {/* Image */}
+      <View style={popup.imageWrap}>
+        {hasImage ? (
+          <Image
+            source={{ uri: imageUrl }}
+            style={popup.image}
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <View style={[popup.image, popup.imagePlaceholder]}>
+            <LeafIcon size={32} color={COLORS.brand} weight="regular" />
+          </View>
+        )}
+        {/* Location pill */}
+        <View style={popup.locationPill}>
+          <MapPinIcon size={13} color={COLORS.textPrimary} weight="regular" />
+          <Text style={popup.locationText} numberOfLines={1}>{perceel.plaats}</Text>
         </View>
-      )}
-      <View style={popup.info}>
-        <Text style={popup.title} numberOfLines={1}>{perceel.naam}</Text>
-        <Text style={popup.location} numberOfLines={1}>{perceel.plaats}</Text>
-        {perceel.grootte != null && (
-          <Text style={popup.size}>{perceel.grootte}m²</Text>
+        {/* Close button */}
+        <Pressable style={popup.closeBtn} onPress={onClose} hitSlop={8}>
+          <XIcon size={11} color={COLORS.textPrimary} weight="bold" />
+        </Pressable>
+      </View>
+
+      {/* Content */}
+      <View style={popup.content}>
+        {/* Title + size */}
+        <View style={popup.titleRow}>
+          <Text style={popup.title} numberOfLines={1}>{perceel.naam}</Text>
+          {perceel.grootte != null && (
+            <Text style={popup.size}>{perceel.grootte}m²</Text>
+          )}
+        </View>
+
+        {/* Description */}
+        {perceel.beschrijving ? (
+          <Text style={popup.description} numberOfLines={4}>{perceel.beschrijving}</Text>
+        ) : null}
+
+        {/* Amenities */}
+        {amenities.length > 0 && (
+          <View style={popup.amenityRow}>
+            {amenities.map((label, i) => (
+              <View key={label} style={popup.amenityCell}>
+                {i > 0 && <View style={popup.amenityDivider} />}
+                <View style={popup.amenityItem}>
+                  <AmenityIcon label={label} />
+                  <Text style={popup.amenityText}>{label}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
         )}
       </View>
-      <View style={popup.actions}>
-        <Pressable onPress={onClose} hitSlop={8} style={popup.closeBtn}>
-          <XIcon size={16} color={COLORS.textSecondary} weight="regular" />
-        </Pressable>
-        <Pressable style={popup.openBtn} onPress={onOpen}>
-          <Text style={popup.openBtnText}>Bekijk</Text>
-        </Pressable>
-      </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -477,11 +507,18 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.brandMid,
   },
 
-  // Popup — volgt de sheetHeight via Animated.add
-  popupOverlay: {
+  // Popup — centered in map area
+  popupBackdrop: {
     position: 'absolute',
-    left: SPACING.screenX,
-    right: SPACING.screenX,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.screenX,
+  },
+  popupOverlay: {
+    width: '100%',
   },
 
   // Snap bottom sheet
@@ -625,57 +662,112 @@ const card = StyleSheet.create({
 
 const popup = StyleSheet.create({
   card: {
-    flexDirection: 'row',
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.xl,
+    borderRadius: RADIUS.sm,
     overflow: 'hidden',
-    alignItems: 'center',
+    gap: SPACING.md,
+    padding: SPACING.md,
     ...SHADOWS.card,
   },
-  image: { width: 88, height: 88 },
+  imageWrap: {
+    height: 201,
+    borderRadius: RADIUS.sm,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
   imagePlaceholder: {
-    backgroundColor: COLORS.surfaceBrand,
+    backgroundColor: COLORS.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  info: {
-    flex: 1,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.sm,
-    gap: 3,
+  locationPill: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    maxWidth: '65%',
+  },
+  locationText: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textPrimary,
+  },
+  closeBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
+    gap: SPACING.sm,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.sm,
   },
   title: {
+    flex: 1,
     fontFamily: FONTS.displayMedium,
     fontSize: FONT_SIZES.lg,
     color: COLORS.textPrimary,
   },
-  location: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-  },
   size: {
     fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.textSecondary,
-  },
-  actions: {
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.sm,
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    alignSelf: 'stretch',
-  },
-  closeBtn: { padding: 4 },
-  openBtn: {
-    backgroundColor: COLORS.brand,
-    borderRadius: RADIUS.sm,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 8,
-  },
-  openBtnText: {
-    fontFamily: FONTS.displayMedium,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.textInverse,
+    color: COLORS.textPrimary,
+  },
+  description: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
+    textAlign: 'justify',
+    lineHeight: 22,
+  },
+  amenityRow: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingTop: 4,
+  },
+  amenityCell: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  amenityDivider: {
+    width: 1,
+    alignSelf: 'stretch',
+    backgroundColor: COLORS.border,
+    marginRight: 4,
+  },
+  amenityItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  amenityText: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textPrimary,
   },
 });
