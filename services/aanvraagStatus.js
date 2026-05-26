@@ -15,7 +15,8 @@
  * - cancelled: sender withdrew, or system cancelled
  *
  * The transition accepted -> confirmed requires both parties to agree
- * via the in-chat "samenwerking starten" flow (not yet implemented).
+ * via the in-chat "samenwerking starten" flow.
+ * confirmed -> ended: either party ends the active samenwerking.
  */
 export const AANVRAAG_STATUS = {
   PENDING: 'pending',
@@ -23,4 +24,5 @@ export const AANVRAAG_STATUS = {
   CONFIRMED: 'confirmed',
   DECLINED: 'declined',
   CANCELLED: 'cancelled',
+  ENDED: 'ended',
 };

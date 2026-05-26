@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { EyeIcon, EyeSlashIcon, MapPinIcon, PencilSimpleIcon } from 'phosphor-react-native';
+import { ChatCircleIcon, EyeIcon, EyeSlashIcon, MapPinIcon, PencilSimpleIcon } from 'phosphor-react-native';
 import ParcelDetailHeader from '../../components/parcel/ParcelDetailHeader';
 import ParcelOverviewSection from '../../components/parcel/ParcelOverviewSection';
 import ParcelPresenceSection from '../../components/parcel/ParcelPresenceSection';
@@ -24,6 +24,15 @@ const AANVRAAG_STATUS_LABEL = {
   confirmed: 'Samenwerking bevestigd',
 };
 
+const FALLBACK_AVATAR = require('../../images/tuinzoeker_pfp.png');
+
+function formatDate(isoString) {
+  if (!isoString) return null;
+  try {
+    return new Date(isoString).toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch { return null; }
+}
+
 export default function ParcelDetailScreen({
   perceel = {},
   onBack,
@@ -37,6 +46,9 @@ export default function ParcelDetailScreen({
   isFavorited = false,
   onToggleFavorite,
   showFavoriteButton = false,
+  samenwerking = null,
+  onOpenConversation,
+  onEndSamenwerking,
 }) {
   const insets = useSafeAreaInsets();
   const [ownerProfile, setOwnerProfile] = useState(null);
@@ -97,7 +109,7 @@ export default function ParcelDetailScreen({
         .select('id, status')
         .eq('perceel_id', perceel.id)
         .eq('sender_id', userId)
-        .not('status', 'in', '("declined","cancelled")')
+        .not('status', 'in', '("declined","cancelled","ended")')
         .maybeSingle();
 
       if (mounted) setExistingAanvraag(data || null);
@@ -189,7 +201,60 @@ export default function ParcelDetailScreen({
 
         <View style={styles.divider} />
 
-        {!isOwner ? (
+        {samenwerking ? (
+          // ── Samenwerking management (owner via SamenwerkingCard) ──
+          <View style={[styles.samenwerkingSection, { paddingBottom: insets.bottom + 16 }]}>
+            <Text style={styles.sectionTitle}>Actieve samenwerking</Text>
+
+            <View style={styles.samenwerkingCard}>
+              {/* Person row */}
+              <View style={styles.samenwerkingPersonRow}>
+                <Image
+                  source={
+                    samenwerking.senderProfile?.avatar_url
+                      ? { uri: samenwerking.senderProfile.avatar_url }
+                      : FALLBACK_AVATAR
+                  }
+                  style={styles.samenwerkingAvatar}
+                />
+                <View style={styles.samenwerkingPersonText}>
+                  <Text style={styles.samenwerkingName} numberOfLines={1}>
+                    {[samenwerking.senderProfile?.first_name, samenwerking.senderProfile?.last_name]
+                      .filter(Boolean).join(' ').trim() || 'Tuinzoeker'}
+                  </Text>
+                  {samenwerking.confirmed_at ? (
+                    <Text style={styles.samenwerkingDate}>
+                      Gestart op {formatDate(samenwerking.confirmed_at)}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+
+              {/* Chat button */}
+              <TouchableOpacity
+                style={styles.openChatButton}
+                onPress={() => onOpenConversation?.(samenwerking)}
+                accessibilityRole="button"
+                accessibilityLabel="Open gesprek"
+                activeOpacity={0.8}
+              >
+                <ChatCircleIcon size={18} color={COLORS.surface} weight="fill" />
+                <Text style={styles.openChatButtonText}>Open gesprek</Text>
+              </TouchableOpacity>
+
+              {/* End samenwerking button */}
+              <TouchableOpacity
+                style={styles.endButton}
+                onPress={() => onEndSamenwerking?.(samenwerking)}
+                accessibilityRole="button"
+                accessibilityLabel="Beëindig samenwerking"
+                activeOpacity={0.8}
+              >
+                <Text style={styles.endButtonText}>Beëindig samenwerking</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : !isOwner ? (
           existingAanvraag ? (
             <View style={styles.aanvraagBanner}>
               <Text style={styles.aanvraagBannerText}>
@@ -376,6 +441,70 @@ const styles = StyleSheet.create({
     color: COLORS.negative,
     fontFamily: FONTS.bodyMedium,
     fontSize: 15,
+  },
+
+  // ── Samenwerking section ─────────────────────────────────────
+  samenwerkingSection: {
+    paddingTop: 18,
+    gap: 12,
+  },
+  samenwerkingCard: {
+    backgroundColor: '#F5F1E8',
+    borderRadius: RADIUS.md,
+    padding: 16,
+    gap: 14,
+  },
+  samenwerkingPersonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  samenwerkingAvatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: COLORS.surfaceMuted,
+  },
+  samenwerkingPersonText: {
+    flex: 1,
+    gap: 3,
+  },
+  samenwerkingName: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
+  samenwerkingDate: {
+    fontFamily: FONTS.body,
+    fontSize: 13,
+    color: COLORS.textSecondary,
+  },
+  openChatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.brand,
+    borderRadius: RADIUS.md,
+    paddingVertical: 14,
+  },
+  openChatButtonText: {
+    fontFamily: FONTS.displayMedium,
+    fontSize: 16,
+    color: COLORS.surface,
+  },
+  endButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+    borderWidth: 1.5,
+    borderColor: COLORS.negative,
+  },
+  endButtonText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 15,
+    color: COLORS.negative,
   },
   locationNotice: {
     marginTop: 8,

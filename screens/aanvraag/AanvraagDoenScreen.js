@@ -152,7 +152,7 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
         .select('id, status')
         .eq('perceel_id', perceel?.id)
         .eq('sender_id', senderId)
-        .not('status', 'in', '("declined","cancelled")')
+        .not('status', 'in', '("declined","cancelled","ended")')
         .maybeSingle();
 
       if (checkError) throw checkError;

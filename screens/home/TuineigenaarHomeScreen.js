@@ -24,6 +24,7 @@ import BerichtenOverzichtScreen from '../berichten/BerichtenOverzichtScreen';
 import ConversationDetailScreen from '../berichten/ConversationDetailScreen';
 import { createConversationForAanvraag } from '../../services/conversations';
 import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
+import SamenwerkingCard from '../../components/home/SamenwerkingCard';
 
 const PROFILE_IMAGE = require('../../images/tuineigenaar_pfp.png');
 const PERCEEL_STATUS = {
@@ -86,6 +87,7 @@ export default function TuineigenaarHomeScreen({
   unreadNotificationsCount = 0,
   onOpenNotifications,
   onOpenProfiel,
+  onEndSamenwerking,
   getInitialTab,
 }) {
   const [activeTab, setActiveTab] = useState(() => getInitialTab?.() ?? 'start');
@@ -95,6 +97,9 @@ export default function TuineigenaarHomeScreen({
   const [selectedPerceel, setSelectedPerceel] = useState(null);
   const [perceelMode, setPerceelMode] = useState(null);
   const [perceelRefreshKey, setPerceelRefreshKey] = useState(0);
+  const [samenwerkingen, setSamenwerkingen] = useState([]);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [selectedSamenwerking, setSelectedSamenwerking] = useState(null);
   const { aanvragen, isLoading: isLoadingAanvragen, setAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
 
   function handleTabPress(item) {
@@ -130,7 +135,10 @@ export default function TuineigenaarHomeScreen({
           console.warn('Failed to fetch profile avatar', profileError);
         }
 
-        if (mounted) setProfile(profileData || null);
+        if (mounted) {
+          setProfile(profileData || null);
+          setCurrentUserId(userId);
+        }
         if (mounted && profileData?.avatar_url) setProfileImageSource(profileData.avatar_url);
 
         const { data: percelenData, error: percelenError } = await supabase
@@ -144,6 +152,48 @@ export default function TuineigenaarHomeScreen({
         }
 
         if (mounted) setPercelen(percelenData || []);
+
+        // Load confirmed samenwerkingen for this owner's parcels
+        const perceelIds = (percelenData || []).map((p) => p.id);
+        if (perceelIds.length > 0) {
+          const { data: confirmedAanvragen } = await supabase
+            .from('aanvragen')
+            .select('id, status, confirmed_at, perceel_id, sender_id, type_samenwerking, percelen(id, naam, fotos, plaats, voorzieningen, owner_id)')
+            .in('perceel_id', perceelIds)
+            .eq('status', AANVRAAG_STATUS.CONFIRMED);
+
+          const aanvraagIds = (confirmedAanvragen || []).map((a) => a.id);
+          let conversationsByAanvraag = {};
+          if (aanvraagIds.length > 0) {
+            const { data: conversations } = await supabase
+              .from('conversations')
+              .select('id, aanvraag_id')
+              .in('aanvraag_id', aanvraagIds);
+            for (const conv of conversations || []) {
+              conversationsByAanvraag[conv.aanvraag_id] = conv;
+            }
+          }
+
+          const senderIds = [...new Set((confirmedAanvragen || []).map((a) => a.sender_id))];
+          let profileById = {};
+          if (senderIds.length > 0) {
+            const { data: senderProfiles } = await supabase
+              .from('profiles')
+              .select('id, first_name, last_name, avatar_url')
+              .in('id', senderIds);
+            for (const sp of senderProfiles || []) {
+              profileById[sp.id] = sp;
+            }
+          }
+
+          const enriched = (confirmedAanvragen || []).map((a) => ({
+            ...a,
+            conversation: conversationsByAanvraag[a.id] || null,
+            senderProfile: profileById[a.sender_id] || null,
+          }));
+
+          if (mounted) setSamenwerkingen(enriched);
+        }
       } catch (e) {
         console.warn('loadDashboardData error', e);
       } finally {
@@ -194,6 +244,23 @@ export default function TuineigenaarHomeScreen({
       console.error('Failed to accept aanvraag', error);
       Alert.alert('Fout', 'De aanvraag kon niet worden geaccepteerd. Probeer opnieuw.');
     }
+  }
+
+  function handleSamenwerkingPress(samenwerking) {
+    setSelectedSamenwerking(samenwerking);
+    setSelectedPerceel(samenwerking.percelen);
+    setPerceelMode('samenwerking-detail');
+  }
+
+  function handleSamenwerkingOpenConversation(samenwerking) {
+    if (!samenwerking.conversation?.id) return;
+    onOpenConversation?.({
+      id: samenwerking.conversation.id,
+      aanvraag_id: samenwerking.id,
+      owner_id: currentUserId,
+      sender_id: samenwerking.sender_id,
+      otherUser: samenwerking.senderProfile,
+    });
   }
 
   function handleViewAanvraag(aanvraag) {
@@ -293,6 +360,23 @@ export default function TuineigenaarHomeScreen({
         initialPerceel={selectedPerceel}
         onBack={() => setPerceelMode('view')}
         onSaved={handlePerceelSaved}
+      />
+    );
+  }
+
+  if (perceelMode === 'samenwerking-detail' && selectedSamenwerking) {
+    return (
+      <ParcelDetailScreen
+        perceel={selectedPerceel || selectedSamenwerking.percelen}
+        onBack={() => {
+          setSelectedSamenwerking(null);
+          setSelectedPerceel(null);
+          setPerceelMode(null);
+        }}
+        isOwner={true}
+        samenwerking={selectedSamenwerking}
+        onOpenConversation={handleSamenwerkingOpenConversation}
+        onEndSamenwerking={onEndSamenwerking}
       />
     );
   }
@@ -404,7 +488,19 @@ export default function TuineigenaarHomeScreen({
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
           <Text style={styles.sectionTitle} accessibilityRole="header">Actieve samenwerkingen</Text>
-          <ActiveSamenwerkingenEmpty />
+          {samenwerkingen.length === 0 ? (
+            <ActiveSamenwerkingenEmpty />
+          ) : (
+            <View style={styles.samenwerkingList}>
+              {samenwerkingen.map((samenwerking) => (
+                <SamenwerkingCard
+                  key={samenwerking.id}
+                  samenwerking={samenwerking}
+                  onPress={() => handleSamenwerkingPress(samenwerking)}
+                />
+              ))}
+            </View>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -510,6 +606,9 @@ const styles = StyleSheet.create({
   },
   section: {
     marginTop: SPACING.lg,
+  },
+  samenwerkingList: {
+    gap: SPACING.md,
   },
   sectionTitle: {
     fontFamily: FONTS.displaySemiBold,

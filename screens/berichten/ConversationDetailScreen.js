@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,11 +19,11 @@ import {
 import {
   ArrowLeftIcon,
   CameraIcon,
-  CheckCircleIcon,
+  HandshakeIcon,
   ImageIcon,
+  LockSimpleIcon,
   MicrophoneIcon,
   PaperPlaneRightIcon,
-  PlusIcon,
   XCircleIcon,
   XIcon,
 } from 'phosphor-react-native';
@@ -30,6 +31,12 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../../services/supabase';
 import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
 import { pickFromCamera, pickFromGallery, uploadChatImage } from '../../services/messageMedia';
+import {
+  proposeSamenwerking,
+  confirmSamenwerking,
+  cancelSamenwerkingProposal,
+} from '../../services/samenwerkingProposal';
+import SystemMessage from '../../components/chat/SystemMessage';
 import { COLORS, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
@@ -48,8 +55,6 @@ function formatMessageTime(timestamp) {
   }
 }
 
-// onPress(url, allUrls) — passes the tapped URL and the full array so the
-// preview gallery can start at the right index and scroll through all images.
 function ImageGrid({ urls, onPress }) {
   const total = urls.length;
 
@@ -114,11 +119,24 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
   const [pendingImages, setPendingImages] = useState([]);
   const [previewUrls, setPreviewUrls] = useState(null);
   const [previewIndex, setPreviewIndex] = useState(0);
-  const [isSamenwerkingPanelOpen, setIsSamenwerkingPanelOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
-  const [aanvraagStatus, setAanvraagStatus] = useState(null);
+  const [aanvraag, setAanvraag] = useState(null);
+  const [isProposing, setIsProposing] = useState(false);
+  const [isBannerDismissed, setIsBannerDismissed] = useState(true);
 
-  const canStartSamenwerking = aanvraagStatus === AANVRAAG_STATUS.ACCEPTED;
+  // Derived
+  const aanvraagStatus = aanvraag?.status ?? null;
+  const isOwner = !!currentUserId && currentUserId === aanvraag?.percelen?.owner_id;
+  const isEnded = aanvraagStatus === AANVRAAG_STATUS.ENDED;
+  const userMessageCount = messages.filter((m) => m.type === 'user' || !m.type).length;
+
+  const baseConditions =
+    isOwner &&
+    aanvraagStatus === AANVRAAG_STATUS.ACCEPTED &&
+    !aanvraag?.samenwerking_proposed_at;
+
+  const shouldShowHeaderProposeButton = baseConditions;
+  const shouldShowProposeBanner = baseConditions && !isBannerDismissed;
 
   function openPreview(url, allUrls) {
     const idx = allUrls.indexOf(url);
@@ -126,36 +144,39 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
     setPreviewIndex(idx >= 0 ? idx : 0);
   }
 
-  // ── Load messages + aanvraag status ──────────────────────────────────────
+  // ── Data loaders (also called from handlers to refresh) ───────────────────
+  async function loadMessages() {
+    const { data } = await supabase
+      .from('messages')
+      .select('id, conversation_id, sender_id, content, created_at, read_at, media_url, media_urls, media_type, type')
+      .eq('conversation_id', conversation.id)
+      .order('created_at', { ascending: true });
+    setMessages(data || []);
+  }
+
+  async function loadAanvraag() {
+    if (!conversation.aanvraag_id) return;
+    const { data } = await supabase
+      .from('aanvragen')
+      .select('id, status, samenwerking_proposed_at, samenwerking_proposed_by, confirmed_at, percelen(owner_id)')
+      .eq('id', conversation.aanvraag_id)
+      .maybeSingle();
+    setAanvraag(data || null);
+  }
+
+  // ── Initial load ──────────────────────────────────────────────────────────
   useEffect(() => {
     let mounted = true;
 
-    async function load() {
+    async function initialize() {
       const { data: userData } = await supabase.auth.getUser();
-      if (!mounted) return;
-      setCurrentUserId(userData?.user?.id || null);
+      if (mounted) setCurrentUserId(userData?.user?.id || null);
 
-      const { data: messagesData } = await supabase
-        .from('messages')
-        .select('id, conversation_id, sender_id, content, created_at, read_at, media_url, media_urls, media_type')
-        .eq('conversation_id', conversation.id)
-        .order('created_at', { ascending: true });
-
-      if (mounted) setMessages(messagesData || []);
-
-      if (conversation.aanvraag_id) {
-        const { data: aanvraagData } = await supabase
-          .from('aanvragen')
-          .select('status')
-          .eq('id', conversation.aanvraag_id)
-          .maybeSingle();
-        if (mounted) setAanvraagStatus(aanvraagData?.status || null);
-      }
-
+      await Promise.all([loadMessages(), loadAanvraag()]);
       if (mounted) setIsLoadingMessages(false);
     }
 
-    load();
+    initialize();
     return () => { mounted = false; };
   }, [conversation.id]);
 
@@ -238,7 +259,7 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
     });
   }, [messages]);
 
-  // ── Send (bundles all pending images into one message, then text) ─────────
+  // ── Send ──────────────────────────────────────────────────────────────────
   async function handleSend() {
     const trimmed = messageInput.trim();
     if ((!trimmed && pendingImages.length === 0) || isSending || !currentUserId) return;
@@ -249,7 +270,6 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
     setPendingImages([]);
     setMessageInput('');
 
-    // Bundle all images into ONE message
     if (imagesToSend.length > 0) {
       const tempId = `temp-img-${Date.now()}`;
       const optimistic = {
@@ -263,11 +283,11 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
         created_at: new Date().toISOString(),
         read_at: null,
         _optimistic: true,
+        type: 'user',
       };
       setMessages((current) => [...current, optimistic]);
 
       try {
-        // Upload all images in parallel
         const uploads = await Promise.all(
           imagesToSend.map((asset) => uploadChatImage(currentUserId, asset.uri))
         );
@@ -282,7 +302,7 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
             media_urls: publicUrls,
             media_type: 'image/jpeg',
           })
-          .select('id, conversation_id, sender_id, content, created_at, read_at, media_url, media_urls, media_type')
+          .select('id, conversation_id, sender_id, content, created_at, read_at, media_url, media_urls, media_type, type')
           .single();
 
         if (error) throw error;
@@ -293,7 +313,6 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
       }
     }
 
-    // Send text as a separate message after the images
     if (textToSend) {
       const tempId = `temp-${Date.now()}`;
       const optimistic = {
@@ -304,13 +323,14 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
         created_at: new Date().toISOString(),
         read_at: null,
         _optimistic: true,
+        type: 'user',
       };
       setMessages((current) => [...current, optimistic]);
 
       const { data, error } = await supabase
         .from('messages')
         .insert({ conversation_id: conversation.id, sender_id: currentUserId, content: textToSend })
-        .select('id, conversation_id, sender_id, content, created_at, read_at, media_url, media_urls, media_type')
+        .select('id, conversation_id, sender_id, content, created_at, read_at, media_url, media_urls, media_type, type')
         .single();
 
       if (error) {
@@ -335,56 +355,39 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
     if (assets.length) setPendingImages((current) => [...current, ...assets]);
   }
 
-  // ── Confirm samenwerking ──────────────────────────────────────────────────
-  async function handleConfirmSamenwerking() {
-    if (!conversation.aanvraag_id) return;
-
-    Alert.alert(
-      'Samenwerking starten?',
-      'Weet je zeker dat je de samenwerking wilt bevestigen? Deze actie maakt jullie samenwerking officieel.',
-      [
-        { text: 'Annuleren', style: 'cancel' },
-        {
-          text: 'Bevestigen',
-          onPress: async () => {
-            const { error } = await supabase
-              .from('aanvragen')
-              .update({
-                status: AANVRAAG_STATUS.CONFIRMED,
-                confirmed_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', conversation.aanvraag_id);
-
-            if (error) {
-              Alert.alert('Fout', 'De samenwerking kon niet worden bevestigd. Probeer opnieuw.');
-              return;
-            }
-
-            setAanvraagStatus(AANVRAAG_STATUS.CONFIRMED);
-            setIsSamenwerkingPanelOpen(false);
-
-            // TODO: implement mutual confirmation flow — currently a single tap by either party
-            // confirms. For production, both parties should agree before status becomes confirmed.
-
-            // TODO: insert a system message into the chat indicating the samenwerking is now
-            // official, e.g. "Samenwerking gestart op DD/MM/YYYY"
-
-            Alert.alert(
-              'Samenwerking bevestigd!',
-              'Jullie samenwerking is nu officieel actief.',
-              [{ text: 'OK', onPress: () => onConfirmSamenwerking?.() }]
-            );
-          },
-        },
-      ]
-    );
+  // ── Samenwerking handlers ─────────────────────────────────────────────────
+  async function handleProposeSamenwerking() {
+    if (!aanvraag?.id || !conversation.id || !currentUserId) return;
+    setIsProposing(true);
+    try {
+      await proposeSamenwerking(aanvraag.id, conversation.id, currentUserId);
+      await Promise.all([loadMessages(), loadAanvraag()]);
+    } catch (err) {
+      Alert.alert('Er ging iets mis', err.message);
+    } finally {
+      setIsProposing(false);
+    }
   }
 
-  function handleDeclineSamenwerking() {
-    setIsSamenwerkingPanelOpen(false);
-    // TODO: decide UX — should declining transition the aanvraag back to 'declined',
-    // or keep it as 'accepted' so they can continue chatting?
+  async function handleConfirmSamenwerking() {
+    if (!aanvraag?.id || !conversation.id || !currentUserId) return;
+    try {
+      await confirmSamenwerking(aanvraag.id, conversation.id, currentUserId);
+      await Promise.all([loadMessages(), loadAanvraag()]);
+      onConfirmSamenwerking?.();
+    } catch (err) {
+      Alert.alert('Er ging iets mis', err.message);
+    }
+  }
+
+  async function handleCancelProposal() {
+    if (!aanvraag?.id || !conversation.id || !currentUserId) return;
+    try {
+      await cancelSamenwerkingProposal(aanvraag.id, conversation.id, currentUserId);
+      await Promise.all([loadMessages(), loadAanvraag()]);
+    } catch (err) {
+      Alert.alert('Er ging iets mis', err.message);
+    }
   }
 
   // ── Derived display values ────────────────────────────────────────────────
@@ -397,6 +400,18 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
 
   // ── Message renderer ──────────────────────────────────────────────────────
   function renderItem({ item: msg }) {
+    if (msg.type && msg.type !== 'user') {
+      return (
+        <SystemMessage
+          message={msg}
+          aanvraag={aanvraag}
+          isOwner={isOwner}
+          onConfirm={handleConfirmSamenwerking}
+          onDecline={handleCancelProposal}
+        />
+      );
+    }
+
     const isOwn = msg.sender_id === currentUserId;
     const bottomMargin = msg.isLastInGroup ? 16 : 6;
     const imageUrls = msg.media_urls?.length > 0
@@ -469,7 +484,6 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
       {/* Green header band */}
       <SafeAreaView edges={['top']} style={styles.headerSafe}>
         <View style={styles.headerRow}>
-          {/* Left: back button */}
           <TouchableOpacity
             style={styles.backButton}
             onPress={onBack}
@@ -480,7 +494,6 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
             <Text style={styles.backText}>Terug</Text>
           </TouchableOpacity>
 
-          {/* Center: avatar + name + status */}
           <View style={styles.headerCenter}>
             <View style={styles.headerAvatarWrap}>
               <Image source={avatarSource} style={styles.headerAvatar} />
@@ -489,55 +502,59 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
               <Text style={styles.headerName} numberOfLines={1}>
                 {displayName}
               </Text>
-              {/* TODO: implement real presence via Supabase Realtime presence channels.
-                  For now hardcoded to "offline". */}
               <Text style={styles.headerStatus}>offline</Text>
             </View>
           </View>
 
-          {/* Right: plus button — only when samenwerking not yet confirmed */}
           <View style={styles.headerRight}>
-            {canStartSamenwerking && (
-              <TouchableOpacity
-                onPress={() => setIsSamenwerkingPanelOpen((v) => !v)}
+            {shouldShowHeaderProposeButton && (
+              <Pressable
+                style={styles.headerProposeButton}
+                onPress={() => setIsBannerDismissed(false)}
                 accessibilityRole="button"
-                accessibilityLabel="Samenwerking starten"
+                accessibilityLabel="Toon samenwerking voorstel"
               >
-                <PlusIcon size={24} color={COLORS.surface} weight="regular" />
-              </TouchableOpacity>
+                <HandshakeIcon size={16} color={COLORS.surface} weight="regular" />
+                <Text style={styles.headerProposeButtonText}>Voorstel</Text>
+              </Pressable>
             )}
           </View>
         </View>
+      </SafeAreaView>
 
-        {/* Collapsible samenwerking panel — inside the green band */}
-        {isSamenwerkingPanelOpen && canStartSamenwerking && (
-          <View style={styles.samenwerkingPanel}>
-            <Text style={styles.samenwerkingQuestion}>
-              Wil je de samenwerking accepteren?
-            </Text>
-            <View style={styles.samenwerkingButtons}>
-              <TouchableOpacity
-                style={styles.acceptButton}
-                onPress={handleConfirmSamenwerking}
-                accessibilityRole="button"
-                accessibilityLabel="Samenwerking accepteren"
-              >
-                <CheckCircleIcon size={18} color={COLORS.brand} weight="regular" />
-                <Text style={styles.acceptText}>Accepteer</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.weigerButton}
-                onPress={handleDeclineSamenwerking}
-                accessibilityRole="button"
-                accessibilityLabel="Samenwerking weigeren"
-              >
-                <XCircleIcon size={18} color={COLORS.surface} weight="regular" />
-                <Text style={styles.weigerText}>Weiger</Text>
-              </TouchableOpacity>
+      {/* Propose banner — owner only, when status=accepted and no proposal pending */}
+      {!isLoadingMessages && shouldShowProposeBanner && (
+        <View style={styles.proposeBanner}>
+          <View style={styles.proposeBannerContent}>
+            <View style={styles.proposeBannerIcon}>
+              <HandshakeIcon size={20} color={COLORS.brand} weight="regular" />
+            </View>
+            <View style={styles.proposeBannerTextWrap}>
+              <Text style={styles.proposeBannerTitle}>Klaar om officieel te starten?</Text>
+              <Text style={styles.proposeBannerSubtitle}>
+                Stel de samenwerking voor en wacht op bevestiging.
+              </Text>
             </View>
           </View>
-        )}
-      </SafeAreaView>
+          <Pressable
+            style={styles.proposeBannerDismiss}
+            onPress={() => setIsBannerDismissed(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Banner sluiten"
+          >
+            <XIcon size={14} color={COLORS.textSecondary} weight="bold" />
+          </Pressable>
+          <Pressable
+            style={[styles.proposeBannerButton, isProposing && { opacity: 0.6 }]}
+            onPress={handleProposeSamenwerking}
+            disabled={isProposing}
+          >
+            <Text style={styles.proposeBannerButtonText}>
+              {isProposing ? 'Bezig...' : 'Stel voor'}
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Messages list */}
       {isLoadingMessages ? (
@@ -553,7 +570,11 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
           style={styles.messagesList}
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={<SystemMessageHeader />}
+          ListHeaderComponent={
+            messages.filter((m) => m.type === 'user' || !m.type).length === 0
+              ? <SystemMessageHeader />
+              : null
+          }
         />
       )}
 
@@ -561,7 +582,6 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
       {previewUrls && (
         <Modal visible transparent animationType="fade" onRequestClose={() => setPreviewUrls(null)}>
           <View style={styles.previewOverlay}>
-            {/* Header: close button + counter */}
             <View style={[styles.previewHeader, { paddingTop: Math.max(insets.top, 16) }]}>
               <TouchableOpacity
                 style={styles.previewCloseBtn}
@@ -577,7 +597,6 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
               <View style={styles.previewHeaderSpacer} />
             </View>
 
-            {/* Swipeable images */}
             <FlatList
               horizontal
               pagingEnabled
@@ -601,7 +620,6 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
               }}
             />
 
-            {/* Dot indicators */}
             {previewUrls.length > 1 && (
               <View style={[styles.previewDots, { paddingBottom: Math.max(insets.bottom, 20) }]}>
                 {previewUrls.map((_, i) => (
@@ -613,97 +631,107 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
         </Modal>
       )}
 
-      {/* Sticky input bar */}
-      <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom - 8, 4) }]}>
-        {/* Pending image preview strip */}
-        {pendingImages.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.pendingStrip}
-            contentContainerStyle={styles.pendingStripContent}
-          >
-            {pendingImages.map((asset, index) => (
-              <View key={`${asset.uri}-${index}`} style={styles.pendingThumbWrap}>
-                <Image source={{ uri: asset.uri }} style={styles.pendingThumb} resizeMode="cover" />
-                <TouchableOpacity
-                  style={styles.pendingThumbRemove}
-                  onPress={() => setPendingImages((current) => current.filter((_, i) => i !== index))}
-                  accessibilityRole="button"
-                  accessibilityLabel="Afbeelding verwijderen"
-                >
-                  <XCircleIcon size={20} color="rgba(0,0,0,0.72)" weight="fill" />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
-        )}
-
-        <View style={styles.inputPill}>
-          {/* Left: camera button + text input inline */}
-          <View style={styles.inputPillLeft}>
-            <TouchableOpacity
-              style={styles.cameraBtn}
-              onPress={handlePickFromCamera}
-              disabled={isSending}
-              accessibilityRole="button"
-              accessibilityLabel="Foto maken"
+      {/* Sticky input bar — locked when samenwerking is ended */}
+      {isEnded ? (
+        <View
+          style={[styles.lockedBar, { paddingBottom: Math.max(insets.bottom - 8, 10) }]}
+          accessible
+          accessibilityLabel="Samenwerking beëindigd. Je kunt geen berichten meer versturen."
+          accessibilityRole="text"
+        >
+          <LockSimpleIcon size={16} color={COLORS.negative} weight="fill" />
+          <Text style={styles.lockedText}>
+            Samenwerking beëindigd — berichten versturen is niet meer mogelijk.
+          </Text>
+        </View>
+      ) : (
+        <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom - 8, 4) }]}>
+          {pendingImages.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.pendingStrip}
+              contentContainerStyle={styles.pendingStripContent}
             >
-              <CameraIcon size={16} color={COLORS.surface} weight="regular" />
-            </TouchableOpacity>
+              {pendingImages.map((asset, index) => (
+                <View key={`${asset.uri}-${index}`} style={styles.pendingThumbWrap}>
+                  <Image source={{ uri: asset.uri }} style={styles.pendingThumb} resizeMode="cover" />
+                  <TouchableOpacity
+                    style={styles.pendingThumbRemove}
+                    onPress={() => setPendingImages((current) => current.filter((_, i) => i !== index))}
+                    accessibilityRole="button"
+                    accessibilityLabel="Afbeelding verwijderen"
+                  >
+                    <XCircleIcon size={20} color="rgba(0,0,0,0.72)" weight="fill" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          )}
 
-            <TextInput
-              style={styles.textInput}
-              value={messageInput}
-              onChangeText={setMessageInput}
-              placeholder="Typ een chatbericht..."
-              placeholderTextColor={COLORS.textMuted}
-              multiline
-              maxHeight={100}
-              accessibilityLabel="Typ je bericht"
-            />
-          </View>
-
-          {/* Right: send button when there's content, mic + gallery when empty */}
-          {(messageInput.trim().length > 0 || pendingImages.length > 0) ? (
-            <TouchableOpacity
-              onPress={handleSend}
-              disabled={isSending}
-              accessibilityRole="button"
-              accessibilityLabel="Bericht verzenden"
-            >
-              {isSending
-                ? <ActivityIndicator size="small" color={COLORS.brand} />
-                : <PaperPlaneRightIcon size={22} color={COLORS.brand} weight="fill" />
-              }
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.iconsRight}>
+          <View style={styles.inputPill}>
+            <View style={styles.inputPillLeft}>
               <TouchableOpacity
-                onPress={() => Alert.alert('Spraakbericht', 'Spraakberichten zijn niet beschikbaar.')}
-                accessibilityRole="button"
-                accessibilityLabel="Spraakbericht opnemen"
-              >
-                <MicrophoneIcon size={22} color={COLORS.textPrimary} weight="regular" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handlePickFromGallery}
+                style={styles.cameraBtn}
+                onPress={handlePickFromCamera}
                 disabled={isSending}
                 accessibilityRole="button"
-                accessibilityLabel="Foto uit galerij kiezen"
+                accessibilityLabel="Foto maken"
               >
-                <ImageIcon size={22} color={COLORS.textPrimary} weight="regular" />
+                <CameraIcon size={16} color={COLORS.surface} weight="regular" />
               </TouchableOpacity>
+
+              <TextInput
+                style={styles.textInput}
+                value={messageInput}
+                onChangeText={setMessageInput}
+                placeholder="Typ een chatbericht..."
+                placeholderTextColor={COLORS.textMuted}
+                multiline
+                maxHeight={100}
+                accessibilityLabel="Typ je bericht"
+              />
             </View>
-          )}
+
+            {(messageInput.trim().length > 0 || pendingImages.length > 0) ? (
+              <TouchableOpacity
+                onPress={handleSend}
+                disabled={isSending}
+                accessibilityRole="button"
+                accessibilityLabel="Bericht verzenden"
+              >
+                {isSending
+                  ? <ActivityIndicator size="small" color={COLORS.brand} />
+                  : <PaperPlaneRightIcon size={22} color={COLORS.brand} weight="fill" />
+                }
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.iconsRight}>
+                <TouchableOpacity
+                  onPress={() => Alert.alert('Spraakbericht', 'Spraakberichten zijn niet beschikbaar.')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Spraakbericht opnemen"
+                >
+                  <MicrophoneIcon size={22} color={COLORS.textPrimary} weight="regular" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handlePickFromGallery}
+                  disabled={isSending}
+                  accessibilityRole="button"
+                  accessibilityLabel="Foto uit galerij kiezen"
+                >
+                  <ImageIcon size={22} color={COLORS.textPrimary} weight="regular" />
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
 
 const MESSAGE_AVATAR_SIZE = 40;
-const AVATAR_COL_WIDTH = MESSAGE_AVATAR_SIZE + 8; // avatar + gap
 
 const styles = StyleSheet.create({
   root: {
@@ -711,7 +739,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
   },
 
-  // ── Header ──────────────────────────────────────────────────────────────────
+  // ── Header ────────────────────────────────────────────────────────────────
   headerSafe: {
     backgroundColor: COLORS.brand,
   },
@@ -772,56 +800,85 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'center',
   },
-
-  // ── Samenwerking panel ───────────────────────────────────────────────────────
-  samenwerkingPanel: {
-    paddingHorizontal: SPACING.screenX,
-    paddingBottom: 16,
-    gap: 12,
-  },
-  samenwerkingQuestion: {
-    color: COLORS.surface,
-    fontFamily: FONTS.bodyMedium,
-    fontSize: 15,
-  },
-  samenwerkingButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  acceptButton: {
-    flex: 1,
+  headerProposeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    minHeight: 32,
   },
-  acceptText: {
-    color: COLORS.brand,
+  headerProposeButtonText: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 14,
-  },
-  weigerButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#D32F2F',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  weigerText: {
+    fontSize: 12,
     color: COLORS.surface,
-    fontFamily: FONTS.bodyMedium,
-    fontSize: 14,
   },
 
-  // ── Messages list ────────────────────────────────────────────────────────────
+  // ── Propose banner ────────────────────────────────────────────────────────
+  proposeBanner: {
+    marginHorizontal: SPACING.screenX,
+    marginTop: 12,
+    marginBottom: 4,
+    backgroundColor: '#FFF8E1',
+    borderRadius: RADIUS.sm,
+    padding: 14,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  proposeBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  proposeBannerIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(87,98,56,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  proposeBannerTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  proposeBannerTitle: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 14,
+    color: COLORS.textPrimary,
+  },
+  proposeBannerSubtitle: {
+    fontFamily: FONTS.body,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    lineHeight: 16,
+  },
+  proposeBannerButton: {
+    backgroundColor: COLORS.accent,
+    borderRadius: RADIUS.sm,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  proposeBannerButtonText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 14,
+    color: COLORS.textPrimary,
+  },
+  proposeBannerDismiss: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    padding: 4,
+  },
+
+  // ── Messages list ─────────────────────────────────────────────────────────
   loadingWrap: {
     flex: 1,
     alignItems: 'center',
@@ -870,7 +927,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 10,
     maxWidth: '75%',
-    // Tail corner: top-right is flat (matches Figma: no tr rounding)
     borderTopLeftRadius: 10,
     borderBottomLeftRadius: 10,
     borderBottomRightRadius: 10,
@@ -883,7 +939,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // Other person's messages (left-aligned, gray)
+  // Other messages (left-aligned, gray)
   otherRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -929,7 +985,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#EFEFEF',
     paddingHorizontal: 10,
     paddingVertical: 10,
-    // Tail corner: top-left is flat (matches Figma: no tl rounding)
     borderTopRightRadius: 10,
     borderBottomRightRadius: 10,
     borderBottomLeftRadius: 10,
@@ -942,7 +997,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // Image bubbles — no background, image/grid clips to bubble radius
+  // Image bubbles
   ownImageBubble: {
     maxWidth: '75%',
     borderTopLeftRadius: 10,
@@ -959,7 +1014,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  // ImageGrid component styles
+  // ImageGrid
   chatImageSingle: {
     width: 200,
     height: 150,
@@ -997,7 +1052,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.displayBold,
   },
 
-  // Pending image preview strip
+  // Pending images
   pendingStrip: {
     marginBottom: 8,
   },
@@ -1021,7 +1076,7 @@ const styles = StyleSheet.create({
     right: -6,
   },
 
-  // Full-screen image gallery
+  // Full-screen gallery
   previewOverlay: {
     flex: 1,
     backgroundColor: '#000000',
@@ -1078,13 +1133,33 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
 
-  // ── Input bar ────────────────────────────────────────────────────────────────
+  // ── Locked bar (samenwerking ended) ──────────────────────────────────────
+  lockedBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: 14,
+    backgroundColor: COLORS.negativeSoft,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(213,60,62,0.2)',
+  },
+  lockedText: {
+    fontFamily: FONTS.body,
+    fontSize: 13,
+    color: COLORS.negative,
+    textAlign: 'center',
+    flexShrink: 1,
+    lineHeight: 18,
+  },
+
+  // ── Input bar ─────────────────────────────────────────────────────────────
   inputBar: {
     backgroundColor: COLORS.surface,
     paddingHorizontal: SPACING.screenX,
     paddingTop: 8,
   },
-  // Pill container — matches Figma node 301:10328
   inputPill: {
     flexDirection: 'row',
     alignItems: 'center',
