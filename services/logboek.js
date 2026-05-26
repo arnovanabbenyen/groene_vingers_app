@@ -1,54 +1,66 @@
 import { supabase } from './supabase';
-import { AANVRAAG_STATUS } from './aanvraagStatus';
 
 export async function getActiveSamenwerking(userId) {
-  if (!supabase || !userId) return { data: null, error: null };
-
   const { data, error } = await supabase
     .from('aanvragen')
-    .select('id, perceel_id, sender_id, status, created_at, percelen(id, naam, plaats, fotos, voorzieningen, grootte)')
+    .select(`
+      id, status, confirmed_at, perceel_id, sender_id,
+      percelen!inner(id, naam, plaats, fotos, owner_id, lat, lng)
+    `)
     .eq('sender_id', userId)
-    .eq('status', AANVRAAG_STATUS.CONFIRMED)
-    .order('created_at', { ascending: false })
-    .limit(1)
+    .eq('status', 'confirmed')
     .maybeSingle();
 
-  return { data: data || null, error: error || null };
+  if (error) {
+    console.warn('Active samenwerking fetch error', error);
+    return null;
+  }
+
+  if (!data?.percelen?.owner_id) return data;
+
+  const { data: ownerProfile } = await supabase
+    .from('profiles')
+    .select('first_name, last_name, avatar_url')
+    .eq('id', data.percelen.owner_id)
+    .maybeSingle();
+
+  return { ...data, ownerProfile };
 }
 
-export async function getLogboekEntries(aanvraagId, limit = 20) {
-  if (!supabase || !aanvraagId) return { data: [], error: null };
-
+export async function getLogboekEntries(userId, limit = 50) {
   const { data, error } = await supabase
     .from('logboek_entries')
     .select('id, aanvraag_id, author_id, description, fotos, logged_at, created_at')
-    .eq('aanvraag_id', aanvraagId)
+    .eq('author_id', userId)
     .order('logged_at', { ascending: false })
     .limit(limit);
 
-  return { data: data || [], error: error || null };
+  if (error) {
+    console.warn('Logboek entries fetch error', error);
+    return [];
+  }
+  return data || [];
 }
 
 export async function getWeeklyProgress(userId) {
-  if (!supabase || !userId) return { data: null, error: null };
+  const { data, error } = await supabase
+    .rpc('get_weekly_log_progress', { p_user_id: userId });
 
-  const { data, error } = await supabase.rpc('get_weekly_log_progress', {
-    p_user_id: userId,
-  });
-
-  const row = Array.isArray(data) ? data[0] : data;
-  return { data: row || null, error: error || null };
+  if (error || !data?.length) {
+    console.warn('Weekly progress fetch error', error);
+    return { days_logged: 0, weekly_goal: 4, logged_dates: [] };
+  }
+  return data[0];
 }
 
 export async function updateWeeklyLogGoal(userId, goal) {
-  if (!supabase || !userId) return { error: null };
-
-  const clampedGoal = Math.min(7, Math.max(1, Number(goal)));
-
+  if (goal < 1 || goal > 7) {
+    throw new Error('Doel moet tussen 1 en 7 dagen liggen.');
+  }
   const { error } = await supabase
     .from('profiles')
-    .update({ weekly_log_goal: clampedGoal })
+    .update({ weekly_log_goal: goal })
     .eq('id', userId);
-
-  return { error: error || null };
+  if (error) throw error;
+  return { success: true };
 }

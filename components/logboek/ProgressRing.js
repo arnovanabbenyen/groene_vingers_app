@@ -1,12 +1,12 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { COLORS, FONTS } from '../theme/tokens';
 
 const RING_COLOR = '#FFB800';
-const TRACK_COLOR = 'rgba(255,184,0,0.2)';
+const TRACK_COLOR = 'rgba(255,184,0,0.18)';
 
-export default function ProgressRing({ logged = 0, goal = 4, size = 96 }) {
-  const strokeWidth = size * 0.09;
+export default function ProgressRing({ logged = 0, goal = 4, size = 89 }) {
+  const strokeWidth = size * 0.1;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const progress = goal > 0 ? Math.min(logged / goal, 1) : 0;
@@ -59,9 +59,11 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.displaySemiBold,
     color: COLORS.textPrimary,
     lineHeight: undefined,
+    textAlign: 'center',
   },
   label: {
     fontFamily: FONTS.body,
     color: COLORS.textSecondary,
+    textAlign: 'center',
   },
 });

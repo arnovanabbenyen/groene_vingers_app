@@ -8,8 +8,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { PlusIcon, TargetIcon } from 'phosphor-react-native';
 import { StatusBar } from 'expo-status-bar';
+import { BellIcon, HeartIcon, PlusIcon, TargetIcon } from 'phosphor-react-native';
 import BottomNav from '../../components/navigation/BottomNav';
 import ProgressRing from '../../components/logboek/ProgressRing';
 import WeekCalendar from '../../components/logboek/WeekCalendar';
@@ -20,64 +20,54 @@ import ConversationDetailScreen from '../berichten/ConversationDetailScreen';
 import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
 import { getLogboekEntries, getWeeklyProgress } from '../../services/logboek';
 import { supabase } from '../../services/supabase';
-import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
+import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 
 export default function LogboekHomeScreen({
   samenwerking,
-  badgeCounts = {},
+  onNewLog,
+  onOpenWeeklyGoal,
+  onOpenNotifications,
+  onOpenSaved,
+  onOpenProfiel,
   onOpenConversation,
   selectedConversation: appSelectedConversation = null,
   onCloseConversation,
+  badgeCounts = {},
   unreadNotificationsCount = 0,
-  onOpenNotifications,
-  onOpenProfiel,
-  onOpenSaved,
-  onOpenNieuweLog,
-  onOpenWeeklyGoal,
   samenwerkingRefreshKey = 0,
 }) {
   const [activeTab, setActiveTab] = useState('start');
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [selectedPerceel, setSelectedPerceel] = useState(null);
+
   const [profileImageSource, setProfileImageSource] = useState(null);
-
   const [entries, setEntries] = useState([]);
-  const [weeklyProgress, setWeeklyProgress] = useState(null);
+  const [weeklyProgress, setWeeklyProgress] = useState({ days_logged: 0, weekly_goal: 4, logged_dates: [] });
   const [isLoadingData, setIsLoadingData] = useState(true);
-
-  const aanvraagId = samenwerking?.id ?? null;
-  const perceelNaam = samenwerking?.percelen?.naam ?? 'Jouw perceel';
-  const loggedDates = entries.map((e) => e.logged_at);
 
   useEffect(() => {
     let mounted = true;
 
     async function loadData() {
-      if (!supabase || !aanvraagId) {
-        if (mounted) setIsLoadingData(false);
-        return;
-      }
+      if (!supabase) { if (mounted) setIsLoadingData(false); return; }
 
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const userId = sessionData?.session?.user?.id;
+        const { data: userData } = await supabase.auth.getUser();
+        const userId = userData?.user?.id;
+        if (!userId) { if (mounted) setIsLoadingData(false); return; }
 
-        const [entriesResult, progressResult, profileResult] = await Promise.all([
-          getLogboekEntries(aanvraagId),
-          userId ? getWeeklyProgress(userId) : Promise.resolve({ data: null }),
-          userId
-            ? supabase.from('profiles').select('avatar_url').eq('id', userId).maybeSingle()
-            : Promise.resolve({ data: null }),
+        const [entriesData, progressData, profileResult] = await Promise.all([
+          getLogboekEntries(userId),
+          getWeeklyProgress(userId),
+          supabase.from('profiles').select('avatar_url').eq('id', userId).maybeSingle(),
         ]);
 
-        if (mounted) {
-          setEntries(entriesResult.data || []);
-          setWeeklyProgress(progressResult.data || null);
-          if (profileResult.data?.avatar_url) {
-            setProfileImageSource(profileResult.data.avatar_url);
-          }
-          setIsLoadingData(false);
-        }
+        if (!mounted) return;
+
+        setEntries(entriesData);
+        setWeeklyProgress(progressData);
+        if (profileResult.data?.avatar_url) setProfileImageSource(profileResult.data.avatar_url);
+        setIsLoadingData(false);
       } catch (err) {
         console.warn('LogboekHomeScreen load error', err);
         if (mounted) setIsLoadingData(false);
@@ -86,17 +76,11 @@ export default function LogboekHomeScreen({
 
     loadData();
     return () => { mounted = false; };
-  }, [aanvraagId, samenwerkingRefreshKey]);
+  }, [samenwerkingRefreshKey]);
 
   function handleTabPress(item) {
-    if (item.key === 'profiel') {
-      onOpenProfiel?.();
-      return;
-    }
-    if (item.key === 'loggen') {
-      onOpenNieuweLog?.();
-      return;
-    }
+    if (item.key === 'profiel') { onOpenProfiel?.(); return; }
+    if (item.key === 'loggen') { onNewLog?.(); return; }
     setActiveTab(item.key);
   }
 
@@ -105,14 +89,8 @@ export default function LogboekHomeScreen({
     return (
       <ConversationDetailScreen
         conversation={activeConversation}
-        onBack={() => {
-          setSelectedConversation(null);
-          onCloseConversation?.();
-        }}
-        onConfirmSamenwerking={() => {
-          setSelectedConversation(null);
-          onCloseConversation?.();
-        }}
+        onBack={() => { setSelectedConversation(null); onCloseConversation?.(); }}
+        onConfirmSamenwerking={() => { setSelectedConversation(null); onCloseConversation?.(); }}
       />
     );
   }
@@ -152,23 +130,43 @@ export default function LogboekHomeScreen({
     );
   }
 
-  const logged = weeklyProgress?.logged_days ?? entries.filter((e) => {
-    const now = new Date();
-    const weekStart = new Date(now);
-    const day = now.getDay();
-    weekStart.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
-    weekStart.setHours(0, 0, 0, 0);
-    return new Date(e.logged_at) >= weekStart;
-  }).length;
-  const goal = weeklyProgress?.weekly_goal ?? 4;
+  const daysLogged = weeklyProgress?.days_logged ?? 0;
+  const weeklyGoal = weeklyProgress?.weekly_goal ?? 4;
+  const loggedDates = entries.map((e) => String(e.logged_at));
+  const perceelNaam = samenwerking?.percelen?.naam ?? 'Jouw perceel';
+
+  const remaining = weeklyGoal - daysLogged;
+  const progressSubtitle = daysLogged >= weeklyGoal
+    ? 'Doelstelling behaald!'
+    : `Nog ${remaining} dag${remaining !== 1 ? 'en' : ''} te gaan`;
 
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
+
       <SafeAreaView edges={['top']} style={styles.headerSafe}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle} accessibilityRole="header">Logboek</Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1}>{perceelNaam}</Text>
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.headerTitle}>Logboek</Text>
+              <Text style={styles.headerSubtitle}>{perceelNaam}</Text>
+            </View>
+            <View style={styles.headerActions}>
+              <Pressable onPress={onOpenNotifications} hitSlop={8} style={styles.bellWrap}>
+                <BellIcon size={24} color={COLORS.textInverse} weight="regular" />
+                {unreadNotificationsCount > 0 ? (
+                  <View style={styles.bellBadge}>
+                    <Text style={styles.bellBadgeText}>
+                      {unreadNotificationsCount > 9 ? '9+' : String(unreadNotificationsCount)}
+                    </Text>
+                  </View>
+                ) : null}
+              </Pressable>
+              <Pressable onPress={onOpenSaved} hitSlop={8}>
+                <HeartIcon size={24} color={COLORS.textInverse} weight="regular" />
+              </Pressable>
+            </View>
+          </View>
         </View>
       </SafeAreaView>
 
@@ -185,35 +183,29 @@ export default function LogboekHomeScreen({
             <View style={[styles.card, styles.progressCard]}>
               <View style={styles.progressLeft}>
                 <Text style={styles.progressTitle}>Voortgang deze week</Text>
-                <Text style={styles.progressSubtitle}>
-                  {logged >= goal
-                    ? 'Doelstelling behaald!'
-                    : `Nog ${goal - logged} dag${goal - logged !== 1 ? 'en' : ''} te gaan`}
-                </Text>
+                <Text style={styles.progressSubtitle}>{progressSubtitle}</Text>
                 <Pressable
                   style={styles.goalButton}
                   onPress={onOpenWeeklyGoal}
                   accessibilityRole="button"
-                  accessibilityLabel="Wekelijks doel aanpassen"
+                  accessibilityLabel={`Weekdoel instellen: ${weeklyGoal} keer per week`}
                 >
                   <TargetIcon size={14} color={COLORS.brand} weight="regular" />
-                  <Text style={styles.goalButtonText}>Doel: {goal}×/week</Text>
+                  <Text style={styles.goalButtonText}>Doel: {weeklyGoal}×/week</Text>
                 </Pressable>
               </View>
-              <ProgressRing logged={logged} goal={goal} size={88} />
+              <ProgressRing logged={daysLogged} goal={weeklyGoal} size={88} />
             </View>
 
             {/* Action cards */}
             <View style={styles.actionRow}>
               <Pressable
                 style={styles.actionCard}
-                onPress={onOpenNieuweLog}
+                onPress={onNewLog}
                 accessibilityRole="button"
                 accessibilityLabel="Nieuw log toevoegen"
               >
-                <View style={styles.actionIconCircle}>
-                  <PlusIcon size={20} color={COLORS.brand} weight="bold" />
-                </View>
+                <PlusIcon size={20} color={COLORS.brand} weight="bold" />
                 <Text style={styles.actionCardTitle}>Nieuw log</Text>
                 <Text style={styles.actionCardSub}>Voeg een bezoek toe</Text>
               </Pressable>
@@ -224,33 +216,31 @@ export default function LogboekHomeScreen({
                 accessibilityRole="button"
                 accessibilityLabel="Wekelijks doel instellen"
               >
-                <View style={styles.actionIconCircle}>
-                  <TargetIcon size={20} color={COLORS.brand} weight="regular" />
-                </View>
+                <TargetIcon size={20} color={COLORS.brand} weight="regular" />
                 <Text style={styles.actionCardTitle}>Wekelijks doel</Text>
                 <Text style={styles.actionCardSub}>Bezoeken instellen</Text>
               </Pressable>
             </View>
 
-            {/* Week calendar */}
+            {/* Week calendar in white card */}
             <View style={[styles.card, styles.calendarCard]}>
               <Text style={styles.sectionTitle}>Deze week</Text>
               <WeekCalendar loggedDates={loggedDates} />
             </View>
 
-            {/* Recent log entries */}
-            <Text style={styles.sectionTitle}>Recente logs</Text>
-            {entries.length === 0 ? (
-              <View style={styles.emptyEntries}>
-                <Text style={styles.emptyText}>
-                  Nog geen logs. Voeg je eerste bezoek toe!
-                </Text>
-              </View>
-            ) : (
-              entries.slice(0, 5).map((entry) => (
-                <LogEntryCard key={entry.id} entry={entry} />
-              ))
-            )}
+            {/* Recent logs */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Recente logs</Text>
+              {entries.length === 0 ? (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.emptyText}>Nog geen logs. Voeg je eerste bezoek toe!</Text>
+                </View>
+              ) : (
+                entries.slice(0, 5).map((entry) => (
+                  <LogEntryCard key={entry.id} entry={entry} />
+                ))
+              )}
+            </View>
           </>
         )}
       </ScrollView>
@@ -268,27 +258,60 @@ export default function LogboekHomeScreen({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.surface,
   },
   headerSafe: {
     backgroundColor: COLORS.brand,
   },
   header: {
-    backgroundColor: COLORS.brand,
     paddingHorizontal: SPACING.screenX,
-    paddingVertical: SPACING.md,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.lg,
+  },
+  headerTop: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    justifyContent: 'space-between',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  bellWrap: {
+    position: 'relative',
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.negative,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: COLORS.brand,
+  },
+  bellBadgeText: {
+    color: COLORS.surface,
+    fontSize: 9,
+    fontFamily: FONTS.bodyMedium,
+    lineHeight: 11,
   },
   headerTitle: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.xl,
+    fontSize: 28,
     color: COLORS.textInverse,
+    lineHeight: 30,
   },
   headerSubtitle: {
     fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
-    color: 'rgba(250,249,245,0.72)',
+    fontSize: 14,
+    color: 'rgba(250,249,245,0.75)',
+    lineHeight: 18,
   },
   scroll: {
     flex: 1,
@@ -296,19 +319,23 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.md,
-    paddingBottom: 32,
+    paddingBottom: SIZES.bottomNavClearance,
     gap: SPACING.md,
   },
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    ...SHADOWS.card,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   progressCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: SPACING.md,
+    gap: SPACING.md,
   },
   progressLeft: {
     flex: 1,
@@ -316,18 +343,20 @@ const styles = StyleSheet.create({
   },
   progressTitle: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.lg,
+    fontSize: 18,
     color: COLORS.textPrimary,
+    lineHeight: 20,
   },
   progressSubtitle: {
     fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
+    fontSize: 13,
     color: COLORS.textSecondary,
+    lineHeight: 17,
   },
   goalButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     alignSelf: 'flex-start',
     backgroundColor: COLORS.surfaceBrand,
     borderRadius: RADIUS.pill,
@@ -336,57 +365,60 @@ const styles = StyleSheet.create({
   },
   goalButtonText: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: FONT_SIZES.xs,
+    fontSize: 12,
     color: COLORS.brand,
+    lineHeight: 16,
   },
   actionRow: {
     flexDirection: 'row',
-    gap: SPACING.sm,
+    gap: SPACING.md,
   },
   actionCard: {
     flex: 1,
-    backgroundColor: 'rgba(87,98,56,0.05)',
-    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
     padding: SPACING.md,
-    gap: SPACING.sm,
-    alignItems: 'flex-start',
-  },
-  actionIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surfaceBrand,
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: SPACING.xs,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   actionCardTitle: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.md,
+    fontSize: 14,
     color: COLORS.textPrimary,
+    textAlign: 'center',
   },
   actionCardSub: {
     fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.xs,
+    fontSize: 11,
     color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 14,
   },
   calendarCard: {
-    padding: SPACING.md,
-    gap: SPACING.sm,
+    gap: SPACING.md,
+  },
+  section: {
+    gap: SPACING.md,
   },
   sectionTitle: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.lg,
+    fontSize: 18,
     color: COLORS.textPrimary,
   },
-  emptyEntries: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
+  emptyCard: {
+    backgroundColor: '#F7F7F5',
+    borderRadius: RADIUS.sm,
     padding: SPACING.lg,
     alignItems: 'center',
   },
   emptyText: {
     fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
+    fontSize: 14,
     color: COLORS.textSecondary,
     textAlign: 'center',
   },

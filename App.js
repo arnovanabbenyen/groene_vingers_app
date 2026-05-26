@@ -63,8 +63,11 @@ export default function App() {
   const [weeklyGoalSource, setWeeklyGoalSource] = useState('instellingen');
   const homeInitialTabRef = useRef('start');
   const { aanvragen: pendingAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
-  const { samenwerking: activeSamenwerking, isLoading: isLoadingActiveSamenwerking } =
-    useActiveSamenwerking(samenwerkingRefreshKey);
+  const {
+    samenwerking: activeSamenwerking,
+    isLoading: isSamenwerkingLoading,
+    hasActiveSamenwerking,
+  } = useActiveSamenwerking(samenwerkingRefreshKey);
   const pendingProfilePhotoRef = useRef({ uri: null, userId: null });
 
   function handleLogout() {
@@ -505,7 +508,7 @@ export default function App() {
               setCurrentScreen('eind-samenwerking');
             }}
           />
-        ) : activeSamenwerking && !isLoadingActiveSamenwerking ? (
+        ) : selectedRole === 'tuinzoeker' && !isSamenwerkingLoading && hasActiveSamenwerking ? (
           <LogboekHomeScreen
             samenwerking={activeSamenwerking}
             samenwerkingRefreshKey={samenwerkingRefreshKey}
@@ -517,7 +520,7 @@ export default function App() {
             onOpenNotifications={() => setCurrentScreen('meldingen')}
             onOpenProfiel={() => setCurrentScreen('profiel')}
             onOpenSaved={() => { setOpgeslagenSource('home'); setCurrentScreen('opgeslagen'); }}
-            onOpenNieuweLog={() => setCurrentScreen('nieuwe-log')}
+            onNewLog={() => setCurrentScreen('nieuwe-log')}
             onOpenWeeklyGoal={() => { setWeeklyGoalSource('home'); setCurrentScreen('weekly-goal'); }}
           />
         ) : (
