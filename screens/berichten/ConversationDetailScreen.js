@@ -543,7 +543,11 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
           style={styles.messagesList}
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={<SystemMessageHeader />}
+          ListHeaderComponent={
+            messages.filter((m) => m.type === 'user' || !m.type).length === 0
+              ? <SystemMessageHeader />
+              : null
+          }
         />
       )}
 
