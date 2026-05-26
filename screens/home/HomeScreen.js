@@ -12,6 +12,7 @@
   import ConversationDetailScreen from '../berichten/ConversationDetailScreen';
   import PlansScreen from '../plans/PlansScreen';
   import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
+  import GeenToegangScreen from '../aanvraag/GeenToegangScreen';
   import AanvraagDoenScreen from '../aanvraag/AanvraagDoenScreen';
   import AanvraagBevestigingScreen from '../aanvraag/AanvraagBevestigingScreen';
   import LogboekScreen from '../loggen/LogboekScreen';
@@ -56,9 +57,19 @@
     const [selectedPlot, setSelectedPlot] = useState(null);
     const [requestPlot, setRequestPlot] = useState(null);
     const [requestSuccessPerceel, setRequestSuccessPerceel] = useState(null);
+    const [geenToegangActive, setGeenToegangActive] = useState(false);
+    const [userPlan, setUserPlan] = useState('free');
     const [plots, setPlots] = useState(null); // null = loading not attempted
     const [myAanvragen, setMyAanvragen] = useState([]);
     const { isFavorite, toggleFavorite } = useFavorites();
+
+    function handleRequestWithGate(plot) {
+      if (userPlan === 'pro') {
+        setRequestPlot(plot);
+      } else {
+        setGeenToegangActive(true);
+      }
+    }
 
     useEffect(() => {
       let mounted = true;
@@ -136,7 +147,7 @@
 
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
-            .select('avatar_url')
+            .select('avatar_url, plan')
             .eq('id', user.id)
             .single();
 
@@ -145,8 +156,9 @@
             return;
           }
 
-          if (mounted && profile?.avatar_url) {
-            setProfileImageSource(profile.avatar_url);
+          if (mounted) {
+            if (profile?.avatar_url) setProfileImageSource(profile.avatar_url);
+            if (profile?.plan) setUserPlan(profile.plan);
           }
         } catch (e) {
           console.log('loadProfileAvatar error', e);
@@ -201,12 +213,37 @@
       );
     }
 
+    if (activeTab === 'pro-plan') {
+      return (
+        <PlansScreen
+          onBack={() => setActiveTab('start')}
+          onUpgradeSuccess={() => {
+            setUserPlan('pro');
+            setGeenToegangActive(false);
+            setActiveTab('start');
+          }}
+        />
+      );
+    }
+
+    if (geenToegangActive && selectedPlot) {
+      return (
+        <GeenToegangScreen
+          onBack={() => setGeenToegangActive(false)}
+          onUpgrade={() => {
+            setGeenToegangActive(false);
+            setActiveTab('pro-plan');
+          }}
+        />
+      );
+    }
+
     if (selectedPlot) {
       return (
         <ParcelDetailScreen
           perceel={selectedPlot}
           onBack={() => setSelectedPlot(null)}
-          onRequest={() => setRequestPlot(selectedPlot)}
+          onRequest={() => handleRequestWithGate(selectedPlot)}
           isFavorited={isFavorite(selectedPlot?.id)}
           onToggleFavorite={() => toggleFavorite(selectedPlot?.id)}
           showFavoriteButton
@@ -267,10 +304,6 @@
       );
     }
 
-    if (activeTab === 'pro-plan') {
-      return <PlansScreen onBack={() => setActiveTab('start')} />;
-    }
-
     return (
       <View style={styles.safeArea}>
         <StatusBar style="light" />
@@ -293,7 +326,9 @@
             />
 
             <View style={styles.contentWrap}>
-              <HomePromoCard onPressUpgrade={() => setActiveTab('pro-plan')} />
+              {userPlan !== 'pro' && (
+                <HomePromoCard onPressUpgrade={() => setActiveTab('pro-plan')} />
+              )}
 
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Tijd om te beginnen!</Text>

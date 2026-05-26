@@ -14,6 +14,7 @@ import ParcelDetailScreen from './screens/parcel/ParcelDetailScreen';
 import ProfielBewerkenScreen from './screens/profile/ProfielBewerkenScreen';
 import InstellingenScreen from './screens/settings/InstellingenScreen';
 import NotificatieInstellingenScreen from './screens/settings/NotificatieInstellingenScreen';
+import PlansScreen from './screens/plans/PlansScreen';
 import { usePendingAanvragen } from './hooks/usePendingAanvragen';
 import { useNotifications } from './hooks/useNotifications';
 import InfoScreen from './screens/auth/InfoScreen';
@@ -375,6 +376,14 @@ export default function App() {
           <NotificatieInstellingenScreen
             onBack={() => setCurrentScreen('instellingen')}
           />
+        ) : currentScreen === 'kies-plan' ? (
+          <PlansScreen
+            onBack={() => setCurrentScreen('instellingen')}
+            onUpgradeSuccess={() => {
+              setProfielRefreshKey((k) => k + 1);
+              setCurrentScreen('instellingen');
+            }}
+          />
         ) : currentScreen === 'instellingen' ? (
           <InstellingenScreen
             role={selectedRole}
@@ -384,6 +393,7 @@ export default function App() {
               setCurrentScreen('profiel-bewerken');
             }}
             onOpenNotificaties={() => setCurrentScreen('notificatie-instellingen')}
+            onOpenKiesPlan={() => setCurrentScreen('kies-plan')}
             onLogout={handleLogout}
           />
         ) : currentScreen === 'profiel-bewerken' ? (

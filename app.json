@@ -3,6 +3,7 @@
     "name": "Groene Vingers",
     "slug": "groene-vingers",
     "version": "1.0.0",
+    "scheme": "groenevingers",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -52,7 +53,14 @@
           "cameraPermission": "Groene Vingers gebruikt je camera om foto's te maken voor je gesprekken."
         }
       ],
-      "expo-location"
+      "expo-location",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.arnovan.groenevingers",
+          "enableGooglePay": false
+        }
+      ]
     ]
   }
 }

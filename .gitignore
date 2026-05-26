@@ -52,3 +52,7 @@ coverage/
 /android
 
 .env.local
+
+# Supabase
+supabase/.temp/
+supabase/.branches/
