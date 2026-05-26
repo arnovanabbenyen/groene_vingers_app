@@ -122,7 +122,7 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
   const [currentUserId, setCurrentUserId] = useState(null);
   const [aanvraag, setAanvraag] = useState(null);
   const [isProposing, setIsProposing] = useState(false);
-  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
+  const [isBannerDismissed, setIsBannerDismissed] = useState(true);
 
   // Derived
   const aanvraagStatus = aanvraag?.status ?? null;
@@ -135,8 +135,8 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
     aanvraagStatus === AANVRAAG_STATUS.ACCEPTED &&
     !aanvraag?.samenwerking_proposed_at;
 
-  const shouldShowHeaderProposeButton = baseConditions && (userMessageCount < 5 || isBannerDismissed);
-  const shouldShowProposeBanner = baseConditions && userMessageCount >= 5;
+  const shouldShowHeaderProposeButton = baseConditions;
+  const shouldShowProposeBanner = baseConditions && !isBannerDismissed;
 
   function openPreview(url, allUrls) {
     const idx = allUrls.indexOf(url);
@@ -523,7 +523,7 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
       </SafeAreaView>
 
       {/* Propose banner — owner only, when status=accepted and no proposal pending */}
-      {!isLoadingMessages && shouldShowProposeBanner && !isBannerDismissed && (
+      {!isLoadingMessages && shouldShowProposeBanner && (
         <View style={styles.proposeBanner}>
           <View style={styles.proposeBannerContent}>
             <View style={styles.proposeBannerIcon}>
