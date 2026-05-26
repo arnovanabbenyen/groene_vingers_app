@@ -15,7 +15,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ArrowLeftIcon,
   DropIcon,
+  HandshakeIcon,
   LeafIcon,
+  MapPinIcon,
   PlantIcon,
   ShovelIcon,
 } from 'phosphor-react-native';
@@ -24,79 +26,147 @@ import { endSamenwerking, submitRating } from '../../services/samenwerkingPropos
 import StarRatingInput from '../../components/rating/StarRatingInput';
 import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
 
-// ── Voorziening icon mapping (matches PlotCard) ───────────────────
-function VoorzieningIcon({ label }) {
-  const s = (label || '').toLowerCase();
-  if (s.includes('water') || s.includes('drop'))    return <DropIcon  size={16} color={COLORS.surface} weight="regular" />;
-  if (s.includes('shovel') || s.includes('materiaal')) return <ShovelIcon size={16} color={COLORS.surface} weight="regular" />;
-  if (s.includes('zaden') || s.includes('plant'))   return <PlantIcon size={16} color={COLORS.surface} weight="regular" />;
-  return <LeafIcon size={16} color={COLORS.surface} weight="regular" />;
+const FALLBACK_AVATAR = require('../../images/tuinzoeker_pfp.png');
+const CARD_PHOTO_HEIGHT = 130;
+const PARTNER_AVATAR_SIZE = 44;
+
+function formatStartDate(iso) {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleDateString('nl-BE', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  } catch {
+    return null;
+  }
 }
 
-// ── Samenwerking info card (matches Figma 411:4382) ───────────────
+// ── Voorziening icon ──────────────────────────────────────────────
+function VoorzieningIcon({ label }) {
+  const s = (label || '').toLowerCase();
+  if (s.includes('water') || s.includes('drop'))       return <DropIcon   size={13} color={COLORS.surface} weight="regular" />;
+  if (s.includes('shovel') || s.includes('materiaal')) return <ShovelIcon size={13} color={COLORS.surface} weight="regular" />;
+  if (s.includes('zaden') || s.includes('plant'))      return <PlantIcon  size={13} color={COLORS.surface} weight="regular" />;
+  return <LeafIcon size={13} color={COLORS.surface} weight="regular" />;
+}
+
+// ── Samenwerking info card ────────────────────────────────────────
 function SamenwerkingInfoCard({ samenwerking }) {
   const perceel = samenwerking.percelen;
   const sender  = samenwerking.senderProfile;
 
-  const perceelName   = perceel?.naam  ?? 'Perceel';
-  const perceelPhoto  = perceel?.fotos?.[0] ?? null;
-  const voorzieningen = (perceel?.voorzieningen ?? []).slice(0, 3);
+  const perceelName      = perceel?.naam       ?? 'Perceel';
+  const perceelPhoto     = perceel?.fotos?.[0] ?? null;
+  const perceelLocation  = perceel?.plaats     ?? null;
+  const voorzieningen    = (perceel?.voorzieningen ?? []).slice(0, 3);
   const typeSamenwerking = samenwerking.type_samenwerking ?? null;
 
-  const partnerName = sender
-    ? [sender.first_name, sender.last_name].filter(Boolean).join(' ').trim()
+  const partnerName   = sender
+    ? [sender.first_name, sender.last_name].filter(Boolean).join(' ').trim() || null
     : null;
+  const partnerAvatar = sender?.avatar_url ? { uri: sender.avatar_url } : FALLBACK_AVATAR;
+  const startDate     = formatStartDate(samenwerking.confirmed_at);
+
+  const hasBody = partnerName || typeSamenwerking || voorzieningen.length > 0;
+
+  const cardA11yLabel = [
+    `Perceel: ${perceelName}`,
+    perceelLocation && `in ${perceelLocation}`,
+    partnerName     && `Samenwerking met ${partnerName}`,
+    startDate       && `Gestart op ${startDate}`,
+    typeSamenwerking && `Type: ${typeSamenwerking}`,
+    voorzieningen.length > 0 && `Voorzieningen: ${voorzieningen.join(', ')}`,
+  ].filter(Boolean).join('. ');
 
   return (
-    <View style={styles.infoCard}>
-      {/* Yellow left accent bar */}
-      <View style={styles.infoAccentBar} />
-
-      <View style={styles.infoContent}>
-        {/* Top row: photo + name + partner */}
-        <View style={styles.infoTopRow}>
-          <View style={styles.infoPhotoWrap}>
-            {perceelPhoto ? (
-              <Image source={{ uri: perceelPhoto }} style={styles.infoPhoto} resizeMode="cover" />
-            ) : (
-              <View style={[styles.infoPhoto, styles.infoPhotoPlaceholder]}>
-                <LeafIcon size={22} color={COLORS.brand} weight="regular" />
-              </View>
-            )}
-          </View>
-
-          <View style={styles.infoTextCol}>
-            <Text style={styles.infoPerceelName} numberOfLines={1}>
-              {perceelName}
-            </Text>
-            {partnerName ? (
-              <Text style={styles.infoPartner} numberOfLines={2}>
-                {'Dit is een samenwerking met '}
-                <Text style={styles.infoPartnerBold}>{partnerName}</Text>
-              </Text>
-            ) : null}
-          </View>
-        </View>
-
-        {/* Voorziening pills */}
-        {voorzieningen.length > 0 && (
-          <View style={styles.infoVoorzRow}>
-            {voorzieningen.map((v, i) => (
-              <View key={i} style={styles.infoVoorzPill}>
-                <VoorzieningIcon label={v} />
-              </View>
-            ))}
+    <View
+      style={styles.infoCard}
+      accessible
+      accessibilityLabel={cardA11yLabel}
+    >
+      {/* ── Photo header ────────────────────────────────────── */}
+      <View style={styles.infoPhotoWrap}>
+        {perceelPhoto ? (
+          <Image
+            source={{ uri: perceelPhoto }}
+            style={styles.infoPhoto}
+            resizeMode="cover"
+            accessibilityElementsHidden
+          />
+        ) : (
+          <View style={[styles.infoPhoto, styles.infoPhotoPlaceholder]} accessibilityElementsHidden>
+            <LeafIcon size={40} color={COLORS.brand} weight="regular" />
           </View>
         )}
 
-        {/* Type samenwerking */}
-        {typeSamenwerking ? (
-          <Text style={styles.infoType} numberOfLines={2}>
-            <Text style={styles.infoTypeBold}>Samenwerking: </Text>
-            {typeSamenwerking}
-          </Text>
-        ) : null}
+        {/* Gradient scrim — perceel name overlaid */}
+        <View style={styles.infoScrim} pointerEvents="none">
+          <View style={styles.infoPerceelMeta}>
+            <Text style={styles.infoPerceelName} numberOfLines={1} accessibilityElementsHidden>
+              {perceelName}
+            </Text>
+            {perceelLocation ? (
+              <View style={styles.infoLocationRow}>
+                <MapPinIcon size={11} color="rgba(255,255,255,0.85)" weight="fill" />
+                <Text style={styles.infoLocation} numberOfLines={1} accessibilityElementsHidden>
+                  {perceelLocation}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
       </View>
+
+      {/* ── Body ────────────────────────────────────────────── */}
+      {hasBody ? (
+        <View style={styles.infoBody}>
+          {/* Partner row */}
+          {partnerName ? (
+            <View style={styles.infoPartnerRow} accessibilityElementsHidden>
+              <Image source={partnerAvatar} style={styles.infoAvatar} />
+              <View style={styles.infoPartnerText}>
+                <Text style={styles.infoPartnerName} numberOfLines={1}>
+                  {partnerName}
+                </Text>
+                <Text style={styles.infoPartnerSub} numberOfLines={1}>
+                  {startDate ? `Gestart ${startDate}` : 'Tuinzoeker'}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
+          {/* Divider */}
+          {partnerName && (typeSamenwerking || voorzieningen.length > 0) ? (
+            <View style={styles.infoDivider} />
+          ) : null}
+
+          {/* Type samenwerking chip */}
+          {typeSamenwerking ? (
+            <View style={styles.infoTypeChip} accessibilityElementsHidden>
+              <HandshakeIcon size={13} color={COLORS.brand} weight="regular" />
+              <Text style={styles.infoTypeText} numberOfLines={1}>
+                {typeSamenwerking}
+              </Text>
+            </View>
+          ) : null}
+
+          {/* Voorzieningen — icon + label */}
+          {voorzieningen.length > 0 ? (
+            <View style={styles.infoVoorzRow} accessibilityElementsHidden>
+              {voorzieningen.map((v, i) => (
+                <View key={i} style={styles.infoVoorzPill}>
+                  <VoorzieningIcon label={v} />
+                  <Text style={styles.infoVoorzLabel} numberOfLines={1}>
+                    {v}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -179,7 +249,6 @@ export default function EindSamenwerkingScreen({ samenwerking, onBack, onDone })
         showsVerticalScrollIndicator={false}
       >
         {/* ── Samenwerking info ──────────────────────────────── */}
-        <Text style={styles.sectionLabel}>Samenwerking:</Text>
         <SamenwerkingInfoCard samenwerking={samenwerking} />
 
         {/* ── Reason textarea ────────────────────────────────── */}
@@ -278,90 +347,138 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     gap: 16,
   },
-  sectionLabel: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
-    color: COLORS.textPrimary,
-  },
-
   // ── Samenwerking info card ─────────────────────────────────────
   infoCard: {
-    backgroundColor: '#FFFBEE',
-    borderRadius: RADIUS.sm,
-    flexDirection: 'row',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     overflow: 'hidden',
+    ...SHADOWS.card,
   },
-  infoAccentBar: {
-    width: 3,
-    backgroundColor: COLORS.accent,
-    flexShrink: 0,
-  },
-  infoContent: {
-    flex: 1,
-    padding: 16,
-    gap: 10,
-  },
-  infoTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
+
+  // Photo header
   infoPhotoWrap: {
-    width: 75,
-    height: 75,
-    borderRadius: RADIUS.xs,
-    overflow: 'hidden',
-    flexShrink: 0,
+    height: CARD_PHOTO_HEIGHT,
+    backgroundColor: COLORS.surfaceMuted,
+    position: 'relative',
   },
   infoPhoto: {
+    ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
   },
   infoPhotoPlaceholder: {
-    backgroundColor: COLORS.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  infoTextCol: {
-    flex: 1,
-    gap: 6,
+  infoScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.38)',
+    justifyContent: 'flex-end',
+    padding: 12,
+  },
+  infoPerceelMeta: {
+    gap: 3,
   },
   infoPerceelName: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 18,
-    color: COLORS.textPrimary,
+    fontSize: 19,
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
-  infoPartner: {
+  infoLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  infoLocation: {
     fontFamily: FONTS.body,
     fontSize: 12,
+    color: 'rgba(255,255,255,0.85)',
+  },
+
+  // Body
+  infoBody: {
+    padding: 14,
+    gap: 10,
+  },
+  infoPartnerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  infoAvatar: {
+    width: PARTNER_AVATAR_SIZE,
+    height: PARTNER_AVATAR_SIZE,
+    borderRadius: PARTNER_AVATAR_SIZE / 2,
+    backgroundColor: COLORS.surfaceMuted,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    flexShrink: 0,
+  },
+  infoPartnerText: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
+  },
+  infoPartnerName: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: 15,
     color: COLORS.textPrimary,
-    lineHeight: 17,
   },
-  infoPartnerBold: {
+  infoPartnerSub: {
+    fontFamily: FONTS.body,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  infoDivider: {
+    height: 1,
+    backgroundColor: COLORS.dividerSoft,
+    marginVertical: 2,
+  },
+
+  // Type chip
+  infoTypeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.surfaceBrand,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  infoTypeText: {
     fontFamily: FONTS.bodyMedium,
+    fontSize: 12,
     color: COLORS.brand,
-    textDecorationLine: 'underline',
+    flexShrink: 1,
   },
+
+  // Voorzieningen
   infoVoorzRow: {
     flexDirection: 'row',
     gap: 6,
+    flexWrap: 'wrap',
   },
   infoVoorzPill: {
-    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     backgroundColor: COLORS.brand,
     borderRadius: RADIUS.xs,
-    paddingVertical: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    flexShrink: 1,
   },
-  infoType: {
-    fontFamily: FONTS.body,
-    fontSize: 14,
-    color: COLORS.textPrimary,
-    lineHeight: 20,
-  },
-  infoTypeBold: {
-    fontFamily: FONTS.displayMedium,
+  infoVoorzLabel: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 11,
+    color: COLORS.surface,
+    flexShrink: 1,
   },
 
   // ── Heading ───────────────────────────────────────────────────
