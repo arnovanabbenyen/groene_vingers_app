@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ArrowLeftIcon, ArrowRightIcon } from 'phosphor-react-native';
-import { COLORS, FONTS, SPACING } from '../theme/tokens';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { CaretLeftIcon, CaretRightIcon } from 'phosphor-react-native';
+import { COLORS, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
-const DAY_LABELS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
-const DOT_SIZE = 10;
-const CHIP_WIDTH = 36;
+const DAYS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
 
 function getWeekStart(date) {
   const d = new Date(date);
@@ -24,7 +22,7 @@ function getWeekDates(weekStart) {
   });
 }
 
-function toISODate(date) {
+function toDateString(date) {
   return date.toISOString().slice(0, 10);
 }
 
@@ -33,13 +31,10 @@ export default function WeekCalendar({ loggedDates = [] }) {
   const [weekStart, setWeekStart] = useState(() => getWeekStart(today));
 
   const weekDates = getWeekDates(weekStart);
-  const loggedSet = new Set(loggedDates.map((d) => String(d).slice(0, 10)));
-  const todayStr = toISODate(today);
+  const loggedSet = new Set(loggedDates.map((d) => d.slice(0, 10)));
+  const todayStr = toDateString(today);
 
-  const monthLabel = weekStart.toLocaleDateString('nl-BE', {
-    month: 'long',
-    year: 'numeric',
-  });
+  const monthLabel = weekStart.toLocaleDateString('nl-BE', { month: 'long', year: 'numeric' });
 
   function prevWeek() {
     setWeekStart((prev) => {
@@ -58,49 +53,34 @@ export default function WeekCalendar({ loggedDates = [] }) {
   }
 
   return (
-    <View style={styles.root}>
-      {/* Month header */}
+    <View style={styles.container}>
       <View style={styles.monthRow}>
+        <Pressable onPress={prevWeek} hitSlop={8} accessibilityLabel="Vorige week">
+          <CaretLeftIcon size={18} color={COLORS.textSecondary} weight="regular" />
+        </Pressable>
         <Text style={styles.monthLabel}>{monthLabel}</Text>
-        <View style={styles.arrows}>
-          <Pressable onPress={prevWeek} hitSlop={8} accessibilityLabel="Vorige week">
-            <ArrowLeftIcon size={20} color={COLORS.textPrimary} weight="regular" />
-          </Pressable>
-          <Pressable onPress={nextWeek} hitSlop={8} accessibilityLabel="Volgende week">
-            <ArrowRightIcon size={20} color={COLORS.textPrimary} weight="regular" />
-          </Pressable>
-        </View>
+        <Pressable onPress={nextWeek} hitSlop={8} accessibilityLabel="Volgende week">
+          <CaretRightIcon size={18} color={COLORS.textSecondary} weight="regular" />
+        </Pressable>
       </View>
 
-      {/* Dots row */}
-      <View style={styles.dotsRow}>
-        {weekDates.map((date) => {
-          const dateStr = toISODate(date);
-          const isLogged = loggedSet.has(dateStr);
-          return (
-            <View key={dateStr} style={styles.dotCell}>
-              {isLogged ? <View style={styles.dot} /> : null}
-            </View>
-          );
-        })}
-      </View>
-
-      {/* Day chips */}
-      <View style={styles.chipsRow}>
+      <View style={styles.daysRow}>
         {weekDates.map((date, idx) => {
-          const dateStr = toISODate(date);
+          const dateStr = toDateString(date);
+          const isLogged = loggedSet.has(dateStr);
           const isToday = dateStr === todayStr;
+
           return (
-            <View
-              key={dateStr}
-              style={[styles.chip, isToday && styles.chipToday]}
-            >
-              <Text style={[styles.chipDayLabel, isToday && styles.chipTextToday]}>
-                {DAY_LABELS[idx]}
-              </Text>
-              <Text style={[styles.chipDate, isToday && styles.chipTextToday]}>
-                {String(date.getDate()).padStart(2, '0')}
-              </Text>
+            <View key={dateStr} style={styles.dayCol}>
+              {isLogged ? <View style={styles.dot} /> : <View style={styles.dotPlaceholder} />}
+              <View style={[styles.dayChip, isToday && styles.dayChipToday]}>
+                <Text style={[styles.dayLabel, isToday && styles.dayLabelToday]}>
+                  {DAYS[idx]}
+                </Text>
+                <Text style={[styles.dayNum, isToday && styles.dayNumToday]}>
+                  {date.getDate()}
+                </Text>
+              </View>
             </View>
           );
         })}
@@ -110,68 +90,64 @@ export default function WeekCalendar({ loggedDates = [] }) {
 }
 
 const styles = StyleSheet.create({
-  root: {
+  container: {
     gap: SPACING.sm,
   },
   monthRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: SPACING.xs,
   },
   monthLabel: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 13,
     color: COLORS.textPrimary,
     textTransform: 'capitalize',
   },
-  arrows: {
-    flexDirection: 'row',
-    gap: SPACING.md,
-    alignItems: 'center',
-  },
-  dotsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  dotCell: {
-    width: CHIP_WIDTH,
-    alignItems: 'center',
-    height: DOT_SIZE,
-  },
-  dot: {
-    width: DOT_SIZE,
-    height: DOT_SIZE,
-    borderRadius: DOT_SIZE / 2,
-    backgroundColor: COLORS.brand,
-  },
-  chipsRow: {
+  daysRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  chip: {
-    width: CHIP_WIDTH,
-    backgroundColor: COLORS.surfaceMuted,
-    borderRadius: 32,
-    paddingVertical: SPACING.sm,
+  dayCol: {
+    flex: 1,
     alignItems: 'center',
-    gap: SPACING.sm,
+    gap: 4,
   },
-  chipToday: {
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
     backgroundColor: COLORS.brand,
   },
-  chipDayLabel: {
-    fontFamily: FONTS.body,
-    fontSize: 10,
-    color: 'rgba(0,0,0,0.6)',
-    lineHeight: 10,
+  dotPlaceholder: {
+    width: 5,
+    height: 5,
   },
-  chipDate: {
+  dayChip: {
+    width: 36,
+    paddingVertical: 6,
+    borderRadius: RADIUS.sm,
+    alignItems: 'center',
+    gap: 1,
+  },
+  dayChipToday: {
+    backgroundColor: COLORS.brand,
+  },
+  dayLabel: {
     fontFamily: FONTS.body,
     fontSize: 10,
+    color: COLORS.textSecondary,
+  },
+  dayLabelToday: {
+    color: COLORS.textInverse,
+  },
+  dayNum: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: 14,
     color: COLORS.textPrimary,
-    lineHeight: 10,
   },
-  chipTextToday: {
+  dayNumToday: {
     color: COLORS.textInverse,
   },
 });

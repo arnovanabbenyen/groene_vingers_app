@@ -5,6 +5,7 @@ import { getActiveSamenwerking } from '../services/logboek';
 export function useActiveSamenwerking(refreshKey = 0) {
   const [samenwerking, setSamenwerking] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -16,19 +17,32 @@ export function useActiveSamenwerking(refreshKey = 0) {
       }
 
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        const userId = userData?.user?.id;
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
 
+        const userId = sessionData?.session?.user?.id;
         if (!userId) {
-          if (mounted) { setSamenwerking(null); setIsLoading(false); }
+          if (mounted) {
+            setSamenwerking(null);
+            setIsLoading(false);
+          }
           return;
         }
 
-        const data = await getActiveSamenwerking(userId);
-        if (mounted) { setSamenwerking(data); setIsLoading(false); }
+        const { data, error: fetchError } = await getActiveSamenwerking(userId);
+        if (fetchError) throw fetchError;
+
+        if (mounted) {
+          setSamenwerking(data);
+          setIsLoading(false);
+        }
       } catch (err) {
         console.warn('useActiveSamenwerking error', err);
-        if (mounted) { setSamenwerking(null); setIsLoading(false); }
+        if (mounted) {
+          setError(err);
+          setSamenwerking(null);
+          setIsLoading(false);
+        }
       }
     }
 
@@ -36,5 +50,5 @@ export function useActiveSamenwerking(refreshKey = 0) {
     return () => { mounted = false; };
   }, [refreshKey]);
 
-  return { samenwerking, isLoading, hasActiveSamenwerking: !!samenwerking };
+  return { samenwerking, isLoading, error };
 }

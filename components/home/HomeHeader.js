@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BellIcon, HeartIcon, MapPinIcon, MagnifyingGlassIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../theme/tokens';
 
-export default function HomeHeader({ searchQuery, onSearchChange, onPressNotifications, notificationCount = 0, onPressHeart, firstName = 'Arno', searchPlaceholder = 'Zoeken naar een perceel' }) {
+export default function HomeHeader({ searchQuery, onSearchChange, onPressNotifications, notificationCount = 0, onPressHeart }) {
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(46, insets.top + 18);
 
@@ -22,7 +22,7 @@ export default function HomeHeader({ searchQuery, onSearchChange, onPressNotific
               <MapPinIcon size={14} color={COLORS.textInverse} weight="regular" />
               <Text style={styles.locationText}>Leuven</Text>
             </View>
-            <Text style={styles.greeting}>Hallo, {firstName}</Text>
+            <Text style={styles.greeting}>Hallo, Arno</Text>
           </View>
 
           <View style={styles.headerActions}>
@@ -47,7 +47,7 @@ export default function HomeHeader({ searchQuery, onSearchChange, onPressNotific
           <TextInput
             value={searchQuery}
             onChangeText={onSearchChange}
-            placeholder={searchPlaceholder}
+            placeholder="Zoeken naar een perceel"
             placeholderTextColor={COLORS.textSecondary}
             style={styles.searchInput}
             returnKeyType="search"

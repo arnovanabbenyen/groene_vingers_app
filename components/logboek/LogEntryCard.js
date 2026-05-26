@@ -1,16 +1,14 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { LeafIcon } from 'phosphor-react-native';
+import { NotebookIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
 const THUMB_SIZE = 50;
+const ACCENT_WIDTH = 3;
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
-  const d = new Date(String(dateStr));
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' });
 }
 
 export default function LogEntryCard({ entry, onPress }) {
@@ -29,25 +27,19 @@ export default function LogEntryCard({ entry, onPress }) {
       accessibilityRole="button"
       accessibilityLabel={`Logboekvermelding ${dateLabel}: ${preview}`}
     >
-      {/* Left accent bar */}
       <View style={styles.accent} />
-
-      {/* Content row */}
-      <View style={styles.content}>
-        {/* Thumbnail */}
+      <View style={styles.body}>
+        <View style={styles.textCol}>
+          <Text style={styles.date}>{dateLabel}</Text>
+          <Text style={styles.description} numberOfLines={2}>{preview}</Text>
+        </View>
         {thumb ? (
           <Image source={{ uri: thumb }} style={styles.thumb} />
         ) : (
           <View style={[styles.thumb, styles.thumbPlaceholder]}>
-            <LeafIcon size={20} color={COLORS.brand} weight="regular" />
+            <NotebookIcon size={20} color={COLORS.brand} weight="regular" />
           </View>
         )}
-
-        {/* Text */}
-        <View style={styles.textCol}>
-          <Text style={styles.date}>{dateLabel}</Text>
-          <Text style={styles.description} numberOfLines={1}>{preview}</Text>
-        </View>
       </View>
     </Pressable>
   );
@@ -56,36 +48,26 @@ export default function LogEntryCard({ entry, onPress }) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#F7F7F5',
-    borderRadius: RADIUS.sm,
+    borderRadius: RADIUS.md,
     flexDirection: 'row',
     overflow: 'hidden',
+    marginBottom: SPACING.sm,
   },
   accent: {
-    width: 3,
+    width: ACCENT_WIDTH,
     backgroundColor: COLORS.brand,
-    borderRadius: 16,
   },
-  content: {
+  body: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
+    justifyContent: 'space-between',
     padding: SPACING.md,
-  },
-  thumb: {
-    width: THUMB_SIZE,
-    height: THUMB_SIZE,
-    borderRadius: RADIUS.xs,
-    flexShrink: 0,
-  },
-  thumbPlaceholder: {
-    backgroundColor: COLORS.surfaceBrand,
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: SPACING.sm,
   },
   textCol: {
     flex: 1,
-    gap: SPACING.sm,
+    gap: 4,
   },
   date: {
     fontFamily: FONTS.displaySemiBold,
@@ -96,7 +78,17 @@ const styles = StyleSheet.create({
   description: {
     fontFamily: FONTS.body,
     fontSize: 12.8,
-    color: 'rgba(0,0,0,0.6)',
-    lineHeight: 16,
+    color: COLORS.textSecondary,
+    lineHeight: 17,
+  },
+  thumb: {
+    width: THUMB_SIZE,
+    height: THUMB_SIZE,
+    borderRadius: RADIUS.sm,
+  },
+  thumbPlaceholder: {
+    backgroundColor: COLORS.surfaceBrand,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
