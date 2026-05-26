@@ -1,0 +1,393 @@
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { PlusIcon, TargetIcon } from 'phosphor-react-native';
+import { StatusBar } from 'expo-status-bar';
+import BottomNav from '../../components/navigation/BottomNav';
+import ProgressRing from '../../components/logboek/ProgressRing';
+import WeekCalendar from '../../components/logboek/WeekCalendar';
+import LogEntryCard from '../../components/logboek/LogEntryCard';
+import KaartScreen from '../kaart/KaartScreen';
+import BerichtenOverzichtScreen from '../berichten/BerichtenOverzichtScreen';
+import ConversationDetailScreen from '../berichten/ConversationDetailScreen';
+import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
+import { getLogboekEntries, getWeeklyProgress } from '../../services/logboek';
+import { supabase } from '../../services/supabase';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
+
+export default function LogboekHomeScreen({
+  samenwerking,
+  badgeCounts = {},
+  onOpenConversation,
+  selectedConversation: appSelectedConversation = null,
+  onCloseConversation,
+  unreadNotificationsCount = 0,
+  onOpenNotifications,
+  onOpenProfiel,
+  onOpenSaved,
+  onOpenNieuweLog,
+  onOpenWeeklyGoal,
+  samenwerkingRefreshKey = 0,
+}) {
+  const [activeTab, setActiveTab] = useState('start');
+  const [selectedConversation, setSelectedConversation] = useState(null);
+  const [selectedPerceel, setSelectedPerceel] = useState(null);
+  const [profileImageSource, setProfileImageSource] = useState(null);
+
+  const [entries, setEntries] = useState([]);
+  const [weeklyProgress, setWeeklyProgress] = useState(null);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  const aanvraagId = samenwerking?.id ?? null;
+  const perceelNaam = samenwerking?.percelen?.naam ?? 'Jouw perceel';
+  const loggedDates = entries.map((e) => e.logged_at);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadData() {
+      if (!supabase || !aanvraagId) {
+        if (mounted) setIsLoadingData(false);
+        return;
+      }
+
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const userId = sessionData?.session?.user?.id;
+
+        const [entriesResult, progressResult, profileResult] = await Promise.all([
+          getLogboekEntries(aanvraagId),
+          userId ? getWeeklyProgress(userId) : Promise.resolve({ data: null }),
+          userId
+            ? supabase.from('profiles').select('avatar_url').eq('id', userId).maybeSingle()
+            : Promise.resolve({ data: null }),
+        ]);
+
+        if (mounted) {
+          setEntries(entriesResult.data || []);
+          setWeeklyProgress(progressResult.data || null);
+          if (profileResult.data?.avatar_url) {
+            setProfileImageSource(profileResult.data.avatar_url);
+          }
+          setIsLoadingData(false);
+        }
+      } catch (err) {
+        console.warn('LogboekHomeScreen load error', err);
+        if (mounted) setIsLoadingData(false);
+      }
+    }
+
+    loadData();
+    return () => { mounted = false; };
+  }, [aanvraagId, samenwerkingRefreshKey]);
+
+  function handleTabPress(item) {
+    if (item.key === 'profiel') {
+      onOpenProfiel?.();
+      return;
+    }
+    if (item.key === 'loggen') {
+      onOpenNieuweLog?.();
+      return;
+    }
+    setActiveTab(item.key);
+  }
+
+  const activeConversation = selectedConversation || appSelectedConversation;
+  if (activeConversation) {
+    return (
+      <ConversationDetailScreen
+        conversation={activeConversation}
+        onBack={() => {
+          setSelectedConversation(null);
+          onCloseConversation?.();
+        }}
+        onConfirmSamenwerking={() => {
+          setSelectedConversation(null);
+          onCloseConversation?.();
+        }}
+      />
+    );
+  }
+
+  if (selectedPerceel) {
+    return (
+      <ParcelDetailScreen
+        perceel={selectedPerceel}
+        onBack={() => setSelectedPerceel(null)}
+        showFavoriteButton
+      />
+    );
+  }
+
+  if (activeTab === 'kaart') {
+    return (
+      <KaartScreen
+        onTabPress={handleTabPress}
+        profileImageSource={profileImageSource}
+        badgeCounts={badgeCounts}
+        onOpenPerceel={(plot) => setSelectedPerceel(plot)}
+      />
+    );
+  }
+
+  if (activeTab === 'berichten') {
+    return (
+      <BerichtenOverzichtScreen
+        onTabPress={handleTabPress}
+        profileImageSource={profileImageSource}
+        badgeCounts={badgeCounts}
+        onOpenConversation={(conv) => {
+          setSelectedConversation(conv);
+          onOpenConversation?.(conv);
+        }}
+      />
+    );
+  }
+
+  const logged = weeklyProgress?.logged_days ?? entries.filter((e) => {
+    const now = new Date();
+    const weekStart = new Date(now);
+    const day = now.getDay();
+    weekStart.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+    weekStart.setHours(0, 0, 0, 0);
+    return new Date(e.logged_at) >= weekStart;
+  }).length;
+  const goal = weeklyProgress?.weekly_goal ?? 4;
+
+  return (
+    <View style={styles.screen}>
+      <StatusBar style="light" />
+      <SafeAreaView edges={['top']} style={styles.headerSafe}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle} accessibilityRole="header">Logboek</Text>
+          <Text style={styles.headerSubtitle} numberOfLines={1}>{perceelNaam}</Text>
+        </View>
+      </SafeAreaView>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {isLoadingData ? (
+          <ActivityIndicator color={COLORS.brand} style={{ marginTop: 40 }} />
+        ) : (
+          <>
+            {/* Progress card */}
+            <View style={[styles.card, styles.progressCard]}>
+              <View style={styles.progressLeft}>
+                <Text style={styles.progressTitle}>Voortgang deze week</Text>
+                <Text style={styles.progressSubtitle}>
+                  {logged >= goal
+                    ? 'Doelstelling behaald!'
+                    : `Nog ${goal - logged} dag${goal - logged !== 1 ? 'en' : ''} te gaan`}
+                </Text>
+                <Pressable
+                  style={styles.goalButton}
+                  onPress={onOpenWeeklyGoal}
+                  accessibilityRole="button"
+                  accessibilityLabel="Wekelijks doel aanpassen"
+                >
+                  <TargetIcon size={14} color={COLORS.brand} weight="regular" />
+                  <Text style={styles.goalButtonText}>Doel: {goal}×/week</Text>
+                </Pressable>
+              </View>
+              <ProgressRing logged={logged} goal={goal} size={88} />
+            </View>
+
+            {/* Action cards */}
+            <View style={styles.actionRow}>
+              <Pressable
+                style={styles.actionCard}
+                onPress={onOpenNieuweLog}
+                accessibilityRole="button"
+                accessibilityLabel="Nieuw log toevoegen"
+              >
+                <View style={styles.actionIconCircle}>
+                  <PlusIcon size={20} color={COLORS.brand} weight="bold" />
+                </View>
+                <Text style={styles.actionCardTitle}>Nieuw log</Text>
+                <Text style={styles.actionCardSub}>Voeg een bezoek toe</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.actionCard}
+                onPress={onOpenWeeklyGoal}
+                accessibilityRole="button"
+                accessibilityLabel="Wekelijks doel instellen"
+              >
+                <View style={styles.actionIconCircle}>
+                  <TargetIcon size={20} color={COLORS.brand} weight="regular" />
+                </View>
+                <Text style={styles.actionCardTitle}>Wekelijks doel</Text>
+                <Text style={styles.actionCardSub}>Bezoeken instellen</Text>
+              </Pressable>
+            </View>
+
+            {/* Week calendar */}
+            <View style={[styles.card, styles.calendarCard]}>
+              <Text style={styles.sectionTitle}>Deze week</Text>
+              <WeekCalendar loggedDates={loggedDates} />
+            </View>
+
+            {/* Recent log entries */}
+            <Text style={styles.sectionTitle}>Recente logs</Text>
+            {entries.length === 0 ? (
+              <View style={styles.emptyEntries}>
+                <Text style={styles.emptyText}>
+                  Nog geen logs. Voeg je eerste bezoek toe!
+                </Text>
+              </View>
+            ) : (
+              entries.slice(0, 5).map((entry) => (
+                <LogEntryCard key={entry.id} entry={entry} />
+              ))
+            )}
+          </>
+        )}
+      </ScrollView>
+
+      <BottomNav
+        activeKey="start"
+        onTabPress={handleTabPress}
+        profileImageSource={profileImageSource}
+        badgeCounts={badgeCounts}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  headerSafe: {
+    backgroundColor: COLORS.brand,
+  },
+  header: {
+    backgroundColor: COLORS.brand,
+    paddingHorizontal: SPACING.screenX,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+    gap: 2,
+  },
+  headerTitle: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.xl,
+    color: COLORS.textInverse,
+  },
+  headerSubtitle: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: 'rgba(250,249,245,0.72)',
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: SPACING.md,
+    paddingBottom: 32,
+    gap: SPACING.md,
+  },
+  card: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    ...SHADOWS.card,
+  },
+  progressCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: SPACING.md,
+  },
+  progressLeft: {
+    flex: 1,
+    gap: SPACING.sm,
+  },
+  progressTitle: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.textPrimary,
+  },
+  progressSubtitle: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+  },
+  goalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.surfaceBrand,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+  },
+  goalButtonText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.brand,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+  },
+  actionCard: {
+    flex: 1,
+    backgroundColor: 'rgba(87,98,56,0.05)',
+    borderRadius: 16,
+    padding: SPACING.md,
+    gap: SPACING.sm,
+    alignItems: 'flex-start',
+  },
+  actionIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.surfaceBrand,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionCardTitle: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
+  },
+  actionCardSub: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+  },
+  calendarCard: {
+    padding: SPACING.md,
+    gap: SPACING.sm,
+  },
+  sectionTitle: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.textPrimary,
+  },
+  emptyEntries: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    padding: SPACING.lg,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
+});
