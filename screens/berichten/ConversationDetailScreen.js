@@ -121,14 +121,20 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
   const [currentUserId, setCurrentUserId] = useState(null);
   const [aanvraag, setAanvraag] = useState(null);
   const [isProposing, setIsProposing] = useState(false);
+  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
 
   // Derived
   const aanvraagStatus = aanvraag?.status ?? null;
   const isOwner = !!currentUserId && currentUserId === aanvraag?.percelen?.owner_id;
-  const shouldShowProposeBanner =
+  const userMessageCount = messages.filter((m) => m.type === 'user' || !m.type).length;
+
+  const baseConditions =
     isOwner &&
     aanvraagStatus === AANVRAAG_STATUS.ACCEPTED &&
     !aanvraag?.samenwerking_proposed_at;
+
+  const shouldShowHeaderProposeButton = baseConditions && (userMessageCount < 5 || isBannerDismissed);
+  const shouldShowProposeBanner = baseConditions && userMessageCount >= 5;
 
   function openPreview(url, allUrls) {
     const idx = allUrls.indexOf(url);
@@ -498,13 +504,24 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
             </View>
           </View>
 
-          {/* Spacer to keep header center-aligned */}
-          <View style={styles.headerRight} />
+          <View style={styles.headerRight}>
+            {shouldShowHeaderProposeButton && (
+              <Pressable
+                style={styles.headerProposeButton}
+                onPress={() => setIsBannerDismissed(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Toon samenwerking voorstel"
+              >
+                <HandshakeIcon size={16} color={COLORS.surface} weight="regular" />
+                <Text style={styles.headerProposeButtonText}>Voorstel</Text>
+              </Pressable>
+            )}
+          </View>
         </View>
       </SafeAreaView>
 
       {/* Propose banner — owner only, when status=accepted and no proposal pending */}
-      {!isLoadingMessages && shouldShowProposeBanner && (
+      {!isLoadingMessages && shouldShowProposeBanner && !isBannerDismissed && (
         <View style={styles.proposeBanner}>
           <View style={styles.proposeBannerContent}>
             <View style={styles.proposeBannerIcon}>
@@ -517,6 +534,14 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
               </Text>
             </View>
           </View>
+          <Pressable
+            style={styles.proposeBannerDismiss}
+            onPress={() => setIsBannerDismissed(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Banner sluiten"
+          >
+            <XIcon size={14} color={COLORS.textSecondary} weight="bold" />
+          </Pressable>
           <Pressable
             style={[styles.proposeBannerButton, isProposing && { opacity: 0.6 }]}
             onPress={handleProposeSamenwerking}
@@ -756,6 +781,23 @@ const styles = StyleSheet.create({
   },
   headerRight: {
     minWidth: 72,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  headerProposeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    minHeight: 32,
+  },
+  headerProposeButtonText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 12,
+    color: COLORS.surface,
   },
 
   // ── Propose banner ────────────────────────────────────────────────────────
@@ -812,6 +854,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bodyMedium,
     fontSize: 14,
     color: COLORS.textPrimary,
+  },
+  proposeBannerDismiss: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    padding: 4,
   },
 
   // ── Messages list ─────────────────────────────────────────────────────────
