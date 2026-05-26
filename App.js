@@ -15,6 +15,7 @@ import ProfielBewerkenScreen from './screens/profile/ProfielBewerkenScreen';
 import InstellingenScreen from './screens/settings/InstellingenScreen';
 import NotificatieInstellingenScreen from './screens/settings/NotificatieInstellingenScreen';
 import PlansScreen from './screens/plans/PlansScreen';
+import EindSamenwerkingScreen from './screens/samenwerking/EindSamenwerkingScreen';
 import { usePendingAanvragen } from './hooks/usePendingAanvragen';
 import { useNotifications } from './hooks/useNotifications';
 import InfoScreen from './screens/auth/InfoScreen';
@@ -53,6 +54,7 @@ export default function App() {
   const [profielBewerkenSource, setProfielBewerkenSource] = useState('profiel');
   const [selectedSavedPerceel, setSelectedSavedPerceel] = useState(null);
   const [opgeslagenSource, setOpgeslagenSource] = useState('home');
+  const [selectedSamenwerking, setSelectedSamenwerking] = useState(null);
   const homeInitialTabRef = useRef('start');
   const { aanvragen: pendingAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
   const pendingProfilePhotoRef = useRef({ uri: null, userId: null });
@@ -447,6 +449,17 @@ export default function App() {
               setNotificationsRefreshKey((k) => k + 1);
             }}
           />
+        ) : currentScreen === 'eind-samenwerking' && selectedSamenwerking ? (
+          <EindSamenwerkingScreen
+            samenwerking={selectedSamenwerking}
+            onBack={() => setCurrentScreen('home')}
+            onDone={() => {
+              setSelectedSamenwerking(null);
+              setCurrentScreen('home');
+              setNotificationsRefreshKey((k) => k + 1);
+              setAanvragenRefreshKey((k) => k + 1);
+            }}
+          />
         ) : selectedRole === 'tuineigenaar' ? (
           <TuineigenaarHomeScreen
             getInitialTab={() => { const t = homeInitialTabRef.current; homeInitialTabRef.current = 'start'; return t; }}
@@ -465,6 +478,10 @@ export default function App() {
             unreadNotificationsCount={unreadNotificationsCount}
             onOpenNotifications={() => setCurrentScreen('meldingen')}
             onOpenProfiel={() => setCurrentScreen('profiel')}
+            onEndSamenwerking={(samenwerking) => {
+              setSelectedSamenwerking(samenwerking);
+              setCurrentScreen('eind-samenwerking');
+            }}
           />
         ) : (
           <HomeScreen

@@ -1,5 +1,5 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { ChatCircleIcon, LeafIcon, MapPinIcon } from 'phosphor-react-native';
+import { LeafIcon, MapPinIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS, SHADOWS } from '../theme/tokens';
 
 const FALLBACK_AVATAR = require('../../images/tuinzoeker_pfp.png');
@@ -100,11 +100,6 @@ export default function SamenwerkingCard({ samenwerking, onPress }) {
           </View>
         </View>
 
-        {/* CTA */}
-        <View style={styles.cta}>
-          <ChatCircleIcon size={16} color={COLORS.surface} weight="fill" />
-          <Text style={styles.ctaText}>Open gesprek</Text>
-        </View>
       </View>
     </Pressable>
   );
@@ -243,19 +238,4 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
 
-  // ── CTA ─────────────────────────────────────────────────────────
-  cta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: COLORS.brand,
-    borderRadius: RADIUS.sm,
-    paddingVertical: 13,
-  },
-  ctaText: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: 15,
-    color: COLORS.surface,
-  },
 });

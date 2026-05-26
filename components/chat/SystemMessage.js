@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { CheckCircleIcon, HandshakeIcon, XCircleIcon } from 'phosphor-react-native';
+import { CheckCircleIcon, HandshakeIcon, ProhibitIcon, XCircleIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS } from '../theme/tokens';
 
 export default function SystemMessage({ message, aanvraag, isOwner, onConfirm, onDecline }) {
@@ -63,6 +63,20 @@ export default function SystemMessage({ message, aanvraag, isOwner, onConfirm, o
     );
   }
 
+  if (message.type === 'system_samenwerking_ended') {
+    return (
+      <View style={[styles.bubble, styles.endedBubble]}>
+        <View style={styles.header}>
+          <ProhibitIcon size={18} color={COLORS.negative} weight="fill" />
+          <Text style={[styles.title, styles.titleNegative]}>Samenwerking beëindigd</Text>
+        </View>
+        <Text style={styles.body}>
+          De samenwerking is beëindigd. Je kunt je beoordeling nog achterlaten als je dat nog niet hebt gedaan.
+        </Text>
+      </View>
+    );
+  }
+
   return null;
 }
 
@@ -83,6 +97,12 @@ const styles = StyleSheet.create({
   },
   cancelledBubble: {
     backgroundColor: '#F5F5F5',
+  },
+  endedBubble: {
+    backgroundColor: '#FCEBEB',
+  },
+  titleNegative: {
+    color: COLORS.negative,
   },
   header: {
     flexDirection: 'row',

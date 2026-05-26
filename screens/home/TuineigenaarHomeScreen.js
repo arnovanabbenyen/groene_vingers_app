@@ -87,6 +87,7 @@ export default function TuineigenaarHomeScreen({
   unreadNotificationsCount = 0,
   onOpenNotifications,
   onOpenProfiel,
+  onEndSamenwerking,
   getInitialTab,
 }) {
   const [activeTab, setActiveTab] = useState(() => getInitialTab?.() ?? 'start');
@@ -98,6 +99,7 @@ export default function TuineigenaarHomeScreen({
   const [perceelRefreshKey, setPerceelRefreshKey] = useState(0);
   const [samenwerkingen, setSamenwerkingen] = useState([]);
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [selectedSamenwerking, setSelectedSamenwerking] = useState(null);
   const { aanvragen, isLoading: isLoadingAanvragen, setAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
 
   function handleTabPress(item) {
@@ -156,7 +158,7 @@ export default function TuineigenaarHomeScreen({
         if (perceelIds.length > 0) {
           const { data: confirmedAanvragen } = await supabase
             .from('aanvragen')
-            .select('id, status, confirmed_at, perceel_id, sender_id, percelen(id, naam, fotos, plaats)')
+            .select('id, status, confirmed_at, perceel_id, sender_id, type_samenwerking, percelen(id, naam, fotos, plaats, voorzieningen, owner_id)')
             .in('perceel_id', perceelIds)
             .eq('status', AANVRAAG_STATUS.CONFIRMED);
 
@@ -245,6 +247,12 @@ export default function TuineigenaarHomeScreen({
   }
 
   function handleSamenwerkingPress(samenwerking) {
+    setSelectedSamenwerking(samenwerking);
+    setSelectedPerceel(samenwerking.percelen);
+    setPerceelMode('samenwerking-detail');
+  }
+
+  function handleSamenwerkingOpenConversation(samenwerking) {
     if (!samenwerking.conversation?.id) return;
     onOpenConversation?.({
       id: samenwerking.conversation.id,
@@ -352,6 +360,23 @@ export default function TuineigenaarHomeScreen({
         initialPerceel={selectedPerceel}
         onBack={() => setPerceelMode('view')}
         onSaved={handlePerceelSaved}
+      />
+    );
+  }
+
+  if (perceelMode === 'samenwerking-detail' && selectedSamenwerking) {
+    return (
+      <ParcelDetailScreen
+        perceel={selectedPerceel || selectedSamenwerking.percelen}
+        onBack={() => {
+          setSelectedSamenwerking(null);
+          setSelectedPerceel(null);
+          setPerceelMode(null);
+        }}
+        isOwner={true}
+        samenwerking={selectedSamenwerking}
+        onOpenConversation={handleSamenwerkingOpenConversation}
+        onEndSamenwerking={onEndSamenwerking}
       />
     );
   }
