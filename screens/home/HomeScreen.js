@@ -120,7 +120,7 @@
             .from('aanvragen')
             .select('id, status, perceel_id, percelen(id, naam, plaats, grootte, fotos, voorzieningen, extra_info, owner_id)')
             .eq('sender_id', userId)
-            .not('status', 'in', '("declined","cancelled")')
+            .not('status', 'in', '("declined","cancelled","ended")')
             .order('created_at', { ascending: false });
 
           if (error) {
