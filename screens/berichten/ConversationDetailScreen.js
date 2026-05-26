@@ -21,6 +21,7 @@ import {
   CameraIcon,
   HandshakeIcon,
   ImageIcon,
+  LockSimpleIcon,
   MicrophoneIcon,
   PaperPlaneRightIcon,
   XCircleIcon,
@@ -126,6 +127,7 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
   // Derived
   const aanvraagStatus = aanvraag?.status ?? null;
   const isOwner = !!currentUserId && currentUserId === aanvraag?.percelen?.owner_id;
+  const isEnded = aanvraagStatus === AANVRAAG_STATUS.ENDED;
   const userMessageCount = messages.filter((m) => m.type === 'user' || !m.type).length;
 
   const baseConditions =
@@ -629,88 +631,102 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
         </Modal>
       )}
 
-      {/* Sticky input bar */}
-      <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom - 8, 4) }]}>
-        {pendingImages.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.pendingStrip}
-            contentContainerStyle={styles.pendingStripContent}
-          >
-            {pendingImages.map((asset, index) => (
-              <View key={`${asset.uri}-${index}`} style={styles.pendingThumbWrap}>
-                <Image source={{ uri: asset.uri }} style={styles.pendingThumb} resizeMode="cover" />
-                <TouchableOpacity
-                  style={styles.pendingThumbRemove}
-                  onPress={() => setPendingImages((current) => current.filter((_, i) => i !== index))}
-                  accessibilityRole="button"
-                  accessibilityLabel="Afbeelding verwijderen"
-                >
-                  <XCircleIcon size={20} color="rgba(0,0,0,0.72)" weight="fill" />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
-        )}
-
-        <View style={styles.inputPill}>
-          <View style={styles.inputPillLeft}>
-            <TouchableOpacity
-              style={styles.cameraBtn}
-              onPress={handlePickFromCamera}
-              disabled={isSending}
-              accessibilityRole="button"
-              accessibilityLabel="Foto maken"
+      {/* Sticky input bar — locked when samenwerking is ended */}
+      {isEnded ? (
+        <View
+          style={[styles.lockedBar, { paddingBottom: Math.max(insets.bottom - 8, 10) }]}
+          accessible
+          accessibilityLabel="Samenwerking beëindigd. Je kunt geen berichten meer versturen."
+          accessibilityRole="text"
+        >
+          <LockSimpleIcon size={16} color={COLORS.negative} weight="fill" />
+          <Text style={styles.lockedText}>
+            Samenwerking beëindigd — berichten versturen is niet meer mogelijk.
+          </Text>
+        </View>
+      ) : (
+        <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom - 8, 4) }]}>
+          {pendingImages.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.pendingStrip}
+              contentContainerStyle={styles.pendingStripContent}
             >
-              <CameraIcon size={16} color={COLORS.surface} weight="regular" />
-            </TouchableOpacity>
+              {pendingImages.map((asset, index) => (
+                <View key={`${asset.uri}-${index}`} style={styles.pendingThumbWrap}>
+                  <Image source={{ uri: asset.uri }} style={styles.pendingThumb} resizeMode="cover" />
+                  <TouchableOpacity
+                    style={styles.pendingThumbRemove}
+                    onPress={() => setPendingImages((current) => current.filter((_, i) => i !== index))}
+                    accessibilityRole="button"
+                    accessibilityLabel="Afbeelding verwijderen"
+                  >
+                    <XCircleIcon size={20} color="rgba(0,0,0,0.72)" weight="fill" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          )}
 
-            <TextInput
-              style={styles.textInput}
-              value={messageInput}
-              onChangeText={setMessageInput}
-              placeholder="Typ een chatbericht..."
-              placeholderTextColor={COLORS.textMuted}
-              multiline
-              maxHeight={100}
-              accessibilityLabel="Typ je bericht"
-            />
-          </View>
-
-          {(messageInput.trim().length > 0 || pendingImages.length > 0) ? (
-            <TouchableOpacity
-              onPress={handleSend}
-              disabled={isSending}
-              accessibilityRole="button"
-              accessibilityLabel="Bericht verzenden"
-            >
-              {isSending
-                ? <ActivityIndicator size="small" color={COLORS.brand} />
-                : <PaperPlaneRightIcon size={22} color={COLORS.brand} weight="fill" />
-              }
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.iconsRight}>
+          <View style={styles.inputPill}>
+            <View style={styles.inputPillLeft}>
               <TouchableOpacity
-                onPress={() => Alert.alert('Spraakbericht', 'Spraakberichten zijn niet beschikbaar.')}
-                accessibilityRole="button"
-                accessibilityLabel="Spraakbericht opnemen"
-              >
-                <MicrophoneIcon size={22} color={COLORS.textPrimary} weight="regular" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handlePickFromGallery}
+                style={styles.cameraBtn}
+                onPress={handlePickFromCamera}
                 disabled={isSending}
                 accessibilityRole="button"
-                accessibilityLabel="Foto uit galerij kiezen"
+                accessibilityLabel="Foto maken"
               >
-                <ImageIcon size={22} color={COLORS.textPrimary} weight="regular" />
+                <CameraIcon size={16} color={COLORS.surface} weight="regular" />
               </TouchableOpacity>
+
+              <TextInput
+                style={styles.textInput}
+                value={messageInput}
+                onChangeText={setMessageInput}
+                placeholder="Typ een chatbericht..."
+                placeholderTextColor={COLORS.textMuted}
+                multiline
+                maxHeight={100}
+                accessibilityLabel="Typ je bericht"
+              />
             </View>
-          )}
+
+            {(messageInput.trim().length > 0 || pendingImages.length > 0) ? (
+              <TouchableOpacity
+                onPress={handleSend}
+                disabled={isSending}
+                accessibilityRole="button"
+                accessibilityLabel="Bericht verzenden"
+              >
+                {isSending
+                  ? <ActivityIndicator size="small" color={COLORS.brand} />
+                  : <PaperPlaneRightIcon size={22} color={COLORS.brand} weight="fill" />
+                }
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.iconsRight}>
+                <TouchableOpacity
+                  onPress={() => Alert.alert('Spraakbericht', 'Spraakberichten zijn niet beschikbaar.')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Spraakbericht opnemen"
+                >
+                  <MicrophoneIcon size={22} color={COLORS.textPrimary} weight="regular" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handlePickFromGallery}
+                  disabled={isSending}
+                  accessibilityRole="button"
+                  accessibilityLabel="Foto uit galerij kiezen"
+                >
+                  <ImageIcon size={22} color={COLORS.textPrimary} weight="regular" />
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -1115,6 +1131,27 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
+  },
+
+  // ── Locked bar (samenwerking ended) ──────────────────────────────────────
+  lockedBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: 14,
+    backgroundColor: COLORS.negativeSoft,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(213,60,62,0.2)',
+  },
+  lockedText: {
+    fontFamily: FONTS.body,
+    fontSize: 13,
+    color: COLORS.negative,
+    textAlign: 'center',
+    flexShrink: 1,
+    lineHeight: 18,
   },
 
   // ── Input bar ─────────────────────────────────────────────────────────────

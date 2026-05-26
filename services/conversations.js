@@ -1,9 +1,7 @@
 import { supabase } from './supabase';
 
-// TODO: decide UX for what happens when an aanvraag is retroactively
-// declined/cancelled while a conversation exists. Options: archive the
-// conversation, show a "samenwerking beeindigd" banner, or delete via cascade.
-// For MVP, conversation remains usable.
+// Conversations linked to status='ended' are hidden in the overview via
+// isConversationVisible() in useConversations — no data is deleted.
 export async function createConversationForAanvraag({ aanvraagId, ownerId, senderId }) {
   if (!supabase || !aanvraagId || !ownerId || !senderId) {
     return { data: null, error: null };

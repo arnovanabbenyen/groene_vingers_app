@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
+import { isConversationVisible } from '../utils/conversationFilters';
 
 export function useConversations(refreshKey = 0) {
   const [conversations, setConversations] = useState([]);
@@ -35,14 +36,16 @@ export function useConversations(refreshKey = 0) {
 
         const { data: rawConversations, error: convError } = await supabase
           .from('conversations')
-          .select('id, aanvraag_id, owner_id, sender_id, created_at, last_message_at')
+          .select('id, aanvraag_id, owner_id, sender_id, created_at, last_message_at, aanvragen(status)')
           .or(`owner_id.eq.${verifiedUserId},sender_id.eq.${verifiedUserId}`)
           .order('last_message_at', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false });
 
         if (convError) throw convError;
 
-        const conversationsData = rawConversations || [];
+        // Hide conversations whose linked samenwerking is ended.
+        // No data is deleted — this is a client-side filter only.
+        const conversationsData = (rawConversations || []).filter(isConversationVisible);
         const otherUserIds = [...new Set(
           conversationsData.map((conversation) => (
             conversation.owner_id === verifiedUserId ? conversation.sender_id : conversation.owner_id
