@@ -35,6 +35,7 @@ export default function LogboekHomeScreen({
   onOpenNieuweLog,
   onOpenWeeklyGoal,
   onOpenLogDetail,
+  onOpenMonth,
   samenwerkingRefreshKey = 0,
 }) {
   const [activeTab, setActiveTab] = useState('start');
@@ -253,7 +254,7 @@ export default function LogboekHomeScreen({
             {/* Week calendar */}
             <View style={[styles.card, styles.calendarCard]}>
               <Text style={styles.sectionTitle}>Deze week</Text>
-              <WeekCalendar loggedDates={loggedDates} />
+              <WeekCalendar loggedDates={loggedDates} onExpand={() => onOpenMonth?.()} />
             </View>
 
             {/* Recent log entries */}

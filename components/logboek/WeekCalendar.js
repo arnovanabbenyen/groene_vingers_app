@@ -26,7 +26,7 @@ function toDateString(date) {
   return date.toISOString().slice(0, 10);
 }
 
-export default function WeekCalendar({ loggedDates = [] }) {
+export default function WeekCalendar({ loggedDates = [], onExpand }) {
   const today = new Date();
   const [weekStart, setWeekStart] = useState(() => getWeekStart(today));
 
@@ -64,7 +64,13 @@ export default function WeekCalendar({ loggedDates = [] }) {
         </Pressable>
       </View>
 
-      <View style={styles.daysRow}>
+      <Pressable
+        onPress={onExpand}
+        style={styles.daysRow}
+        accessibilityRole="button"
+        accessibilityLabel="Maandoverzicht openen"
+        accessibilityHint="Toon het volledige maandoverzicht"
+      >
         {weekDates.map((date, idx) => {
           const dateStr = toDateString(date);
           const isLogged = loggedSet.has(dateStr);
@@ -84,7 +90,7 @@ export default function WeekCalendar({ loggedDates = [] }) {
             </View>
           );
         })}
-      </View>
+      </Pressable>
     </View>
   );
 }

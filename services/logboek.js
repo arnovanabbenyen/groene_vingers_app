@@ -81,6 +81,38 @@ export async function deleteLogboekEntry(entryId) {
   return { success: true };
 }
 
+export async function getLogboekEntriesForMonth(userId, year, month) {
+  if (!supabase || !userId) return { logs: [], loggedDates: [] };
+
+  // Build YYYY-MM-DD date strings for range (safer for date-typed column)
+  const mm = String(month + 1).padStart(2, '0');
+  const nextMonth = month === 11 ? 1 : month + 2;
+  const nextYear = month === 11 ? year + 1 : year;
+  const mmNext = String(nextMonth).padStart(2, '0');
+
+  const monthStart = `${year}-${mm}-01`;
+  const monthEnd = `${nextYear}-${mmNext}-01`;
+
+  const { data, error } = await supabase
+    .from('logboek_entries')
+    .select('id, aanvraag_id, author_id, description, fotos, logged_at, created_at')
+    .eq('author_id', userId)
+    .gte('logged_at', monthStart)
+    .lt('logged_at', monthEnd)
+    .order('logged_at', { ascending: false });
+
+  if (error) {
+    console.warn('Month logs fetch error', error);
+    return { logs: [], loggedDates: [] };
+  }
+
+  const logs = data || [];
+  // logged_at from Supabase date column is already "YYYY-MM-DD"
+  const loggedDates = Array.from(new Set(logs.map((log) => log.logged_at)));
+
+  return { logs, loggedDates };
+}
+
 export async function updateWeeklyLogGoal(userId, goal) {
   if (!supabase || !userId) return { error: null };
 

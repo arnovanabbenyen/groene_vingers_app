@@ -19,6 +19,7 @@ import EindSamenwerkingScreen from './screens/samenwerking/EindSamenwerkingScree
 import LogboekHomeScreen from './screens/loggen/LogboekHomeScreen';
 import NieuweLogScreen from './screens/loggen/NieuweLogScreen';
 import LogDetailScreen from './screens/loggen/LogDetailScreen';
+import LogboekMonthScreen from './screens/loggen/LogboekMonthScreen';
 import WeeklyGoalScreen from './screens/settings/WeeklyGoalScreen';
 import { usePendingAanvragen } from './hooks/usePendingAanvragen';
 import { useNotifications } from './hooks/useNotifications';
@@ -462,6 +463,14 @@ export default function App() {
               setNotificationsRefreshKey((k) => k + 1);
             }}
           />
+        ) : currentScreen === 'log-month' ? (
+          <LogboekMonthScreen
+            onBack={() => setCurrentScreen('home')}
+            onOpenLogDetail={(logId) => {
+              setSelectedLogId(logId);
+              setCurrentScreen('log-detail');
+            }}
+          />
         ) : currentScreen === 'log-detail' && selectedLogId ? (
           <LogDetailScreen
             logId={selectedLogId}
@@ -545,6 +554,7 @@ export default function App() {
             onOpenNieuweLog={() => setCurrentScreen('nieuwe-log')}
             onOpenWeeklyGoal={() => { setWeeklyGoalSource('home'); setCurrentScreen('weekly-goal'); }}
             onOpenLogDetail={(logId) => { setSelectedLogId(logId); setCurrentScreen('log-detail'); }}
+            onOpenMonth={() => setCurrentScreen('log-month')}
           />
         ) : (
           <HomeScreen
