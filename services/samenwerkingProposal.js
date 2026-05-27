@@ -44,6 +44,71 @@ export async function submitRating({ aanvraagId, raterId, ratedId, score, review
   return { success: true };
 }
 
+export async function getEndedSamenwerking(aanvraagId) {
+  const { data: aanvraag, error } = await supabase
+    .from('aanvragen')
+    .select(`
+      id, status, sender_id, perceel_id,
+      samenwerking_ended_at, samenwerking_ended_by, samenwerking_ended_reason,
+      confirmed_at, type_samenwerking,
+      percelen(id, naam, plaats, fotos, owner_id)
+    `)
+    .eq('id', aanvraagId)
+    .maybeSingle();
+
+  if (error || !aanvraag) throw new Error('Samenwerking niet gevonden');
+
+  const { data: initiatorRating } = await supabase
+    .from('ratings')
+    .select('id, score, review_text, rater_id, rated_id, created_at')
+    .eq('aanvraag_id', aanvraagId)
+    .eq('rater_id', aanvraag.samenwerking_ended_by)
+    .maybeSingle();
+
+  const senderId = aanvraag.sender_id;
+  const ownerId = aanvraag.percelen?.owner_id;
+
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, first_name, last_name, avatar_url')
+    .in('id', [senderId, ownerId].filter(Boolean));
+
+  const map = {};
+  (profiles || []).forEach((p) => { map[p.id] = p; });
+
+  return {
+    ...aanvraag,
+    initiatorRating: initiatorRating || null,
+    senderProfile: map[senderId] || null,
+    ownerProfile: ownerId ? (map[ownerId] || null) : null,
+  };
+}
+
+export async function hasUserRatedSamenwerking(aanvraagId, userId) {
+  const { data, error } = await supabase
+    .from('ratings')
+    .select('id')
+    .eq('aanvraag_id', aanvraagId)
+    .eq('rater_id', userId)
+    .maybeSingle();
+
+  if (error) return false;
+  return !!data;
+}
+
+export async function getUserAverageRating(userId) {
+  const { data, error } = await supabase
+    .rpc('get_user_average_rating', { p_user_id: userId });
+
+  if (error || !data?.length) return { average: null, count: 0 };
+
+  const row = data[0];
+  return {
+    average: row.average ? parseFloat(row.average) : null,
+    count: Number(row.count) || 0,
+  };
+}
+
 export async function proposeSamenwerking(aanvraagId, conversationId, userId) {
   const { error: updateError } = await supabase
     .from('aanvragen')

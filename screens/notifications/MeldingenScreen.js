@@ -117,6 +117,7 @@ export default function MeldingenScreen({
   onNavigateToHome,
   onNavigateToAanvraag,
   onNavigateToConversation,
+  onNavigateToBeeindigd,
 }) {
   const insets = useSafeAreaInsets();
   const { notifications, isLoading, markAsRead, markAllAsRead } = useNotifications();
@@ -134,6 +135,8 @@ export default function MeldingenScreen({
       onNavigateToAanvraag?.(notification.related_id);
     } else if (notification.type === 'message_received' && notification.related_id) {
       onNavigateToConversation?.(notification.related_id);
+    } else if (notification.type === 'samenwerking_ended' && notification.related_id) {
+      onNavigateToBeeindigd?.(notification.related_id);
     }
   }
 

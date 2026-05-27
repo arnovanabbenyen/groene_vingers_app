@@ -25,6 +25,7 @@ export default function InstellingenScreen({
   onOpenProfielBewerken,
   onOpenNotificaties,
   onOpenKiesPlan,
+  onOpenWeeklyGoal,
   onLogout,
 }) {
   const [plan, setPlan] = useState('free');
@@ -219,6 +220,21 @@ export default function InstellingenScreen({
               <Text style={styles.rowLabel}>Notificaties</Text>
               <CaretRightIcon size={24} color={COLORS.textPrimary} weight="regular" />
             </TouchableOpacity>
+
+            {role === 'tuinzoeker' && (
+              <>
+                <Text style={[styles.sectionLabel, styles.sectionLabelMeer]}>Logboek</Text>
+                <TouchableOpacity
+                  style={styles.row}
+                  onPress={() => onOpenWeeklyGoal?.()}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.rowLabel}>Wekelijks doel</Text>
+                  <CaretRightIcon size={24} color={COLORS.textPrimary} weight="regular" />
+                </TouchableOpacity>
+                <View style={styles.divider} />
+              </>
+            )}
 
             <Text style={[styles.sectionLabel, styles.sectionLabelMeer]}>Meer</Text>
 

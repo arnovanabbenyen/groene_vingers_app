@@ -53,9 +53,9 @@ function VoorzieningIcon({ label }) {
 }
 
 // ── Samenwerking info card ────────────────────────────────────────
-function SamenwerkingInfoCard({ samenwerking }) {
+function SamenwerkingInfoCard({ samenwerking, partnerProfile }) {
   const perceel = samenwerking.percelen;
-  const sender  = samenwerking.senderProfile;
+  const sender  = partnerProfile ?? samenwerking.senderProfile;
 
   const perceelName      = perceel?.naam       ?? 'Perceel';
   const perceelPhoto     = perceel?.fotos?.[0] ?? null;
@@ -172,7 +172,12 @@ function SamenwerkingInfoCard({ samenwerking }) {
 }
 
 // ── Screen ────────────────────────────────────────────────────────
-export default function EindSamenwerkingScreen({ samenwerking, onBack, onDone }) {
+export default function EindSamenwerkingScreen({
+  samenwerking,
+  onBack,
+  onDone,
+  mode = 'initiator',  // 'initiator' | 'recipient'
+}) {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [reason, setReason] = useState('');
   const [rating, setRating] = useState(0);
@@ -188,26 +193,48 @@ export default function EindSamenwerkingScreen({ samenwerking, onBack, onDone })
     ? samenwerking.percelen?.owner_id
     : samenwerking.sender_id;
 
-  const conversationId = samenwerking.conversation?.id ?? null;
+  // Compute which profile to show as the partner in the info card
+  const partnerProfile = currentUserId && currentUserId === samenwerking.sender_id
+    ? (samenwerking.ownerProfile ?? null)
+    : (samenwerking.senderProfile ?? null);
+
+  const conversationId = samenwerking.conversation?.id ?? samenwerking.conversationId ?? null;
   const isValid = rating >= 1 && !!ratedId && !!currentUserId;
+
+  const screenTitle = mode === 'recipient' ? 'Geef je review' : 'Stoppen';
+  const headingText = mode === 'recipient'
+    ? 'Wil je iets kwijt over de samenwerking?'
+    : 'Waarom wil je de samenwerking stoppen?';
+  const buttonText = isSubmitting ? 'Bezig...' : (mode === 'recipient' ? 'Verstuur review' : 'Stop samenwerking');
 
   async function handleStop() {
     if (!isValid || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await submitRating({
-        aanvraagId:  samenwerking.id,
-        raterId:     currentUserId,
-        ratedId,
-        score:       rating,
-        reviewText:  reason.trim() || null,
-      });
-      await endSamenwerking({
-        aanvraagId:     samenwerking.id,
-        conversationId,
-        userId:         currentUserId,
-        reason:         reason.trim() || null,
-      });
+      if (mode === 'initiator') {
+        await submitRating({
+          aanvraagId:  samenwerking.id,
+          raterId:     currentUserId,
+          ratedId,
+          score:       rating,
+          reviewText:  reason.trim() || null,
+        });
+        await endSamenwerking({
+          aanvraagId:     samenwerking.id,
+          conversationId,
+          userId:         currentUserId,
+          reason:         reason.trim() || null,
+        });
+      } else {
+        // recipient — samenwerking already ended, just save the rating
+        await submitRating({
+          aanvraagId:  samenwerking.id,
+          raterId:     currentUserId,
+          ratedId,
+          score:       rating,
+          reviewText:  reason.trim() || null,
+        });
+      }
       onDone?.();
     } catch (err) {
       Alert.alert('Er ging iets mis', err.message || 'Probeer het opnieuw.');
@@ -235,7 +262,7 @@ export default function EindSamenwerkingScreen({ samenwerking, onBack, onDone })
             <Text style={styles.backText}>Terug</Text>
           </Pressable>
 
-          <Text style={styles.headerTitle}>Stoppen</Text>
+          <Text style={styles.headerTitle}>{screenTitle}</Text>
 
           {/* Spacer to balance the header */}
           <View style={styles.headerSpacer} />
@@ -249,12 +276,10 @@ export default function EindSamenwerkingScreen({ samenwerking, onBack, onDone })
         showsVerticalScrollIndicator={false}
       >
         {/* ── Samenwerking info ──────────────────────────────── */}
-        <SamenwerkingInfoCard samenwerking={samenwerking} />
+        <SamenwerkingInfoCard samenwerking={samenwerking} partnerProfile={partnerProfile} />
 
         {/* ── Reason textarea ────────────────────────────────── */}
-        <Text style={styles.heading}>
-          Waarom wil je de samenwerking stoppen?
-        </Text>
+        <Text style={styles.heading}>{headingText}</Text>
 
         <View style={styles.textareaCard}>
           <TextInput
@@ -282,15 +307,19 @@ export default function EindSamenwerkingScreen({ samenwerking, onBack, onDone })
 
         {/* ── Stop button ────────────────────────────────────── */}
         <Pressable
-          style={[styles.stopButton, !isValid && styles.stopButtonDisabled]}
+          style={[
+            styles.stopButton,
+            mode === 'recipient' && styles.stopButtonRecipient,
+            !isValid && styles.stopButtonDisabled,
+          ]}
           onPress={handleStop}
           disabled={!isValid || isSubmitting}
           accessibilityRole="button"
-          accessibilityLabel={isValid ? 'Stop samenwerking' : 'Geef eerst een beoordeling'}
+          accessibilityLabel={isValid ? buttonText : 'Geef eerst een beoordeling'}
           accessibilityState={{ disabled: !isValid || isSubmitting }}
         >
           <Text style={styles.stopButtonText}>
-            {isSubmitting ? 'Bezig...' : 'Stop samenwerking'}
+            {buttonText}
           </Text>
         </Pressable>
       </ScrollView>
@@ -526,6 +555,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
+  },
+  stopButtonRecipient: {
+    backgroundColor: COLORS.brand,
   },
   stopButtonDisabled: {
     opacity: 0.45,
