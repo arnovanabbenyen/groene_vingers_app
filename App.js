@@ -16,6 +16,9 @@ import InstellingenScreen from './screens/settings/InstellingenScreen';
 import NotificatieInstellingenScreen from './screens/settings/NotificatieInstellingenScreen';
 import PlansScreen from './screens/plans/PlansScreen';
 import EindSamenwerkingScreen from './screens/samenwerking/EindSamenwerkingScreen';
+import SamenwerkingBeeindigdScreen from './screens/samenwerking/SamenwerkingBeeindigdScreen';
+import SamenwerkingDetailScreen from './screens/samenwerking/SamenwerkingDetailScreen';
+import { getEndedSamenwerking } from './services/samenwerkingProposal';
 import LogboekHomeScreen from './screens/loggen/LogboekHomeScreen';
 import NieuweLogScreen from './screens/loggen/NieuweLogScreen';
 import LogDetailScreen from './screens/loggen/LogDetailScreen';
@@ -65,6 +68,10 @@ export default function App() {
   const [selectedSamenwerking, setSelectedSamenwerking] = useState(null);
   const [samenwerkingRefreshKey, setSamenwerkingRefreshKey] = useState(0);
   const [selectedLogId, setSelectedLogId] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [endingMode, setEndingMode] = useState('initiator');
+  const [beeindigdAanvraagId, setBeeindigdAanvraagId] = useState(null);
+  const [detailSamenwerking, setDetailSamenwerking] = useState(null);
   const [weeklyGoalSource, setWeeklyGoalSource] = useState('instellingen');
   const [opvolgingRefreshKey, setOpvolgingRefreshKey] = useState(0);
   const homeInitialTabRef = useRef('start');
@@ -75,6 +82,7 @@ export default function App() {
 
   function handleLogout() {
     setIsLoggedIn(false);
+    setCurrentUserId(null);
     setCurrentScreen('home');
     setSelectedAanvraag(null);
     setSelectedAanvraagSource('home');
@@ -261,6 +269,7 @@ export default function App() {
 
           if (mounted) {
             if (role) setSelectedRole(role);
+            setCurrentUserId(user.id);
             setIsLoggedIn(true);
             setSamenwerkingRefreshKey((k) => k + 1);
           }
@@ -277,6 +286,7 @@ export default function App() {
         const user = session?.user;
         const role = user?.user_metadata?.role;
         if (role) setSelectedRole(role);
+        if (user?.id) setCurrentUserId(user.id);
         setIsLoggedIn(true);
         setSamenwerkingRefreshKey((k) => k + 1);
 
@@ -298,6 +308,7 @@ export default function App() {
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
         setSelectedRole('tuinzoeker');
+        setCurrentUserId(null);
         setCurrentScreen('home');
         setSelectedAanvraag(null);
         setSelectedAanvraagSource('home');
@@ -445,6 +456,7 @@ export default function App() {
             profileImageSource={null}
             badgeCounts={{ berichten: unreadMessagesCount }}
             unreadNotificationsCount={unreadNotificationsCount}
+            onOpenSamenwerking={(s) => { setDetailSamenwerking(s); setCurrentScreen('samenwerking-detail'); }}
           />
         ) : currentScreen === 'meldingen' ? (
           <MeldingenScreen
@@ -464,6 +476,10 @@ export default function App() {
             onNavigateToConversation={() => {
               setCurrentScreen('home');
               setNotificationsRefreshKey((k) => k + 1);
+            }}
+            onNavigateToBeeindigd={(aanvraagId) => {
+              setBeeindigdAanvraagId(aanvraagId);
+              setCurrentScreen('samenwerking-beeindigd');
             }}
           />
         ) : currentScreen === 'log-month' ? (
@@ -526,13 +542,40 @@ export default function App() {
         ) : currentScreen === 'eind-samenwerking' && selectedSamenwerking ? (
           <EindSamenwerkingScreen
             samenwerking={selectedSamenwerking}
-            onBack={() => setCurrentScreen('home')}
+            mode={endingMode}
+            onBack={() => {
+              setCurrentScreen(endingMode === 'recipient' ? 'samenwerking-beeindigd' : 'home');
+            }}
             onDone={() => {
               setSelectedSamenwerking(null);
+              setEndingMode('initiator');
               setCurrentScreen('home');
               setNotificationsRefreshKey((k) => k + 1);
               setAanvragenRefreshKey((k) => k + 1);
               setSamenwerkingRefreshKey((k) => k + 1);
+            }}
+          />
+        ) : currentScreen === 'samenwerking-beeindigd' && beeindigdAanvraagId ? (
+          <SamenwerkingBeeindigdScreen
+            aanvraagId={beeindigdAanvraagId}
+            currentUserId={currentUserId}
+            onBack={() => setCurrentScreen('home')}
+            onGiveReview={(samenwerkingData) => {
+              setSelectedSamenwerking(samenwerkingData);
+              setEndingMode('recipient');
+              setCurrentScreen('eind-samenwerking');
+            }}
+            onSkipReview={() => setCurrentScreen('home')}
+          />
+        ) : currentScreen === 'samenwerking-detail' && detailSamenwerking ? (
+          <SamenwerkingDetailScreen
+            samenwerking={detailSamenwerking}
+            onBack={() => { setDetailSamenwerking(null); setCurrentScreen('profiel'); }}
+            onOpenConversation={(conv) => handleOpenConversation(conv)}
+            onEndSamenwerking={(enriched) => {
+              setSelectedSamenwerking(enriched);
+              setEndingMode('initiator');
+              setCurrentScreen('eind-samenwerking');
             }}
           />
         ) : selectedRole === 'tuineigenaar' ? (

@@ -25,6 +25,9 @@ import PercelenCarousel from '../../components/perceel/PercelenCarousel';
 import { supabase } from '../../services/supabase';
 import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
 import { useMyAanvragen } from '../../hooks/useMyAanvragen';
+import { useActiveSamenwerking } from '../../hooks/useActiveSamenwerking';
+import { getUserAverageRating } from '../../services/samenwerkingProposal';
+import StarRatingDisplay from '../../components/rating/StarRatingDisplay';
 
 const AVATAR_SIZE = 75;
 const AVATAR_OVERHANG = 38;
@@ -176,12 +179,18 @@ export default function ProfielScreen({
   onTabPress,
   profileImageSource,
   badgeCounts = {},
+  onOpenSamenwerking,
 }) {
   const insets = useSafeAreaInsets();
   const [profile, setProfile] = useState(null);
   const [percelen, setPercelen] = useState([]);
   const [samenwerkingen, setSamenwerkingen] = useState([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [ratingData, setRatingData] = useState({ average: null, count: 0 });
+
+  const { samenwerking: activeSamenwerking } = useActiveSamenwerking(
+    role === 'tuinzoeker' ? refreshKey : null
+  );
 
   const { aanvragen, isLoading: isLoadingAanvragen } = useMyAanvragen(refreshKey);
   const { percelen: savedPercelen, isLoading: isLoadingSaved } = useSavedPercelen(refreshKey);
@@ -205,6 +214,12 @@ export default function ProfielScreen({
 
         if (profileError) console.warn('Failed to load profile', profileError);
         if (mounted) setProfile(profileData || null);
+
+        if (userId) {
+          getUserAverageRating(userId).then((rd) => {
+            if (mounted) setRatingData(rd);
+          });
+        }
 
         if (role === 'tuineigenaar') {
           const { data: percelenData, error: percelenError } = await supabase
@@ -344,6 +359,12 @@ const displayName = profile
               <View style={styles.identityRow}>
                 <View style={styles.identityLeft}>
                   <Text style={styles.displayName}>{displayName}</Text>
+                  <StarRatingDisplay
+                    average={ratingData.average}
+                    count={ratingData.count}
+                    size={15}
+                    showCount
+                  />
                   <View style={styles.locationPill}>
                     <MapPinIcon
                       size={14}
@@ -367,6 +388,40 @@ const displayName = profile
         {/* Role-specific sections */}
         {role === 'tuinzoeker' ? (
           <>
+            {activeSamenwerking ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Actieve samenwerking</Text>
+                <Pressable
+                  style={styles.activeSamenwerkingCard}
+                  onPress={() => onOpenSamenwerking?.(activeSamenwerking)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Bekijk actieve samenwerking"
+                >
+                  {activeSamenwerking.percelen?.fotos?.[0] ? (
+                    <Image
+                      source={{ uri: activeSamenwerking.percelen.fotos[0] }}
+                      style={styles.activeSamenwerkingImage}
+                    />
+                  ) : (
+                    <View style={[styles.activeSamenwerkingImage, styles.activeSamenwerkingPlaceholder]}>
+                      <LeafIcon size={22} color={COLORS.brand} weight="regular" />
+                    </View>
+                  )}
+                  <View style={styles.activeSamenwerkingInfo}>
+                    <Text style={styles.activeSamenwerkingNaam} numberOfLines={1}>
+                      {activeSamenwerking.percelen?.naam || 'Perceel'}
+                    </Text>
+                    {activeSamenwerking.percelen?.plaats ? (
+                      <Text style={styles.activeSamenwerkingPlaats} numberOfLines={1}>
+                        {activeSamenwerking.percelen.plaats}
+                      </Text>
+                    ) : null}
+                    <Text style={styles.activeSamenwerkingCta}>Bekijk samenwerking →</Text>
+                  </View>
+                </Pressable>
+              </View>
+            ) : null}
+
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Jouw aanvragen</Text>
               {isLoadingAanvragen ? (
@@ -694,6 +749,46 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     fontSize: 12.8,
     color: COLORS.textSecondary,
+  },
+  // Active samenwerking card (tuinzoeker)
+  activeSamenwerkingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    padding: SPACING.sm,
+    ...SHADOWS.card,
+  },
+  activeSamenwerkingImage: {
+    width: 60,
+    height: 60,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surfaceMuted,
+  },
+  activeSamenwerkingPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeSamenwerkingInfo: {
+    flex: 1,
+    gap: 3,
+  },
+  activeSamenwerkingNaam: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: 15,
+    color: COLORS.textPrimary,
+  },
+  activeSamenwerkingPlaats: {
+    fontFamily: FONTS.body,
+    fontSize: 12.8,
+    color: COLORS.textSecondary,
+  },
+  activeSamenwerkingCta: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 12.8,
+    color: COLORS.brand,
+    marginTop: 2,
   },
   // Empty state
   emptyState: {
