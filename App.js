@@ -20,6 +20,8 @@ import LogboekHomeScreen from './screens/loggen/LogboekHomeScreen';
 import NieuweLogScreen from './screens/loggen/NieuweLogScreen';
 import LogDetailScreen from './screens/loggen/LogDetailScreen';
 import LogboekMonthScreen from './screens/loggen/LogboekMonthScreen';
+import OpvolgingenScreen from './screens/loggen/OpvolgingenScreen';
+import NieuweOpvolgingScreen from './screens/loggen/NieuweOpvolgingScreen';
 import WeeklyGoalScreen from './screens/settings/WeeklyGoalScreen';
 import { usePendingAanvragen } from './hooks/usePendingAanvragen';
 import { useNotifications } from './hooks/useNotifications';
@@ -64,6 +66,7 @@ export default function App() {
   const [samenwerkingRefreshKey, setSamenwerkingRefreshKey] = useState(0);
   const [selectedLogId, setSelectedLogId] = useState(null);
   const [weeklyGoalSource, setWeeklyGoalSource] = useState('instellingen');
+  const [opvolgingRefreshKey, setOpvolgingRefreshKey] = useState(0);
   const homeInitialTabRef = useRef('start');
   const { aanvragen: pendingAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
   const { samenwerking: activeSamenwerking, isLoading: isLoadingActiveSamenwerking } =
@@ -496,6 +499,22 @@ export default function App() {
               setCurrentScreen('home');
             }}
           />
+        ) : currentScreen === 'opvolgingen' ? (
+          <OpvolgingenScreen
+            aanvraagId={activeSamenwerking?.id}
+            refreshKey={opvolgingRefreshKey}
+            onBack={() => setCurrentScreen('home')}
+            onNieuweOpvolging={() => setCurrentScreen('nieuwe-opvolging')}
+          />
+        ) : currentScreen === 'nieuwe-opvolging' ? (
+          <NieuweOpvolgingScreen
+            aanvraagId={activeSamenwerking?.id}
+            onBack={() => setCurrentScreen('opvolgingen')}
+            onSaved={() => {
+              setOpvolgingRefreshKey((k) => k + 1);
+              setCurrentScreen('opvolgingen');
+            }}
+          />
         ) : currentScreen === 'weekly-goal' ? (
           <WeeklyGoalScreen
             onBack={() => setCurrentScreen(weeklyGoalSource)}
@@ -555,6 +574,7 @@ export default function App() {
             onOpenWeeklyGoal={() => { setWeeklyGoalSource('home'); setCurrentScreen('weekly-goal'); }}
             onOpenLogDetail={(logId) => { setSelectedLogId(logId); setCurrentScreen('log-detail'); }}
             onOpenMonth={() => setCurrentScreen('log-month')}
+            onOpenOpvolgingen={() => setCurrentScreen('opvolgingen')}
           />
         ) : (
           <HomeScreen

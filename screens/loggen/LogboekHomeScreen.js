@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BellIcon, HeartIcon, PlusIcon, TargetIcon } from 'phosphor-react-native';
+import { BellIcon, CheckCircleIcon, HeartIcon, PlusIcon, TargetIcon } from 'phosphor-react-native';
 import { StatusBar } from 'expo-status-bar';
 import BottomNav from '../../components/navigation/BottomNav';
 import ProgressRing from '../../components/logboek/ProgressRing';
@@ -36,6 +36,7 @@ export default function LogboekHomeScreen({
   onOpenWeeklyGoal,
   onOpenLogDetail,
   onOpenMonth,
+  onOpenOpvolgingen,
   samenwerkingRefreshKey = 0,
 }) {
   const [activeTab, setActiveTab] = useState('start');
@@ -239,15 +240,15 @@ export default function LogboekHomeScreen({
 
               <Pressable
                 style={styles.actionCard}
-                onPress={onOpenWeeklyGoal}
+                onPress={onOpenOpvolgingen}
                 accessibilityRole="button"
-                accessibilityLabel="Wekelijks doel instellen"
+                accessibilityLabel="Opvolgingen bekijken"
               >
                 <View style={styles.actionIconCircle}>
-                  <TargetIcon size={20} color={COLORS.brand} weight="regular" />
+                  <CheckCircleIcon size={20} color={COLORS.brand} weight="regular" />
                 </View>
-                <Text style={styles.actionCardTitle}>Wekelijks doel</Text>
-                <Text style={styles.actionCardSub}>Bezoeken instellen</Text>
+                <Text style={styles.actionCardTitle}>Opvolgingen</Text>
+                <Text style={styles.actionCardSub}>Taken beheren</Text>
               </Pressable>
             </View>
 
