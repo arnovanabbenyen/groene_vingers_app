@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { PlusIcon, TargetIcon } from 'phosphor-react-native';
+import { BellIcon, HeartIcon, PlusIcon, TargetIcon } from 'phosphor-react-native';
 import { StatusBar } from 'expo-status-bar';
 import BottomNav from '../../components/navigation/BottomNav';
 import ProgressRing from '../../components/logboek/ProgressRing';
@@ -152,7 +152,7 @@ export default function LogboekHomeScreen({
     );
   }
 
-  const logged = weeklyProgress?.logged_days ?? entries.filter((e) => {
+  const logged = weeklyProgress?.days_logged ?? entries.filter((e) => {
     const now = new Date();
     const weekStart = new Date(now);
     const day = now.getDay();
@@ -167,8 +167,25 @@ export default function LogboekHomeScreen({
       <StatusBar style="light" />
       <SafeAreaView edges={['top']} style={styles.headerSafe}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle} accessibilityRole="header">Logboek</Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1}>{perceelNaam}</Text>
+          <View>
+            <Text style={styles.headerTitle} accessibilityRole="header">Logboek</Text>
+            <Text style={styles.headerSubtitle} numberOfLines={1}>{perceelNaam}</Text>
+          </View>
+          <View style={styles.headerActions}>
+            <Pressable onPress={onOpenNotifications} hitSlop={8} style={styles.bellWrap}>
+              <BellIcon size={24} color={COLORS.textInverse} weight="regular" />
+              {unreadNotificationsCount > 0 ? (
+                <View style={styles.bellBadge}>
+                  <Text style={styles.bellBadgeText}>
+                    {unreadNotificationsCount > 9 ? '9+' : String(unreadNotificationsCount)}
+                  </Text>
+                </View>
+              ) : null}
+            </Pressable>
+            <Pressable onPress={onOpenSaved} hitSlop={8}>
+              <HeartIcon size={24} color={COLORS.textInverse} weight="regular" />
+            </Pressable>
+          </View>
         </View>
       </SafeAreaView>
 
@@ -277,8 +294,37 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.brand,
     paddingHorizontal: SPACING.screenX,
     paddingVertical: SPACING.md,
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    justifyContent: 'space-between',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  bellWrap: {
+    position: 'relative',
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.negative,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: COLORS.brand,
+  },
+  bellBadgeText: {
+    color: COLORS.surface,
+    fontSize: 9,
+    fontFamily: FONTS.bodyMedium,
+    lineHeight: 11,
   },
   headerTitle: {
     fontFamily: FONTS.displaySemiBold,

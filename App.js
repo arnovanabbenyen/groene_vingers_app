@@ -528,6 +528,7 @@ export default function App() {
             onOpenConversation={handleOpenConversation}
             selectedConversation={selectedConversation}
             onCloseConversation={handleCloseConversation}
+            onConfirmSamenwerking={() => setSamenwerkingRefreshKey((k) => k + 1)}
             unreadNotificationsCount={unreadNotificationsCount}
             onOpenNotifications={() => setCurrentScreen('meldingen')}
             onOpenProfiel={() => setCurrentScreen('profiel')}

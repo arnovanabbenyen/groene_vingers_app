@@ -48,7 +48,7 @@
     confirmed: { label: 'Samenwerking bevestigd', bg: 'rgba(87,98,56,0.92)', color: COLORS.textInverse },
   };
 
-  export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConversation, selectedConversation: appSelectedConversation = null, onCloseConversation, unreadNotificationsCount = 0, onOpenNotifications, onOpenProfiel, onOpenSaved }) {
+  export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConversation, selectedConversation: appSelectedConversation = null, onCloseConversation, onConfirmSamenwerking, unreadNotificationsCount = 0, onOpenNotifications, onOpenProfiel, onOpenSaved }) {
     const [activeTab, setActiveTab] = useState(() => getInitialTab?.() ?? 'start');
     const [selectedConversation, setSelectedConversation] = useState(null);
     const [profileImageSource, setProfileImageSource] = useState(PROFILE_IMAGE);
@@ -263,6 +263,7 @@
           onConfirmSamenwerking={() => {
             setSelectedConversation(null);
             onCloseConversation?.();
+            onConfirmSamenwerking?.();
           }}
         />
       );
