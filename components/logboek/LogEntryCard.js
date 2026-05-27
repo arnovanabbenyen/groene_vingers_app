@@ -22,7 +22,7 @@ export default function LogEntryCard({ entry, onPress }) {
 
   return (
     <Pressable
-      style={styles.card}
+      style={({ pressed }) => [styles.card, pressed && { opacity: 0.82 }]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Logboekvermelding ${dateLabel}: ${preview}`}

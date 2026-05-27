@@ -40,6 +40,47 @@ export async function getWeeklyProgress(userId) {
   return { data: row || null, error: error || null };
 }
 
+export async function getLogboekEntry(entryId) {
+  if (!supabase || !entryId) return null;
+
+  const { data, error } = await supabase
+    .from('logboek_entries')
+    .select('id, aanvraag_id, author_id, description, fotos, logged_at, created_at, updated_at')
+    .eq('id', entryId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateLogboekEntry(entryId, updates) {
+  if (!supabase || !entryId) throw new Error('Ongeldige parameters.');
+
+  const { error } = await supabase
+    .from('logboek_entries')
+    .update({
+      description: updates.description,
+      fotos: updates.fotos,
+      logged_at: updates.logged_at,
+    })
+    .eq('id', entryId);
+
+  if (error) throw error;
+  return { success: true };
+}
+
+export async function deleteLogboekEntry(entryId) {
+  if (!supabase || !entryId) throw new Error('Ongeldige parameters.');
+
+  const { error } = await supabase
+    .from('logboek_entries')
+    .delete()
+    .eq('id', entryId);
+
+  if (error) throw error;
+  return { success: true };
+}
+
 export async function updateWeeklyLogGoal(userId, goal) {
   if (!supabase || !userId) return { error: null };
 

@@ -34,6 +34,7 @@ export default function LogboekHomeScreen({
   onOpenSaved,
   onOpenNieuweLog,
   onOpenWeeklyGoal,
+  onOpenLogDetail,
   samenwerkingRefreshKey = 0,
 }) {
   const [activeTab, setActiveTab] = useState('start');
@@ -265,7 +266,11 @@ export default function LogboekHomeScreen({
               </View>
             ) : (
               entries.slice(0, 5).map((entry) => (
-                <LogEntryCard key={entry.id} entry={entry} />
+                <LogEntryCard
+                  key={entry.id}
+                  entry={entry}
+                  onPress={() => onOpenLogDetail?.(entry.id)}
+                />
               ))
             )}
           </>
