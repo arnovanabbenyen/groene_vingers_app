@@ -18,20 +18,22 @@ export default function OnboardingLayout({
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      {/* Skip button — sits just below status bar */}
+      {/* Skip button — properly below status bar */}
       <View style={styles.skipRow}>
         <Pressable onPress={onSkip} hitSlop={8} accessibilityRole="button">
           <Text style={styles.skipText}>Overslaan</Text>
         </Pressable>
       </View>
 
-      {/* Illustration fills the upper portion of the screen */}
+      {/* Illustration fills the upper portion, circle centered inside */}
       <View style={styles.illustrationArea}>
         {illustration}
       </View>
 
-      {/* Lower section: progress + text + button */}
-      <View style={[styles.lowerSection, { paddingBottom: Math.max(insets.bottom, 16) + 24 }]}>
+      {/* Text block — title + subtitle first, then progress dots */}
+      <View style={styles.textBlock}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
         <View style={styles.progressRow}>
           {Array.from({ length: total }).map((_, i) => (
             <View
@@ -43,13 +45,14 @@ export default function OnboardingLayout({
             />
           ))}
         </View>
+      </View>
 
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.subtitle}>{subtitle}</Text>
+      {/* Flex spacer — pushes button away from text toward the bottom */}
+      <View style={styles.spacer} />
 
-        <View style={styles.buttonWrap}>
-          <AuthButton label={ctaLabel} onPress={onContinue} variant="primary" />
-        </View>
+      {/* Button pinned at the bottom */}
+      <View style={[styles.buttonWrap, { paddingBottom: Math.max(insets.bottom, 16) + 16 }]}>
+        <AuthButton label={ctaLabel} onPress={onContinue} variant="primary" />
       </View>
     </View>
   );
@@ -71,12 +74,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textDecorationLine: 'underline',
   },
+  // Takes the upper portion; circle centers itself inside
   illustrationArea: {
-    flex: 1,
+    flex: 3,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  lowerSection: {
+  // Text content sits between the circle and the button
+  textBlock: {
     alignItems: 'center',
     paddingHorizontal: SPACING.screenX,
     gap: SPACING.sm,
@@ -85,8 +90,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 8,
-    marginBottom: SPACING.sm,
+    marginTop: SPACING.sm,
   },
   progressDot: {
     width: 8,
@@ -108,10 +112,12 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
-    paddingHorizontal: SPACING.md,
+  },
+  // Flex spacer: gets ~1/4 of the flexible vertical space
+  spacer: {
+    flex: 1,
   },
   buttonWrap: {
-    width: '100%',
-    marginTop: SPACING.lg,
+    paddingHorizontal: SPACING.screenX,
   },
 });

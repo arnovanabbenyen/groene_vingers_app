@@ -106,7 +106,7 @@ export const RADIUS = {
 
 export const ONBOARDING = {
   circleSize: 226,
-  iconSize: 72,
+  iconSize: 90,
   variants: {
     green: {
       circleBackground: '#E2EDD8',
