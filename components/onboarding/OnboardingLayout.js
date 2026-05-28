@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING } from '../theme/tokens';
 import AuthButton from '../buttons/AuthButton';
 
@@ -13,84 +14,79 @@ export default function OnboardingLayout({
   total = 3,
   ctaLabel = 'Volgende',
 }) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.root, { paddingTop: insets.top }]}>
+      {/* Skip button — sits just below status bar */}
       <View style={styles.skipRow}>
         <Pressable onPress={onSkip} hitSlop={8} accessibilityRole="button">
           <Text style={styles.skipText}>Overslaan</Text>
         </Pressable>
       </View>
 
-      <View style={styles.illustrationWrap}>{illustration}</View>
-
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
-
-      <View style={styles.progressRow}>
-        {Array.from({ length: total }).map((_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.progressDot,
-              i + 1 === step ? styles.dotActive : styles.dotInactive,
-            ]}
-          />
-        ))}
+      {/* Illustration fills the upper portion of the screen */}
+      <View style={styles.illustrationArea}>
+        {illustration}
       </View>
 
-      <View style={styles.ctaRow}>
-        <AuthButton label={ctaLabel} onPress={onContinue} variant="primary" />
+      {/* Lower section: progress + text + button */}
+      <View style={[styles.lowerSection, { paddingBottom: Math.max(insets.bottom, 16) + 24 }]}>
+        <View style={styles.progressRow}>
+          {Array.from({ length: total }).map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.progressDot,
+                i + 1 === step ? styles.dotActive : styles.dotInactive,
+              ]}
+            />
+          ))}
+        </View>
+
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
+
+        <View style={styles.buttonWrap}>
+          <AuthButton label={ctaLabel} onPress={onContinue} variant="primary" />
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
     backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    paddingHorizontal: SPACING.screenX,
-    paddingTop: SPACING.lg,
   },
   skipRow: {
-    position: 'absolute',
-    right: SPACING.screenX,
-    top: SPACING.lg,
-    zIndex: 10,
+    alignItems: 'flex-end',
+    paddingHorizontal: SPACING.screenX,
+    paddingVertical: SPACING.md,
   },
   skipText: {
     fontFamily: FONTS.displayMedium,
     color: COLORS.brand,
     fontSize: 16,
+    textDecorationLine: 'underline',
   },
-  illustrationWrap: {
-    marginTop: 80,
-    width: 226,
-    height: 226,
+  illustrationArea: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    marginTop: SPACING.lg,
-    fontSize: 25,
-    fontFamily: FONTS.displaySemiBold,
-    color: COLORS.textPrimary,
-  },
-  subtitle: {
-    marginTop: SPACING.sm,
-    fontSize: 16,
-    fontFamily: FONTS.body,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    width: 360,
+  lowerSection: {
+    alignItems: 'center',
+    paddingHorizontal: SPACING.screenX,
+    gap: SPACING.sm,
   },
   progressRow: {
     flexDirection: 'row',
-    marginTop: SPACING.lg,
-    height: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    height: 8,
+    marginBottom: SPACING.sm,
   },
   progressDot: {
     width: 8,
@@ -100,10 +96,22 @@ const styles = StyleSheet.create({
   },
   dotActive: { width: 24, backgroundColor: COLORS.brand },
   dotInactive: { backgroundColor: COLORS.indicatorMuted },
-  ctaRow: {
-    position: 'absolute',
-    bottom: SPACING.lg,
-    left: SPACING.screenX,
-    right: SPACING.screenX,
+  title: {
+    fontSize: 25,
+    fontFamily: FONTS.displaySemiBold,
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    fontFamily: FONTS.body,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: SPACING.md,
+  },
+  buttonWrap: {
+    width: '100%',
+    marginTop: SPACING.lg,
   },
 });
