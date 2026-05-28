@@ -2,12 +2,16 @@ import { View, StyleSheet } from 'react-native';
 import OnboardingLayout from './OnboardingLayout';
 import { ONBOARDING } from '../theme/tokens';
 
-export default function OnboardingSlide({ slide, step, total, onContinue, onSkip }) {
+export default function OnboardingSlide({ slide, step, total, onContinue, onSkip, onBack, isLast = false }) {
   const variant = ONBOARDING.variants[slide.variant] ?? ONBOARDING.variants.green;
   const IconComponent = slide.icon;
 
   const illustration = (
-    <View style={[styles.circle, { backgroundColor: variant.circleBackground }]}>
+    <View
+      style={[styles.circle, { backgroundColor: variant.circleBackground }]}
+      accessible={false}
+      importantForAccessibility="no-hide-descendants"
+    >
       <IconComponent
         size={ONBOARDING.iconSize}
         color={variant.iconColor}
@@ -22,9 +26,11 @@ export default function OnboardingSlide({ slide, step, total, onContinue, onSkip
       subtitle={slide.subtitle}
       illustration={illustration}
       onSkip={onSkip}
+      onBack={onBack}
       onContinue={onContinue}
       step={step}
       total={total}
+      ctaLabel={isLast ? 'Aan de slag' : 'Volgende'}
     />
   );
 }

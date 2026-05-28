@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ArrowLeft } from 'phosphor-react-native';
 import { COLORS, FONTS, SPACING } from '../theme/tokens';
 import AuthButton from '../buttons/AuthButton';
 
@@ -10,6 +11,7 @@ export default function OnboardingLayout({
   illustration,
   onContinue,
   onSkip,
+  onBack,
   step = 1,
   total = 3,
   ctaLabel = 'Volgende',
@@ -18,9 +20,28 @@ export default function OnboardingLayout({
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      {/* Skip button — properly below status bar */}
-      <View style={styles.skipRow}>
-        <Pressable onPress={onSkip} hitSlop={8} accessibilityRole="button">
+      {/* Header row — back button left (slides 2+), skip right (always) */}
+      <View style={styles.headerRow}>
+        {onBack ? (
+          <Pressable
+            onPress={onBack}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Vorige stap"
+            style={styles.backButton}
+          >
+            <ArrowLeft size={22} color={COLORS.brand} weight="regular" />
+            <Text style={styles.backText}>Vorige</Text>
+          </Pressable>
+        ) : (
+          <View style={styles.headerSpacer} />
+        )}
+        <Pressable
+          onPress={onSkip}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Overslaan, ga naar rolkeuze"
+        >
           <Text style={styles.skipText}>Overslaan</Text>
         </Pressable>
       </View>
@@ -34,10 +55,17 @@ export default function OnboardingLayout({
       <View style={styles.textBlock}>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
-        <View style={styles.progressRow}>
+        <View
+          style={styles.progressRow}
+          accessible={true}
+          accessibilityRole="progressbar"
+          accessibilityLabel={`Stap ${step} van ${total}`}
+          accessibilityValue={{ min: 1, max: total, now: step }}
+        >
           {Array.from({ length: total }).map((_, i) => (
             <View
               key={i}
+              accessible={false}
               style={[
                 styles.progressDot,
                 i + 1 === step ? styles.dotActive : styles.dotInactive,
@@ -63,10 +91,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.surface,
   },
-  skipRow: {
-    alignItems: 'flex-end',
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: SPACING.screenX,
     paddingVertical: SPACING.md,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  backText: {
+    fontFamily: FONTS.displayMedium,
+    color: COLORS.brand,
+    fontSize: 16,
+  },
+  headerSpacer: {
+    width: 70,
   },
   skipText: {
     fontFamily: FONTS.displayMedium,

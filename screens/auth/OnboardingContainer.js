@@ -16,13 +16,19 @@ export default function OnboardingContainer({ onComplete, onSkip }) {
     }
   }
 
+  function handleBack() {
+    setCurrentIndex((i) => i - 1);
+  }
+
   return (
     <OnboardingSlide
       slide={slide}
       step={currentIndex + 1}
       total={ONBOARDING_SLIDES.length}
       onContinue={handleContinue}
+      onBack={currentIndex > 0 ? handleBack : undefined}
       onSkip={onSkip}
+      isLast={isLast}
     />
   );
 }
