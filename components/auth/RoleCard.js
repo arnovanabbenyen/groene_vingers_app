@@ -1,5 +1,5 @@
 import { Pressable, Text, StyleSheet } from 'react-native';
-import { ROLE_CARD, FONTS, FONT_SIZES } from '../theme/tokens';
+import { ROLE_CARD, COLORS, FONTS, FONT_SIZES, SPACING } from '../theme/tokens';
 
 export default function RoleCard({ role, selected, onPress }) {
   const variant = selected ? ROLE_CARD.variants.selected : ROLE_CARD.variants.unselected;
@@ -8,9 +8,10 @@ export default function RoleCard({ role, selected, onPress }) {
   return (
     <Pressable
       onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      accessibilityLabel={`${role.title}: ${role.subtitle}`}
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected }}
+      accessibilityLabel={role.title}
+      accessibilityHint={role.subtitle}
       style={[
         styles.card,
         {
@@ -38,15 +39,14 @@ const styles = StyleSheet.create({
     borderWidth: ROLE_CARD.borderWidth,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-    gap: 16,
-    ...ROLE_CARD.cardShadow,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.lg,
+    gap: SPACING.md,
   },
   title: {
     fontFamily: FONTS.displayMedium,
     fontSize: FONT_SIZES.lg,
-    color: '#36392B',
+    color: COLORS.textPrimary,
     textAlign: 'center',
   },
   subtitle: {

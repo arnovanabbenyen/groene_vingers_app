@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import RoleCard from '../../components/onboarding/RoleCard';
-import { ROLES } from '../../components/onboarding/roles.config';
+import RoleCard from '../../components/auth/RoleCard';
+import { ROLES } from '../../components/auth/roles.config';
 import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACING } from '../../components/theme/tokens';
 
 export default function RoleSelectionScreen({ onContinue, onLogin }) {
@@ -14,10 +14,14 @@ export default function RoleSelectionScreen({ onContinue, onLogin }) {
   return (
     <View style={[styles.root, { paddingTop: insets.top + 24 }]}>
       <View style={styles.content}>
-        <Text style={styles.title}>Wie ben jij?</Text>
+        <Text style={styles.title} accessibilityRole="header">Wie ben jij?</Text>
         <Text style={styles.subtitle}>Kies jouw rol. Je kunt dit later aanpassen.</Text>
 
-        <View style={styles.cards}>
+        <View
+          style={styles.cards}
+          accessibilityRole="radiogroup"
+          accessibilityLabel="Kies jouw rol"
+        >
           {ROLES.map((role) => (
             <RoleCard
               key={role.id}
@@ -36,14 +40,15 @@ export default function RoleSelectionScreen({ onContinue, onLogin }) {
           accessibilityRole="button"
           accessibilityState={{ disabled: !canContinue }}
           accessibilityLabel="Volgende"
+          accessibilityHint={!canContinue ? 'Kies eerst een rol om door te gaan' : undefined}
           style={[styles.button, !canContinue && styles.buttonDisabled]}
         >
-          <Text style={styles.buttonText}>Volgende</Text>
+          <Text style={[styles.buttonText, !canContinue && styles.buttonTextDisabled]}>Volgende</Text>
         </Pressable>
 
         <View style={styles.loginRow}>
           <Text style={styles.loginText}>Al een account? </Text>
-          <Pressable onPress={onLogin} hitSlop={4} accessibilityRole="link">
+          <Pressable onPress={onLogin} hitSlop={8} accessibilityRole="link">
             <Text style={styles.loginLink}>Inloggen</Text>
           </Pressable>
         </View>
@@ -93,6 +98,9 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.displayMedium,
     fontSize: FONT_SIZES.lg,
     color: COLORS.textInverse,
+  },
+  buttonTextDisabled: {
+    color: COLORS.textSecondary,
   },
   loginRow: {
     flexDirection: 'row',
