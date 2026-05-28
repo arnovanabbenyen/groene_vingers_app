@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginHorizontal: 6,
   },
-  dotActive: { backgroundColor: COLORS.brand },
+  dotActive: { width: 24, backgroundColor: COLORS.brand },
   dotInactive: { backgroundColor: COLORS.indicatorMuted },
   ctaRow: {
     position: 'absolute',

@@ -29,9 +29,7 @@ import WeeklyGoalScreen from './screens/settings/WeeklyGoalScreen';
 import { usePendingAanvragen } from './hooks/usePendingAanvragen';
 import { useNotifications } from './hooks/useNotifications';
 import { useActiveSamenwerking } from './hooks/useActiveSamenwerking';
-import InfoScreen from './screens/auth/InfoScreen';
-import InfoScreen2 from './screens/auth/InfoScreen2';
-import InfoScreen3 from './screens/auth/InfoScreen3';
+import OnboardingContainer from './screens/auth/OnboardingContainer';
 import RoleSelectionScreen from './screens/auth/RoleSelectionScreen';
 import AccountDetailsScreen from './screens/auth/AccountDetailsScreen';
 import PhotoScreen from './screens/auth/PhotoScreen';
@@ -636,7 +634,7 @@ export default function App() {
         )
       ) : screen === 'login' ? (
         <LoginScreen
-          onCreateAccount={() => setScreen('info')}
+          onCreateAccount={() => setScreen('onboarding')}
           onLoginSuccess={(role) => {
             if (role) setSelectedRole(role);
             setIsLoggedIn(true);
@@ -660,23 +658,13 @@ export default function App() {
         />
       ) : screen === 'intro' ? (
         <IntroScreen
-          onCreateAccount={() => setScreen('info')}
+          onCreateAccount={() => setScreen('onboarding')}
           onSignIn={() => setScreen('login')}
         />
-      ) : screen === 'info' ? (
-        <InfoScreen
+      ) : screen === 'onboarding' ? (
+        <OnboardingContainer
+          onComplete={() => setScreen('role')}
           onSkip={() => setScreen('role')}
-          onContinue={() => setScreen('info2')}
-        />
-      ) : screen === 'info2' ? (
-        <InfoScreen2
-          onSkip={() => setScreen('role')}
-          onContinue={() => setScreen('info3')}
-        />
-      ) : screen === 'info3' ? (
-        <InfoScreen3
-          onSkip={() => setScreen('role')}
-          onContinue={() => setScreen('role')}
         />
       ) : screen === 'role' ? (
         <RoleSelectionScreen
@@ -728,7 +716,7 @@ export default function App() {
         />
       ) : (
         <IntroScreen
-          onCreateAccount={() => setScreen('info')}
+          onCreateAccount={() => setScreen('onboarding')}
           onSignIn={() => setIsLoggedIn(true)}
         />
       )}

@@ -104,6 +104,25 @@ export const RADIUS = {
   pill: 999,
 };
 
+export const ONBOARDING = {
+  circleSize: 226,
+  iconSize: 52,
+  variants: {
+    green: {
+      circleBackground: '#E2EDD8',
+      iconColor: '#36392B',
+    },
+    yellow: {
+      circleBackground: '#FAE49C',
+      iconColor: '#8A7010',
+    },
+    beige: {
+      circleBackground: '#DCD7C6',
+      iconColor: '#36392B',
+    },
+  },
+};
+
 export const SHADOWS = {
   card: {
     shadowColor: COLORS.shadow,
