@@ -1,40 +1,49 @@
-import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { MagnifyingGlass, House } from 'phosphor-react-native';
-import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
-import AuthButton from '../../components/buttons/AuthButton';
-import RoleOptionCard from '../../components/auth/RoleOptionCard';
+import { useState } from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import RoleCard from '../../components/onboarding/RoleCard';
+import { ROLES } from '../../components/onboarding/roles.config';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACING } from '../../components/theme/tokens';
 
-export default function RoleSelectionScreen({ selectedRole, onSelectRole, onContinue, onLogin }) {
+export default function RoleSelectionScreen({ onContinue, onLogin }) {
+  const insets = useSafeAreaInsets();
+  const [selectedRoleId, setSelectedRoleId] = useState(null);
+
+  const canContinue = selectedRoleId !== null;
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Wie ben jij?</Text>
-      <Text style={styles.subtitle}>Kies jouw rol. Je kunt dit later aanpassen.</Text>
+    <View style={[styles.root, { paddingTop: insets.top + 24 }]}>
+      <View style={styles.content}>
+        <Text style={styles.title}>Wie ben jij?</Text>
+        <Text style={styles.subtitle}>Kies jouw rol. Je kunt dit later aanpassen.</Text>
 
-      <View style={styles.cards}>
-        <RoleOptionCard
-          title="Tuinzoeker"
-          subtitle="Ik zoek een tuin om in te tuinieren"
-          icon={<MagnifyingGlass size={24} color={COLORS.textPrimary} weight="regular" />}
-          selected={selectedRole === 'tuinzoeker'}
-          onPress={() => onSelectRole('tuinzoeker')}
-        />
-
-        <RoleOptionCard
-          title="Tuineigenaar"
-          subtitle="Ik wil mijn tuin delen met anderen"
-          icon={<House size={24} color={COLORS.textPrimary} weight="regular" />}
-          selected={selectedRole === 'tuineigenaar'}
-          onPress={() => onSelectRole('tuineigenaar')}
-        />
+        <View style={styles.cards}>
+          {ROLES.map((role) => (
+            <RoleCard
+              key={role.id}
+              role={role}
+              selected={selectedRoleId === role.id}
+              onPress={() => setSelectedRoleId(role.id)}
+            />
+          ))}
+        </View>
       </View>
 
-      <View style={styles.footer}>
-        <AuthButton label="Volgende" onPress={onContinue} variant="primary" />
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
+        <Pressable
+          onPress={() => canContinue && onContinue?.(selectedRoleId)}
+          disabled={!canContinue}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !canContinue }}
+          accessibilityLabel="Volgende"
+          style={[styles.button, !canContinue && styles.buttonDisabled]}
+        >
+          <Text style={styles.buttonText}>Volgende</Text>
+        </Pressable>
 
         <View style={styles.loginRow}>
           <Text style={styles.loginText}>Al een account? </Text>
-          <Pressable onPress={onLogin}>
+          <Pressable onPress={onLogin} hitSlop={4} accessibilityRole="link">
             <Text style={styles.loginLink}>Inloggen</Text>
           </Pressable>
         </View>
@@ -44,11 +53,13 @@ export default function RoleSelectionScreen({ selectedRole, onSelectRole, onCont
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: COLORS.surface,
-    paddingTop: 84,
+    backgroundColor: COLORS.background,
     paddingHorizontal: SPACING.screenX,
+  },
+  content: {
+    flex: 1,
   },
   title: {
     fontFamily: FONTS.displaySemiBold,
@@ -58,32 +69,44 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontFamily: FONTS.body,
-    fontSize: 12.8,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
     marginBottom: 48,
   },
   cards: {
-    gap: 20,
+    gap: 24,
   },
   footer: {
-    marginTop: 'auto',
-    paddingTop: 24,
-    paddingBottom: SPACING.lg,
+    paddingTop: 12,
+    gap: 12,
+  },
+  button: {
+    backgroundColor: COLORS.brand,
+    borderRadius: RADIUS.xl,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+  },
+  buttonDisabled: {
+    backgroundColor: COLORS.surfaceMuted,
+  },
+  buttonText: {
+    fontFamily: FONTS.displayMedium,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.textInverse,
   },
   loginRow: {
-    marginTop: 12,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
   loginText: {
     fontFamily: FONTS.body,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.textPrimary,
   },
   loginLink: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.textPrimary,
   },
 });

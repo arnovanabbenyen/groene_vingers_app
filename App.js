@@ -668,10 +668,11 @@ export default function App() {
         />
       ) : screen === 'role' ? (
         <RoleSelectionScreen
-          selectedRole={selectedRole}
-          onSelectRole={setSelectedRole}
-          onLogin={() => setScreen('intro')}
-          onContinue={() => setScreen('account')}
+          onContinue={(roleId) => {
+            setSelectedRole(roleId);
+            setScreen('account');
+          }}
+          onLogin={() => setScreen('login')}
         />
       ) : screen === 'account' ? (
         <AccountDetailsScreen

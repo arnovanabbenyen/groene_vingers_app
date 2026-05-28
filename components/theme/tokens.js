@@ -104,6 +104,31 @@ export const RADIUS = {
   pill: 999,
 };
 
+export const ROLE_CARD = {
+  iconSize: 24,
+  borderRadius: 6,
+  borderWidth: 2,
+  iconColor: '#36392B',
+  subtitleColor: '#7B845F',
+  cardShadow: {
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 2,
+  },
+  variants: {
+    unselected: {
+      background: '#FDFBF7',
+      borderColor: '#FAF9F5',
+    },
+    selected: {
+      background: '#EAF0D8',
+      borderColor: '#576238',
+    },
+  },
+};
+
 export const ONBOARDING = {
   circleSize: 226,
   iconSize: 90,
