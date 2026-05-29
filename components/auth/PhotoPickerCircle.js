@@ -12,23 +12,20 @@ export default function PhotoPickerCircle({ imageUri, onPress }) {
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={imageUri ? 'Profielfoto wijzigen' : 'Profielfoto toevoegen'}
+        accessibilityHint="Opent een menu om een foto te nemen of uit je galerij te kiezen"
         style={styles.circle}
       >
         {imageUri ? (
-          <>
-            <Image source={{ uri: imageUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-            <View style={styles.overlay}>
-              <Camera size={28} color="#FFFFFF" weight="regular" />
-            </View>
-          </>
+          <Image source={{ uri: imageUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         ) : (
           <View style={styles.empty}>
             <Camera size={32} color={COLORS.border} weight="regular" />
+            <Text style={styles.emptyText}>Voeg foto toe</Text>
           </View>
         )}
       </Pressable>
       <Text style={styles.hint}>
-        {imageUri ? 'Tik om te wijzigen' : 'Tik om een foto te kiezen'}
+        {imageUri ? 'Tik om te wijzigen of te verwijderen' : 'Optioneel — je kunt dit altijd later aanpassen'}
       </Text>
     </View>
   );
@@ -52,16 +49,19 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
   },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  emptyText: {
+    fontFamily: FONTS.body,
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
   },
   hint: {
     fontFamily: FONTS.body,
-    fontSize: 13,
+    fontSize: 12.8,
     color: COLORS.textSecondary,
+    textAlign: 'center',
   },
 });

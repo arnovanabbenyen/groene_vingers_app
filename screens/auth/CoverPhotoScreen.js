@@ -10,7 +10,10 @@ import { useImagePicker } from '../../hooks/useImagePicker';
 
 export default function CoverPhotoScreen({ onBack, onContinue, onSkip }) {
   const insets = useSafeAreaInsets();
-  const { imageUri, openSheet } = useImagePicker({ aspect: [16, 9], sheetTitle: 'Omslagfoto toevoegen' });
+  const { imageUri, openSheet } = useImagePicker({
+    aspect: [16, 9],
+    sheetTitle: 'Omslagfoto toevoegen',
+  });
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
