@@ -13,9 +13,7 @@ import FieldError from '../../components/notifications/FieldError';
 import FormErrorBanner from '../../components/notifications/FormErrorBanner';
 import PasswordStrengthBar from '../../components/auth/PasswordStrengthBar';
 import { useRegisterForm } from '../../hooks/useRegisterForm';
-import { supabase } from '../../services/supabase';
-
-export default function AccountDetailsScreen({ onBack, onSignupSuccess, onLogin, role }) {
+export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
   const insets = useSafeAreaInsets();
   const {
     values,
@@ -29,57 +27,17 @@ export default function AccountDetailsScreen({ onBack, onSignupSuccess, onLogin,
     errors,
     bannerError,
     strength,
-    submitting,
-    setSubmitting,
     validate,
-    setSignupError,
   } = useRegisterForm();
 
-  async function onPressContinue() {
+  function onPressContinue() {
     if (!validate()) return;
-
-    if (!supabase) {
-      setSignupError({ message: 'Verbinding niet beschikbaar. Controleer je internetverbinding.' });
-      return;
-    }
-
-    setSubmitting(true);
-    setSignupError(null);
-
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: values.email.trim(),
-        password: values.password,
-        options: {
-          data: {
-            first_name: values.firstName.trim(),
-            last_name: values.lastName.trim(),
-            role,
-            bio: '',
-          },
-        },
-      });
-
-      if (error) {
-        setSignupError(error);
-        return;
-      }
-
-      // Supabase enum-protection: bestaand email + email-confirmatie aan →
-      // { user: null, session: null, error: null }. Behandel als "check je inbox"
-      // zodat we niet lekken of het email-adres al bestaat.
-      if (!data.user) {
-        onSignupSuccess?.(null, true);
-        return;
-      }
-
-      const requiresEmailVerification = !data.session;
-      onSignupSuccess?.(data.user, requiresEmailVerification);
-    } catch (err) {
-      setSignupError({ message: err.message || 'Er is een onbekende fout opgetreden.' });
-    } finally {
-      setSubmitting(false);
-    }
+    onContinue?.({
+      firstName: values.firstName.trim(),
+      lastName: values.lastName.trim(),
+      email: values.email.trim(),
+      password: values.password,
+    });
   }
 
   function onPressLegalLink() {
@@ -189,12 +147,10 @@ export default function AccountDetailsScreen({ onBack, onSignupSuccess, onLogin,
             label="Volgende"
             onPress={onPressContinue}
             variant="primary"
-            loading={submitting}
-            disabled={submitting}
           />
           <View style={styles.loginRow}>
             <Text style={styles.loginText}>Al een account? </Text>
-            <Pressable onPress={onLogin || onBack} hitSlop={4}>
+            <Pressable onPress={onLogin} hitSlop={4}>
               <Text style={styles.loginLink}>Inloggen</Text>
             </Pressable>
           </View>

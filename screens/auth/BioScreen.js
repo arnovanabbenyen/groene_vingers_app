@@ -1,40 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { ArrowLeft } from 'phosphor-react-native';
 import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 import AuthTextArea from '../../components/auth/AuthTextArea';
-import { supabase } from '../../services/supabase';
 
-export default function BioScreen({ onBack, onContinue, userId }) {
+export default function BioScreen({ onBack, onContinue, isSubmitting }) {
   const [bio, setBio] = useState('');
-  const [updating, setUpdating] = useState(false);
-
-  async function handleSubmit() {
-    const trimmed = bio.trim();
-
-    if (!trimmed || !userId || !supabase) {
-      // No bio entered, or no session — just move on
-      onContinue?.();
-      return;
-    }
-
-    setUpdating(true);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ bio: trimmed })
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      onContinue?.();
-    } catch (err) {
-      Alert.alert('Bio opslaan mislukt', err.message || 'Probeer het opnieuw.');
-    } finally {
-      setUpdating(false);
-    }
-  }
 
   return (
     <View style={styles.container}>
@@ -45,10 +17,10 @@ export default function BioScreen({ onBack, onContinue, userId }) {
         </Pressable>
 
         <Pressable
-          onPress={onContinue}
+          onPress={() => onContinue?.('')}
           accessibilityRole="button"
           hitSlop={8}
-          disabled={updating}
+          disabled={isSubmitting}
         >
           <Text style={styles.skipText}>Overslaan</Text>
         </Pressable>
@@ -71,11 +43,11 @@ export default function BioScreen({ onBack, onContinue, userId }) {
 
       <View style={styles.footer}>
         <AuthButton
-          label={updating ? 'Bezig...' : 'Volgende'}
-          onPress={handleSubmit}
+          label="Account aanmaken"
+          onPress={() => onContinue?.(bio.trim())}
           variant="primary"
-          loading={updating}
-          disabled={updating}
+          loading={isSubmitting}
+          disabled={isSubmitting}
         />
       </View>
     </View>

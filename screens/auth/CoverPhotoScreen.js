@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { ArrowLeft } from 'phosphor-react-native';
+import { ArrowLeft, Image as ImageIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
-import PhotoPickerCircle from '../../components/auth/PhotoPickerCircle';
 
-export default function PhotoScreen({ onBack, onContinue, onSkip }) {
+export default function CoverPhotoScreen({ onBack, onContinue, onSkip }) {
   const [imageUri, setImageUri] = useState(null);
 
   async function pickFromLibrary() {
@@ -20,7 +19,7 @@ export default function PhotoScreen({ onBack, onContinue, onSkip }) {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
-        aspect: [1, 1],
+        aspect: [16, 9],
         quality: 0.9,
       });
 
@@ -43,7 +42,7 @@ export default function PhotoScreen({ onBack, onContinue, onSkip }) {
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
-        aspect: [1, 1],
+        aspect: [16, 9],
         quality: 0.9,
       });
 
@@ -56,7 +55,7 @@ export default function PhotoScreen({ onBack, onContinue, onSkip }) {
   }
 
   function handlePhotoButtonPress() {
-    Alert.alert('Foto toevoegen', 'Kies hoe je een foto wilt toevoegen.', [
+    Alert.alert('Omslagfoto toevoegen', 'Kies hoe je een foto wilt toevoegen.', [
       { text: 'Foto nemen', onPress: takePhoto },
       { text: 'Kies uit galerij', onPress: pickFromLibrary },
       imageUri ? { text: 'Verwijder foto', style: 'destructive', onPress: () => setImageUri(null) } : null,
@@ -78,18 +77,23 @@ export default function PhotoScreen({ onBack, onContinue, onSkip }) {
       </View>
 
       <View style={styles.copy}>
-        <Text style={styles.title}>Voeg een foto toe</Text>
+        <Text style={styles.title}>Voeg een omslagfoto toe</Text>
         <Text style={styles.subtitle}>
-          Voeg een duidelijke foto van jezelf toe, zodat mensen jou direct kunnen herkennen.
+          Een omslagfoto maakt je profiel persoonlijker. Kies een foto van je tuin of een sfeervolle afbeelding.
         </Text>
       </View>
 
       <View style={styles.pickerWrap}>
-        <PhotoPickerCircle
-          imageUri={imageUri}
-          onPress={handlePhotoButtonPress}
-          onDelete={imageUri ? () => setImageUri(null) : undefined}
-        />
+        <Pressable style={styles.coverPreview} onPress={handlePhotoButtonPress} accessibilityRole="button" accessibilityLabel="Omslagfoto kiezen">
+          {imageUri ? (
+            <Image source={{ uri: imageUri }} style={styles.coverImage} resizeMode="cover" />
+          ) : (
+            <View style={styles.placeholder}>
+              <ImageIcon size={36} color={COLORS.border} weight="regular" />
+              <Text style={styles.placeholderText}>Tik om een foto te kiezen</Text>
+            </View>
+          )}
+        </Pressable>
       </View>
 
       <View style={styles.footer}>
@@ -149,10 +153,32 @@ const styles = StyleSheet.create({
   },
   pickerWrap: {
     flex: 1,
+    justifyContent: 'center',
+    paddingVertical: 24,
+  },
+  coverPreview: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
+  },
+  placeholder: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 8,
-    paddingBottom: 24,
+    gap: 10,
+  },
+  placeholderText: {
+    fontFamily: FONTS.body,
+    fontSize: 13,
+    color: COLORS.textSecondary,
   },
   footer: {
     paddingBottom: SPACING.lg,

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode as decodeBase64 } from 'base64-arraybuffer';
 import AppProviders from './providers/AppProviders';
 import IntroScreen from './screens/intro/IntroScreen';
 import HomeScreen from './screens/home/HomeScreen';
@@ -33,6 +35,7 @@ import OnboardingContainer from './screens/auth/OnboardingContainer';
 import RoleSelectionScreen from './screens/auth/RoleSelectionScreen';
 import AccountDetailsScreen from './screens/auth/AccountDetailsScreen';
 import PhotoScreen from './screens/auth/PhotoScreen';
+import CoverPhotoScreen from './screens/auth/CoverPhotoScreen';
 import BioScreen from './screens/auth/BioScreen';
 import WelcomeScreen from './screens/auth/WelcomeScreen';
 import { supabase } from './services/supabase';
@@ -48,7 +51,10 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState('home');
   const [selectedAanvraag, setSelectedAanvraag] = useState(null);
   const [selectedAanvraagSource, setSelectedAanvraagSource] = useState('home');
-  const [signedUpUserId, setSignedUpUserId] = useState(null);
+  const [profileDraft, setProfileDraft] = useState(null);
+  const [profilePhotoUri, setProfilePhotoUri] = useState(null);
+  const [coverPhotoUri, setCoverPhotoUri] = useState(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [needsEmailVerification, setNeedsEmailVerification] = useState(false);
   const [lastResetEmail, setLastResetEmail] = useState('');
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
@@ -78,6 +84,84 @@ export default function App() {
     setCurrentScreen('home');
     setSelectedAanvraag(null);
     setSelectedAanvraagSource('home');
+  }
+
+  async function uploadPhoto(bucket, userId, filename, localUri) {
+    const base64Encoding = FileSystem.EncodingType?.Base64 ?? 'base64';
+    const base64 = await FileSystem.readAsStringAsync(localUri, { encoding: base64Encoding });
+    const arrayBuffer = decodeBase64(base64);
+    if (arrayBuffer.byteLength === 0) throw new Error('Afbeelding kon niet worden gelezen.');
+    const ext = localUri.split('.').pop()?.toLowerCase() || 'jpg';
+    const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+    const filePath = `${userId}/${filename}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, arrayBuffer, { contentType: mime, upsert: true });
+    if (uploadError) throw uploadError;
+    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
+    const publicUrl = urlData?.publicUrl;
+    if (publicUrl) {
+      const field = filename === 'cover' ? 'cover_url' : 'avatar_url';
+      await supabase.from('profiles').update({ [field]: publicUrl }).eq('id', userId);
+    }
+  }
+
+  async function handleCompleteSignUp(bio) {
+    if (!supabase) {
+      Alert.alert('Verbinding niet beschikbaar', 'Controleer je internetverbinding.');
+      return;
+    }
+
+    setIsSavingProfile(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: profileDraft.email,
+        password: profileDraft.password,
+        options: {
+          data: {
+            first_name: profileDraft.firstName,
+            last_name: profileDraft.lastName,
+            role: selectedRole,
+            bio: bio || '',
+          },
+        },
+      });
+
+      if (error) {
+        Alert.alert('Account aanmaken mislukt', error.message || 'Probeer het opnieuw.');
+        return;
+      }
+
+      // Supabase enum-protection: duplicate email + email confirmation →
+      // { user: null, session: null, error: null }. Treat as "check je inbox".
+      if (!data.user) {
+        setNeedsEmailVerification(true);
+        setScreen('welcome');
+        return;
+      }
+
+      const userId = data.user.id;
+      const requiresEmailVerification = !data.session;
+      setNeedsEmailVerification(requiresEmailVerification);
+
+      // Only upload photos when there's an active session (RLS requires auth.uid())
+      if (!requiresEmailVerification) {
+        if (profilePhotoUri) {
+          try { await uploadPhoto('profile-pfp', userId, 'avatar', profilePhotoUri); }
+          catch (err) { console.warn('Profile photo upload failed:', err); }
+        }
+        if (coverPhotoUri) {
+          try { await uploadPhoto('profile-covers', userId, 'cover', coverPhotoUri); }
+          catch (err) { console.warn('Cover photo upload failed:', err); }
+        }
+      }
+
+      setScreen('welcome');
+    } catch (err) {
+      Alert.alert('Account aanmaken mislukt', err.message || 'Probeer het opnieuw.');
+    } finally {
+      setIsSavingProfile(false);
+    }
   }
 
   useEffect(() => {
@@ -548,27 +632,36 @@ export default function App() {
         />
       ) : screen === 'account' ? (
         <AccountDetailsScreen
-          role={selectedRole}
           onBack={() => setScreen('role')}
           onLogin={() => setScreen('login')}
-          onSignupSuccess={(user, requiresEmailVerify) => {
-            setSignedUpUserId(user?.id ?? null);
-            setNeedsEmailVerification(requiresEmailVerify);
-            setScreen(requiresEmailVerify ? 'welcome' : 'photo');
+          onContinue={(data) => {
+            setProfileDraft(data);
+            setScreen('photo');
           }}
         />
       ) : screen === 'photo' ? (
         <PhotoScreen
-          userId={signedUpUserId}
           onBack={() => setScreen('account')}
+          onSkip={() => setScreen('cover')}
+          onContinue={(uri) => {
+            setProfilePhotoUri(uri || null);
+            setScreen('cover');
+          }}
+        />
+      ) : screen === 'cover' ? (
+        <CoverPhotoScreen
+          onBack={() => setScreen('photo')}
           onSkip={() => setScreen('bio')}
-          onContinue={() => setScreen('bio')}
+          onContinue={(uri) => {
+            setCoverPhotoUri(uri || null);
+            setScreen('bio');
+          }}
         />
       ) : screen === 'bio' ? (
         <BioScreen
-          userId={signedUpUserId}
-          onBack={() => setScreen('photo')}
-          onContinue={() => setScreen('welcome')}
+          onBack={() => setScreen('cover')}
+          onContinue={handleCompleteSignUp}
+          isSubmitting={isSavingProfile}
         />
       ) : screen === 'welcome' ? (
         <WelcomeScreen
