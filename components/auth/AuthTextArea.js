@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { COLORS, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
@@ -11,6 +11,7 @@ export default function AuthTextArea({
   placeholder,
   height = 160,
   maxLength,
+  autoCapitalize = 'sentences',
   editable = true,
   error = false,
   onBlur,
@@ -21,6 +22,18 @@ export default function AuthTextArea({
   inputStyle,
   labelStyle,
 }) {
+  const handleChange = useCallback((text) => {
+    if (!onChangeText) return;
+    if (text.length > 0) {
+      const upper = text[0].toUpperCase();
+      if (upper !== text[0]) {
+        onChangeText(upper + text.slice(1));
+        return;
+      }
+    }
+    onChangeText(text);
+  }, [onChangeText]);
+
   const resolvedAccessibilityState = {
     ...(accessibilityState || {}),
     invalid: error || accessibilityState?.invalid || undefined,
@@ -40,12 +53,15 @@ export default function AuthTextArea({
       >
         <TextInput
           value={value}
-          onChangeText={onChangeText}
+          onChangeText={handleChange}
           onBlur={onBlur}
           placeholder={placeholder}
           multiline
           editable={editable}
           maxLength={maxLength}
+          autoCapitalize={autoCapitalize}
+          autoCorrect
+          spellCheck
           textAlignVertical="top"
           style={[styles.input, inputStyle]}
           placeholderTextColor={COLORS.border}
