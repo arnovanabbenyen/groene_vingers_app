@@ -1,104 +1,63 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { ArrowLeft } from 'phosphor-react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
+import AuthProgressBar from '../../components/auth/AuthProgressBar';
+import AuthStepHeader from '../../components/auth/AuthStepHeader';
 import AuthTextArea from '../../components/auth/AuthTextArea';
 
 export default function BioScreen({ onBack, onContinue, isSubmitting }) {
+  const insets = useSafeAreaInsets();
   const [bio, setBio] = useState('');
 
   return (
-    <View style={styles.container}>
-      <View
-        style={styles.progressTrack}
-        accessible
-        accessibilityRole="progressbar"
-        accessibilityLabel="Stap 4 van 4"
-        accessibilityValue={{ min: 0, max: 4, now: 4 }}
-      >
-        {[1,2,3,4].map(s => (
-          <View key={s} style={[styles.progressSegment, s <= 4 && styles.progressSegmentFill]} />
-        ))}
-      </View>
-      <View style={styles.headerRow}>
-        <Pressable style={styles.backButton} onPress={onBack} accessibilityRole="button">
-          <ArrowLeft size={20} color={COLORS.textPrimary} weight="regular" />
-          <Text style={styles.backText}>Terug</Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => onContinue?.('')}
-          accessibilityRole="button"
-          hitSlop={8}
-          disabled={isSubmitting}
-        >
-          <Text style={styles.skipText}>Overslaan</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.copy}>
-        <Text style={styles.title}>Schrijf iets over jezelf</Text>
-        <Text style={styles.subtitle}>
-          Vertel iets over jezelf, je interesse in tuinieren en wat je hoopt te vinden.
-        </Text>
-      </View>
-
-      <View style={styles.body}>
-        <AuthTextArea
-          value={bio}
-          onChangeText={setBio}
-          placeholder="Ik hoop iets dichtbij te vinden, want..."
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <AuthProgressBar step={4} totalSteps={4} />
+      <View style={styles.inner}>
+        <AuthStepHeader
+          onBack={onBack}
+          onSkip={() => onContinue?.('')}
+          skipDisabled={isSubmitting}
         />
+        <View style={styles.copy}>
+          <Text style={styles.title}>Schrijf iets over jezelf</Text>
+          <Text style={styles.subtitle}>
+            Vertel iets over jezelf, je interesse in tuinieren en wat je hoopt te vinden.
+          </Text>
+        </View>
+        <View style={styles.body}>
+          <AuthTextArea
+            value={bio}
+            onChangeText={setBio}
+            placeholder="Ik hoop iets dichtbij te vinden, want..."
+          />
+        </View>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.lg) }]}>
+          <AuthButton
+            label="Account aanmaken"
+            onPress={() => onContinue?.(bio.trim())}
+            variant="primary"
+            loading={isSubmitting}
+            disabled={isSubmitting}
+          />
+        </View>
       </View>
-
-      <View style={styles.footer}>
-        <AuthButton
-          label="Account aanmaken"
-          onPress={() => onContinue?.(bio.trim())}
-          variant="primary"
-          loading={isSubmitting}
-          disabled={isSubmitting}
-        />
-      </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
     backgroundColor: COLORS.surface,
+  },
+  inner: {
+    flex: 1,
     paddingHorizontal: SPACING.screenX,
-    paddingTop: 67,
   },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  backText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-  },
-  skipText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: 16,
-    color: COLORS.brand,
-    textDecorationLine: 'underline',
-    textDecorationColor: COLORS.brand,
-  },
-  progressTrack:       { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', gap: 3, height: 3 },
-  progressSegment:     { flex: 1, height: 3, backgroundColor: 'rgba(181,184,167,0.35)' },
-  progressSegmentFill: { backgroundColor: '#576238' },
   copy: {
-    marginTop: 39,
+    marginTop: 32,
   },
   title: {
     fontFamily: FONTS.displaySemiBold,
@@ -116,7 +75,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   footer: {
-    paddingBottom: SPACING.lg,
+    paddingTop: 8,
     marginTop: 'auto',
   },
 });

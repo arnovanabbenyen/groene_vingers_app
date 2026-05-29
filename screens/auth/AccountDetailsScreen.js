@@ -12,6 +12,7 @@ import AuthCheckbox from '../../components/auth/AuthCheckbox';
 import FieldError from '../../components/notifications/FieldError';
 import FormErrorBanner from '../../components/notifications/FormErrorBanner';
 import PasswordStrengthBar from '../../components/auth/PasswordStrengthBar';
+import AuthProgressBar from '../../components/auth/AuthProgressBar';
 import { useRegisterForm } from '../../hooks/useRegisterForm';
 import { supabase } from '../../services/supabase';
 
@@ -108,17 +109,7 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View
-        style={styles.progressTrack}
-        accessible
-        accessibilityRole="progressbar"
-        accessibilityLabel="Stap 1 van 4"
-        accessibilityValue={{ min: 0, max: 4, now: 1 }}
-      >
-        {[1,2,3,4].map(s => (
-          <View key={s} style={[styles.progressSegment, s <= 1 && styles.progressSegmentFill]} />
-        ))}
-      </View>
+      <AuthProgressBar step={1} totalSteps={4} />
       <KeyboardAvoidingView
         style={styles.kav}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -274,9 +265,6 @@ const styles = StyleSheet.create({
   kav:           { flex: 1 },
   scroll:        { flex: 1 },
   scrollContent: { paddingHorizontal: SPACING.screenX, paddingTop: 16, paddingBottom: 24 },
-  progressTrack:       { flexDirection: 'row', gap: 3, height: 3 },
-  progressSegment:     { flex: 1, height: 3, backgroundColor: 'rgba(181,184,167,0.35)' },
-  progressSegmentFill: { backgroundColor: COLORS.brand },
   backRow:       { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 20 },
   backText:      { fontFamily: FONTS.displayMedium, fontSize: 16, color: COLORS.textPrimary },
   title:     { fontFamily: FONTS.displaySemiBold, fontSize: 22, color: COLORS.textPrimary, marginBottom: 4 },
