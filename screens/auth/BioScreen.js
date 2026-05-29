@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 import AuthProgressBar from '../../components/auth/AuthProgressBar';
 import AuthStepHeader from '../../components/auth/AuthStepHeader';
 import AuthTextArea from '../../components/auth/AuthTextArea';
+
+const MAX_BIO = 300;
 
 export default function BioScreen({ onBack, onContinue, isSubmitting }) {
   const insets = useSafeAreaInsets();
@@ -14,35 +16,45 @@ export default function BioScreen({ onBack, onContinue, isSubmitting }) {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <AuthProgressBar step={4} totalSteps={4} />
-      <View style={styles.inner}>
-        <AuthStepHeader
-          onBack={onBack}
-          onSkip={() => onContinue?.('')}
-          skipDisabled={isSubmitting}
-        />
-        <View style={styles.copy}>
-          <Text style={styles.title}>Schrijf iets over jezelf</Text>
-          <Text style={styles.subtitle}>
-            Vertel iets over jezelf, je interesse in tuinieren en wat je hoopt te vinden.
-          </Text>
-        </View>
-        <View style={styles.body}>
-          <AuthTextArea
-            value={bio}
-            onChangeText={setBio}
-            placeholder="Ik hoop iets dichtbij te vinden, want..."
+      <KeyboardAvoidingView
+        style={styles.kav}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        <View style={styles.inner}>
+          <AuthStepHeader
+            onBack={onBack}
+            onSkip={() => onContinue?.('')}
+            skipDisabled={isSubmitting}
           />
+          <View style={styles.copy}>
+            <Text style={styles.title}>Schrijf iets over jezelf</Text>
+            <Text style={styles.subtitle}>
+              Vertel iets over jezelf, je interesse in tuinieren en wat je hoopt te vinden.
+            </Text>
+          </View>
+          <View style={styles.body}>
+            <AuthTextArea
+              value={bio}
+              onChangeText={setBio}
+              placeholder="Ik hoop iets dichtbij te vinden, want..."
+              maxLength={MAX_BIO}
+              editable={!isSubmitting}
+              accessibilityLabel="Biografie"
+              accessibilityHint="Vertel iets over jezelf en je interesse in tuinieren"
+            />
+          </View>
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.lg) }]}>
+            <AuthButton
+              label="Account aanmaken"
+              onPress={() => onContinue?.(bio.trim())}
+              variant="primary"
+              loading={isSubmitting}
+              disabled={isSubmitting}
+            />
+          </View>
         </View>
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.lg) }]}>
-          <AuthButton
-            label="Account aanmaken"
-            onPress={() => onContinue?.(bio.trim())}
-            variant="primary"
-            loading={isSubmitting}
-            disabled={isSubmitting}
-          />
-        </View>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -51,6 +63,9 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: COLORS.surface,
+  },
+  kav: {
+    flex: 1,
   },
   inner: {
     flex: 1,
@@ -75,7 +90,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   footer: {
-    paddingTop: 8,
     marginTop: 'auto',
+    paddingTop: 16,
   },
 });

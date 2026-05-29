@@ -1,13 +1,17 @@
 import React from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
-import { COLORS, FONTS, RADIUS } from '../theme/tokens';
+import { COLORS, FONTS, RADIUS, SPACING } from '../theme/tokens';
+
+const ERROR_BG = '#FBEAEA';
 
 export default function AuthTextArea({
   label,
   value,
   onChangeText,
   placeholder,
-  height = 216,
+  height = 160,
+  maxLength,
+  editable = true,
   error = false,
   onBlur,
   accessibilityLabel,
@@ -25,21 +29,36 @@ export default function AuthTextArea({
   return (
     <View style={styles.fieldWrap}>
       {label ? <Text style={[styles.label, labelStyle]}>{label}</Text> : null}
-      <View style={[styles.inputShell, error && styles.inputShellError, { height }, shellStyle]}>
+      <View
+        style={[
+          styles.inputShell,
+          error && styles.inputShellError,
+          !editable && styles.inputShellDisabled,
+          { height },
+          shellStyle,
+        ]}
+      >
         <TextInput
           value={value}
           onChangeText={onChangeText}
           onBlur={onBlur}
           placeholder={placeholder}
           multiline
+          editable={editable}
+          maxLength={maxLength}
           textAlignVertical="top"
           style={[styles.input, inputStyle]}
-          placeholderTextColor={COLORS.indicatorMuted}
+          placeholderTextColor={COLORS.border}
           accessibilityLabel={accessibilityLabel}
           accessibilityHint={accessibilityHint}
           accessibilityState={resolvedAccessibilityState}
         />
       </View>
+      {maxLength ? (
+        <Text style={[styles.counter, error && styles.counterError]}>
+          {value?.length ?? 0}/{maxLength}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -52,16 +71,22 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     fontSize: 12.8,
     color: COLORS.textPrimary,
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
   },
   inputShell: {
     borderRadius: RADIUS.xs,
-    backgroundColor: 'rgba(87,98,56,0.05)',
-    padding: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 12,
+    paddingVertical: SPACING.sm,
   },
   inputShellError: {
-    borderWidth: 1,
     borderColor: COLORS.negative,
+    backgroundColor: ERROR_BG,
+  },
+  inputShellDisabled: {
+    opacity: 0.5,
   },
   input: {
     flex: 1,
@@ -70,5 +95,15 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: COLORS.textPrimary,
     padding: 0,
+  },
+  counter: {
+    fontFamily: FONTS.body,
+    fontSize: 11,
+    color: COLORS.textMuted,
+    textAlign: 'right',
+    marginTop: SPACING.xs,
+  },
+  counterError: {
+    color: COLORS.negative,
   },
 });
