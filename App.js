@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
+import * as Linking from 'expo-linking';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode as decodeBase64 } from 'base64-arraybuffer';
 import AppProviders from './providers/AppProviders';
@@ -56,6 +57,7 @@ export default function App() {
   const [coverPhotoUri, setCoverPhotoUri] = useState(null);
   const [draftBio, setDraftBio] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [signedUpEmail, setSignedUpEmail] = useState(null);
   const [needsEmailVerification, setNeedsEmailVerification] = useState(false);
   const [lastResetEmail, setLastResetEmail] = useState('');
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
@@ -145,6 +147,7 @@ export default function App() {
       const userId = data.user.id;
       const requiresEmailVerification = !data.session;
       setNeedsEmailVerification(requiresEmailVerification);
+      if (requiresEmailVerification) setSignedUpEmail(data.user.email);
 
       // Only upload photos when there's an active session (RLS requires auth.uid())
       if (!requiresEmailVerification) {
@@ -258,6 +261,29 @@ export default function App() {
     setConversationsRefreshKey((current) => current + 1);
   }
 
+
+  // Handle deep links (groenevingers://) that carry auth callbacks from email confirmation
+  useEffect(() => {
+    if (!supabase) return;
+
+    async function handleUrl(url) {
+      if (!url) return;
+      if (!url.includes('access_token') && !url.includes('code=')) return;
+      try {
+        await supabase.auth.exchangeCodeForSession(url);
+        // onAuthStateChange fires SIGNED_IN → sets isLoggedIn(true) automatically
+      } catch (err) {
+        console.warn('Deep link auth exchange failed', err);
+      }
+    }
+
+    // App opened via link (cold start)
+    Linking.getInitialURL().then(handleUrl);
+
+    // Link received while app is already running
+    const subscription = Linking.addEventListener('url', (event) => handleUrl(event.url));
+    return () => subscription.remove();
+  }, []);
 
   useEffect(() => {
     if (!supabase) {
@@ -679,15 +705,9 @@ export default function App() {
         />
       ) : screen === 'welcome' ? (
         <WelcomeScreen
+          email={signedUpEmail}
           emailVerificationRequired={needsEmailVerification}
-          onContinue={() => {
-            if (needsEmailVerification) {
-              setScreen('intro');
-              Alert.alert('Controleer je e-mail', 'Bevestig je account via de e-mail en log daarna in.');
-            } else {
-              setIsLoggedIn(true);
-            }
-          }}
+          onConfirmed={() => setIsLoggedIn(true)}
         />
       ) : (
         <IntroScreen
