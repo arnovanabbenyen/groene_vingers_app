@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
+import * as Linking from 'expo-linking';
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode as decodeBase64 } from 'base64-arraybuffer';
 import AppProviders from './providers/AppProviders';
 import IntroScreen from './screens/intro/IntroScreen';
 import HomeScreen from './screens/home/HomeScreen';
@@ -29,17 +32,14 @@ import WeeklyGoalScreen from './screens/settings/WeeklyGoalScreen';
 import { usePendingAanvragen } from './hooks/usePendingAanvragen';
 import { useNotifications } from './hooks/useNotifications';
 import { useActiveSamenwerking } from './hooks/useActiveSamenwerking';
-import InfoScreen from './screens/auth/InfoScreen';
-import InfoScreen2 from './screens/auth/InfoScreen2';
-import InfoScreen3 from './screens/auth/InfoScreen3';
+import OnboardingContainer from './screens/auth/OnboardingContainer';
 import RoleSelectionScreen from './screens/auth/RoleSelectionScreen';
 import AccountDetailsScreen from './screens/auth/AccountDetailsScreen';
 import PhotoScreen from './screens/auth/PhotoScreen';
+import CoverPhotoScreen from './screens/auth/CoverPhotoScreen';
 import BioScreen from './screens/auth/BioScreen';
 import WelcomeScreen from './screens/auth/WelcomeScreen';
 import { supabase } from './services/supabase';
-import * as FileSystem from 'expo-file-system/legacy';
-import { decode as decodeBase64 } from 'base64-arraybuffer';
 
 export default function App() {
   const [notificationsRefreshKey, setNotificationsRefreshKey] = useState(0);
@@ -54,9 +54,11 @@ export default function App() {
   const [selectedAanvraagSource, setSelectedAanvraagSource] = useState('home');
   const [profileDraft, setProfileDraft] = useState(null);
   const [profilePhotoUri, setProfilePhotoUri] = useState(null);
-  const [profilePhotoUserId, setProfilePhotoUserId] = useState(null);
+  const [coverPhotoUri, setCoverPhotoUri] = useState(null);
+  const [draftBio, setDraftBio] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [requiresEmailVerification, setRequiresEmailVerification] = useState(false);
+  const [signedUpEmail, setSignedUpEmail] = useState(null);
+  const [needsEmailVerification, setNeedsEmailVerification] = useState(false);
   const [lastResetEmail, setLastResetEmail] = useState('');
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [conversationsRefreshKey, setConversationsRefreshKey] = useState(0);
@@ -75,10 +77,10 @@ export default function App() {
   const [weeklyGoalSource, setWeeklyGoalSource] = useState('instellingen');
   const [opvolgingRefreshKey, setOpvolgingRefreshKey] = useState(0);
   const homeInitialTabRef = useRef('start');
+  const pendingPhotosRef = useRef(null);
   const { aanvragen: pendingAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
   const { samenwerking: activeSamenwerking, isLoading: isLoadingActiveSamenwerking } =
     useActiveSamenwerking(samenwerkingRefreshKey);
-  const pendingProfilePhotoRef = useRef({ uri: null, userId: null });
 
   function handleLogout() {
     setIsLoggedIn(false);
@@ -86,6 +88,90 @@ export default function App() {
     setCurrentScreen('home');
     setSelectedAanvraag(null);
     setSelectedAanvraagSource('home');
+  }
+
+  async function uploadPhoto(bucket, userId, filename, localUri) {
+    const base64Encoding = FileSystem.EncodingType?.Base64 ?? 'base64';
+    const base64 = await FileSystem.readAsStringAsync(localUri, { encoding: base64Encoding });
+    const arrayBuffer = decodeBase64(base64);
+    if (arrayBuffer.byteLength === 0) throw new Error('Afbeelding kon niet worden gelezen.');
+    const ext = localUri.split('.').pop()?.toLowerCase() || 'jpg';
+    const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+    const filePath = `${userId}/${filename}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, arrayBuffer, { contentType: mime, upsert: true });
+    if (uploadError) throw uploadError;
+    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
+    const publicUrl = urlData?.publicUrl;
+    if (publicUrl) {
+      const field = filename === 'cover' ? 'cover_url' : 'avatar_url';
+      await supabase.from('profiles').update({ [field]: publicUrl }).eq('id', userId);
+    }
+  }
+
+  async function handleCompleteSignUp(bio) {
+    if (!supabase) {
+      Alert.alert('Verbinding niet beschikbaar', 'Controleer je internetverbinding.');
+      return;
+    }
+
+    setIsSavingProfile(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: profileDraft.email,
+        password: profileDraft.password,
+        options: {
+          emailRedirectTo: 'groenevingers://',
+          data: {
+            first_name: profileDraft.firstName,
+            last_name: profileDraft.lastName,
+            role: selectedRole,
+            bio: bio || '',
+            plaats: profileDraft.plaats || '',
+          },
+        },
+      });
+
+      if (error) {
+        Alert.alert('Account aanmaken mislukt', error.message || 'Probeer het opnieuw.');
+        return;
+      }
+
+      // Supabase enum-protection: duplicate email + email confirmation →
+      // { user: null, session: null, error: null }. Treat as "check je inbox".
+      if (!data.user) {
+        setNeedsEmailVerification(true);
+        setScreen('welcome');
+        return;
+      }
+
+      const userId = data.user.id;
+      const requiresEmailVerification = !data.session;
+      setNeedsEmailVerification(requiresEmailVerification);
+      if (requiresEmailVerification) setSignedUpEmail(data.user.email);
+
+      // Only upload photos when there's an active session (RLS requires auth.uid())
+      if (!requiresEmailVerification) {
+        if (profilePhotoUri) {
+          try { await uploadPhoto('profile-pfp', userId, 'avatar', profilePhotoUri); }
+          catch (err) { console.warn('Profile photo upload failed:', err); }
+        }
+        if (coverPhotoUri) {
+          try { await uploadPhoto('profile-covers', userId, 'cover', coverPhotoUri); }
+          catch (err) { console.warn('Cover photo upload failed:', err); }
+        }
+      } else if (profilePhotoUri || coverPhotoUri) {
+        // Stash photo URIs — uploaded after email verification creates a session
+        pendingPhotosRef.current = { profilePhotoUri, coverPhotoUri };
+      }
+
+      setScreen('welcome');
+    } catch (err) {
+      Alert.alert('Account aanmaken mislukt', err.message || 'Probeer het opnieuw.');
+    } finally {
+      setIsSavingProfile(false);
+    }
   }
 
   useEffect(() => {
@@ -152,12 +238,6 @@ export default function App() {
     };
   }, [isLoggedIn, selectedRole, conversationsRefreshKey]);
 
-  useEffect(() => {
-    pendingProfilePhotoRef.current = {
-      uri: profilePhotoUri,
-      userId: profilePhotoUserId,
-    };
-  }, [profilePhotoUri, profilePhotoUserId]);
 
   function handleViewAanvraag(aanvraag, sourceScreen = 'home') {
     setSelectedAanvraag(aanvraag);
@@ -186,51 +266,29 @@ export default function App() {
     setConversationsRefreshKey((current) => current + 1);
   }
 
-  async function uploadProfilePhoto(userId, photoUri) {
-    const base64Encoding = FileSystem.EncodingType?.Base64 ?? 'base64';
-    const base64 = await FileSystem.readAsStringAsync(photoUri, {
-      encoding: base64Encoding,
-    });
-    const arrayBuffer = decodeBase64(base64);
 
-    if (arrayBuffer.byteLength === 0) {
-      throw new Error('Foto kon niet worden gelezen (0 bytes).');
-    }
+  // Handle deep links (groenevingers://) that carry auth callbacks from email confirmation
+  useEffect(() => {
+    if (!supabase) return;
 
-    const filePath = `${userId}/${Date.now()}.jpg`;
-    console.log(`Uploading profile photo: ${arrayBuffer.byteLength} bytes to ${filePath}`);
-
-    const { error: uploadError } = await supabase.storage
-      .from('profile-pfp')
-      .upload(filePath, arrayBuffer, {
-        contentType: 'image/jpeg',
-        upsert: false,
-      });
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    const { data: publicUrlData } = supabase.storage
-      .from('profile-pfp')
-      .getPublicUrl(filePath);
-
-    const avatarUrl = publicUrlData?.publicUrl;
-    console.log('Profile photo uploaded, URL:', avatarUrl);
-
-    if (avatarUrl) {
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: avatarUrl })
-        .eq('id', userId);
-
-      if (updateError) {
-        console.warn('Profile photo uploaded but avatar_url update failed:', updateError);
+    async function handleUrl(url) {
+      if (!url) return;
+      if (!url.includes('access_token') && !url.includes('code=')) return;
+      try {
+        await supabase.auth.exchangeCodeForSession(url);
+        // onAuthStateChange fires SIGNED_IN → sets isLoggedIn(true) automatically
+      } catch (err) {
+        console.warn('Deep link auth exchange failed', err);
       }
     }
 
-    return avatarUrl;
-  }
+    // App opened via link (cold start)
+    Linking.getInitialURL().then(handleUrl);
+
+    // Link received while app is already running
+    const subscription = Linking.addEventListener('url', (event) => handleUrl(event.url));
+    return () => subscription.remove();
+  }, []);
 
   useEffect(() => {
     if (!supabase) {
@@ -290,20 +348,14 @@ export default function App() {
         setIsLoggedIn(true);
         setSamenwerkingRefreshKey((k) => k + 1);
 
-        const pendingPhoto = pendingProfilePhotoRef.current;
-        if (user?.id && pendingPhoto.uri && pendingPhoto.userId === user.id) {
-          uploadProfilePhoto(user.id, pendingPhoto.uri)
-            .then(() => {
-              setProfilePhotoUri(null);
-              setProfilePhotoUserId(null);
-            })
-            .catch((photoError) => {
-              console.warn('Profile photo upload failed:', photoError);
-              Alert.alert(
-                'Foto kon niet worden opgeslagen',
-                'Je account is aangemaakt, maar je profielfoto kon niet worden opgeslagen. Je kan dit later via je profiel doen.'
-              );
-            });
+        // Upload photos that were skipped during signup (no session yet at that point)
+        if (user?.id && pendingPhotosRef.current) {
+          const { profilePhotoUri: pUri, coverPhotoUri: cUri } = pendingPhotosRef.current;
+          pendingPhotosRef.current = null;
+          if (pUri) uploadPhoto('profile-pfp', user.id, 'avatar', pUri)
+            .catch(err => console.warn('Pending profile photo upload failed:', err));
+          if (cUri) uploadPhoto('profile-covers', user.id, 'cover', cUri)
+            .catch(err => console.warn('Pending cover photo upload failed:', err));
         }
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
@@ -325,61 +377,6 @@ export default function App() {
     };
   }, []);
  
-  async function handleCompleteSignUp(bio) {
-    if (!profileDraft?.email || !profileDraft?.password) {
-      Alert.alert('Ontbrekende gegevens', 'Vul eerst je accountgegevens in.');
-      setScreen('account');
-      return;
-    }
-
-    if (!supabase) {
-      Alert.alert('Supabase ontbreekt', 'Stel de Supabase omgeving in voordat je een account maakt.');
-      return;
-    }
- 
-    try {
-      setIsSavingProfile(true);
- 
-      const metadata = {
-        first_name: profileDraft.firstName || '',
-        last_name: profileDraft.lastName || '',
-        role: selectedRole,
-        bio: bio || '',
-      };
- 
-      const { data, error } = await supabase.auth.signUp({
-        email: profileDraft.email,
-        password: profileDraft.password,
-        options: { data: metadata },
-      });
- 
-      if (error) {
-        throw error;
-      }
- 
-      const createdUser = data?.user;
-      if (!createdUser) {
-        throw new Error('Account kon niet worden aangemaakt. Probeer opnieuw.');
-      }
-
-      if (profilePhotoUri) {
-        pendingProfilePhotoRef.current = {
-          uri: profilePhotoUri,
-          userId: createdUser.id,
-        };
-        setProfilePhotoUserId(createdUser.id);
-      }
- 
-      setProfileDraft(null);
- 
-      setRequiresEmailVerification(!data.session);
-      setScreen('welcome');
-    } catch (saveError) {
-      Alert.alert('Opslaan mislukt', saveError.message || 'Er liep iets mis bij het opslaan van je gegevens.');
-    } finally {
-      setIsSavingProfile(false);
-    }
-  }
  
   return (
     <AppProviders>
@@ -636,7 +633,7 @@ export default function App() {
         )
       ) : screen === 'login' ? (
         <LoginScreen
-          onCreateAccount={() => setScreen('info')}
+          onCreateAccount={() => setScreen('onboarding')}
           onLoginSuccess={(role) => {
             if (role) setSelectedRole(role);
             setIsLoggedIn(true);
@@ -660,75 +657,76 @@ export default function App() {
         />
       ) : screen === 'intro' ? (
         <IntroScreen
-          onCreateAccount={() => setScreen('info')}
+          onCreateAccount={() => setScreen('onboarding')}
           onSignIn={() => setScreen('login')}
         />
-      ) : screen === 'info' ? (
-        <InfoScreen
+      ) : screen === 'onboarding' ? (
+        <OnboardingContainer
+          onComplete={() => setScreen('role')}
           onSkip={() => setScreen('role')}
-          onContinue={() => setScreen('info2')}
-        />
-      ) : screen === 'info2' ? (
-        <InfoScreen2
-          onSkip={() => setScreen('role')}
-          onContinue={() => setScreen('info3')}
-        />
-      ) : screen === 'info3' ? (
-        <InfoScreen3
-          onSkip={() => setScreen('role')}
-          onContinue={() => setScreen('role')}
         />
       ) : screen === 'role' ? (
         <RoleSelectionScreen
-          selectedRole={selectedRole}
-          onSelectRole={setSelectedRole}
-          onLogin={() => setScreen('intro')}
-          onContinue={() => setScreen('account')}
+          onContinue={(roleId) => {
+            setSelectedRole(roleId);
+            setScreen('account');
+          }}
+          onLogin={() => setScreen('login')}
         />
       ) : screen === 'account' ? (
         <AccountDetailsScreen
-          role={selectedRole}
           onBack={() => setScreen('role')}
           onLogin={() => setScreen('login')}
           onContinue={(data) => {
             setProfileDraft(data);
             setScreen('photo');
           }}
+          initialValues={profileDraft ? {
+            firstName: profileDraft.firstName,
+            lastName: profileDraft.lastName,
+            email: profileDraft.email,
+            plaats: profileDraft.plaats,
+          } : null}
         />
       ) : screen === 'photo' ? (
         <PhotoScreen
           onBack={() => setScreen('account')}
-          onSkip={() => {
-            setProfilePhotoUri(null);
+          onSkip={() => setScreen('cover')}
+          onContinue={(uri) => {
+            setProfilePhotoUri(uri || null);
+            setScreen('cover');
+          }}
+          initialUri={profilePhotoUri}
+        />
+      ) : screen === 'cover' ? (
+        <CoverPhotoScreen
+          onBack={() => setScreen('photo')}
+          onSkip={() => setScreen('bio')}
+          onContinue={(uri) => {
+            setCoverPhotoUri(uri || null);
             setScreen('bio');
           }}
-          onContinue={(imageUri) => {
-            setProfilePhotoUri(imageUri || null);
-            setScreen('bio');
-          }}
+          initialUri={coverPhotoUri}
         />
       ) : screen === 'bio' ? (
         <BioScreen
-          onBack={() => setScreen('photo')}
-          onSkip={() => setScreen('intro')}
-          isSubmitting={isSavingProfile}
+          onBack={(currentBio) => {
+            setDraftBio(currentBio ?? '');
+            setScreen('cover');
+          }}
           onContinue={handleCompleteSignUp}
+          isSubmitting={isSavingProfile}
+          initialBio={draftBio}
         />
       ) : screen === 'welcome' ? (
         <WelcomeScreen
-          emailVerificationRequired={requiresEmailVerification}
-          onContinue={() => {
-            if (requiresEmailVerification) {
-              setScreen('intro');
-              Alert.alert('Controleer je e-mail', 'Bevestig je account via de e-mail en log daarna in.');
-            } else {
-              setIsLoggedIn(true);
-            }
-          }}
+          email={signedUpEmail}
+          emailVerificationRequired={needsEmailVerification}
+          onConfirmed={() => setIsLoggedIn(true)}
         />
       ) : (
         <IntroScreen
-          onCreateAccount={() => setScreen('info')}
+          onCreateAccount={() => setScreen('onboarding')}
           onSignIn={() => setIsLoggedIn(true)}
         />
       )}

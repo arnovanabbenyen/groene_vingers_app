@@ -1,6 +1,11 @@
-import React from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, StyleSheet, Pressable } from 'react-native';
+import { Eye, EyeSlash } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS } from '../theme/tokens';
+
+const FIELD = {
+  error: { background: '#FBEAEA' },
+};
 
 const AuthTextField = React.forwardRef(function AuthTextField(
   {
@@ -15,6 +20,8 @@ const AuthTextField = React.forwardRef(function AuthTextField(
     halfWidth = false,
     error = false,
     onBlur,
+    autoComplete,
+    textContentType,
     accessibilityLabel,
     accessibilityHint,
     accessibilityState,
@@ -29,6 +36,8 @@ const AuthTextField = React.forwardRef(function AuthTextField(
   },
   ref,
 ) {
+  const [passwordVisible, setPasswordVisible] = useState(false);
+
   const resolvedAccessibilityState = {
     ...(accessibilityState || {}),
     invalid: error || accessibilityState?.invalid || undefined,
@@ -55,7 +64,9 @@ const AuthTextField = React.forwardRef(function AuthTextField(
           placeholder={placeholder}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
-          secureTextEntry={secureTextEntry}
+          autoComplete={autoComplete}
+          textContentType={textContentType}
+          secureTextEntry={secureTextEntry && !passwordVisible}
           style={[styles.input, variant === 'soft' && styles.inputSoft, inputStyle]}
           placeholderTextColor={COLORS.border}
           accessibilityLabel={accessibilityLabel}
@@ -66,6 +77,20 @@ const AuthTextField = React.forwardRef(function AuthTextField(
           blurOnSubmit={blurOnSubmit}
           maxLength={maxLength}
         />
+        {secureTextEntry ? (
+          <Pressable
+            onPress={() => setPasswordVisible((v) => !v)}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={passwordVisible ? 'Verberg wachtwoord' : 'Toon wachtwoord'}
+            style={styles.toggleWrap}
+          >
+            {passwordVisible
+              ? <Eye size={18} color={COLORS.border} weight="regular" />
+              : <EyeSlash size={18} color={COLORS.border} weight="regular" />
+            }
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -103,6 +128,7 @@ const styles = StyleSheet.create({
   },
   inputShellError: {
     borderColor: COLORS.negative,
+    backgroundColor: FIELD.error.background,
   },
   inputShellErrorSoft: {
     borderWidth: 1,
@@ -112,6 +138,12 @@ const styles = StyleSheet.create({
     width: 18,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  toggleWrap: {
+    width: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
   },
   input: {
     flex: 1,

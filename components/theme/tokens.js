@@ -39,43 +39,8 @@ export const SIZES = {
   headerHeight: 212,
   searchBarHeight: 47,
   dot: 8,
-  plotCardWidth: 266,
-  plotCardImageHeight: 167,
-  plotCardMetaCenterWidth: 99,
-  plotBadgeLocationMinHeight: 29,
-  plotBadgeRatingMinHeight: 27,
-  plotFavoriteSize: 19,
-  plotMetaDividerHeight: 18,
-  promoCardHeight: 137,
-  promoBadgeSize: 38,
-  promoBadgeRadius: 19,
-  promoButtonHeight: 28,
   bottomNavClearance: 110,
   profileCoverHeight: 201,
-};
-
-export const LAYOUT = {
-  promo: {
-    badgeLeft: 9,
-    badgeTop: 18,
-    titleLeft: 65,
-    titleTop: 18,
-    titleWidth: 263,
-    bodyLeft: 65,
-    bodyTop: 42,
-    bodyWidth: 263,
-    buttonLeft: 65,
-    buttonTop: 92,
-  },
-  plot: {
-    cardPadding: 8,
-    cardGap: 10,
-    titleGap: 8,
-    metaGap: 4,
-    pillGap: 4,
-    badgeInset: 8,
-    dividerSpacing: 8,
-  },
 };
 
 export const FONT_SIZES = {

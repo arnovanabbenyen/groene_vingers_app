@@ -1,230 +1,301 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert, ScrollView } from 'react-native';
-import { ArrowLeft, EnvelopeSimple, LockKey } from 'phosphor-react-native';
+import React, { useRef } from 'react';
+import {
+  View, Text, StyleSheet, Pressable, Alert,
+  ScrollView, KeyboardAvoidingView, Platform,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { EnvelopeSimple, LockKey } from 'phosphor-react-native';
 import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 import AuthTextField from '../../components/auth/AuthTextField';
 import AuthCheckbox from '../../components/auth/AuthCheckbox';
+import AuthProgressBar from '../../components/auth/AuthProgressBar';
+import AuthStepHeader from '../../components/auth/AuthStepHeader';
 import FieldError from '../../components/notifications/FieldError';
-import { useFormValidation } from '../../hooks/useFormValidation';
+import FormErrorBanner from '../../components/notifications/FormErrorBanner';
+import PasswordStrengthBar from '../../components/auth/PasswordStrengthBar';
+import LocationAutocompleteField from '../../components/location/LocationAutocompleteField';
+import { useRegisterForm } from '../../hooks/useRegisterForm';
+import { supabase } from '../../services/supabase';
 
-export default function AccountDetailsScreen({ onBack, onContinue, onLogin, role }) {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
-  const [emailTouched, setEmailTouched] = useState(false);
-  const [passwordTouched, setPasswordTouched] = useState(false);
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [passwordStrength, setPasswordStrength] = useState('');
+export default function AccountDetailsScreen({ onBack, onContinue, onLogin, initialValues }) {
+  const insets = useSafeAreaInsets();
+  const lastNameRef = useRef(null);
+  const plaatsRef = useRef(null);
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
 
-  const { validateEmailFormat, validatePassword, passwordStrength: calcStrength, checkEmailInUse } = useFormValidation();
+  const {
+    values,
+    setFirstName,
+    setLastName,
+    toggleTerms,
+    handleEmailChange,
+    handlePasswordChange,
+    handleEmailBlur,
+    handlePasswordBlur,
+    handlePlaatsSelect,
+    handlePlaatsChange,
+    errors,
+    bannerError,
+    strength,
+    submitting,
+    setSubmitting,
+    validate,
+    validateEmailFormat,
+    setSignupError,
+  } = useRegisterForm(initialValues);
 
-  function handleContinue() {
-    setAttemptedSubmit(true);
-    setEmailTouched(true);
-    setPasswordTouched(true);
+  async function checkEmailOnBlur() {
+    handleEmailBlur();
+    const email = values.email.trim();
+    if (!email || !supabase || validateEmailFormat(email)) return;
+    try {
+      const { data: isAvailable } = await supabase
+        .rpc('check_email_available', { p_email: email });
+      if (isAvailable === false) {
+        setSignupError({ message: 'User already registered' });
+      }
+    } catch {
+      // silent — submit-check vangt het op
+    }
+  }
 
-    // validate fields
-    const emailFormatError = validateEmailFormat(email);
-    setEmailError(emailFormatError);
+  async function onPressContinue() {
+    if (!validate()) return;
+    if (!supabase) {
+      onContinue?.({
+        firstName: values.firstName.trim(),
+        lastName: values.lastName.trim(),
+        email: values.email.trim(),
+        password: values.password,
+        plaats: values.plaats.trim(),
+      });
+      return;
+    }
 
-    const pwdError = validatePassword(password);
-    setPasswordError(pwdError);
+    setSubmitting(true);
+    try {
+      const { data: isAvailable, error: rpcError } = await supabase
+        .rpc('check_email_available', { p_email: values.email.trim() });
 
-    if (!acceptedTerms) return;
+      if (rpcError) throw rpcError;
 
-    (async () => {
-      if (!emailFormatError) {
-        const inUse = await checkEmailInUse(email);
-        if (inUse) {
-          setEmailError('Vul een geldig e-mailadres in');
-          return;
-        }
+      if (!isAvailable) {
+        setSignupError({ message: 'User already registered' });
+        return;
       }
 
-      if (emailFormatError || pwdError) return;
-
-      if (attemptedSubmit) setAttemptedSubmit(false);
-
       onContinue?.({
-        role,
-        firstName,
-        lastName,
-        email,
-        password,
-        acceptedTerms,
+        firstName: values.firstName.trim(),
+        lastName: values.lastName.trim(),
+        email: values.email.trim(),
+        password: values.password,
+        plaats: values.plaats.trim(),
       });
-    })();
+    } catch {
+      // RPC onbeschikbaar: laat de gebruiker doorgaan, signUp zelf vangt het op
+      onContinue?.({
+        firstName: values.firstName.trim(),
+        lastName: values.lastName.trim(),
+        email: values.email.trim(),
+        password: values.password,
+        plaats: values.plaats.trim(),
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function onPressLegalLink() {
+    Alert.alert(
+      'Komt binnenkort',
+      'Onze gebruiksvoorwaarden en privacybeleid zijn nog in ontwikkeling.',
+      [{ text: 'OK' }],
+    );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Pressable style={styles.backRow} onPress={onBack}>
-        <ArrowLeft size={20} color={COLORS.textPrimary} weight="regular" />
-        <Text style={styles.backText}>Terug</Text>
-      </Pressable>
-
-      <Text style={styles.title}>Maak je account</Text>
-      <Text style={styles.subtitle}>Jouw gegevens zijn veilig bij ons.</Text>
-
-      <View style={styles.row}>
-        <AuthTextField
-          label="Voornaam"
-          value={firstName}
-          onChangeText={setFirstName}
-          halfWidth
-        />
-        <AuthTextField
-          label="Achternaam"
-          value={lastName}
-          onChangeText={setLastName}
-          halfWidth
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <AuthProgressBar step={1} totalSteps={4} />
+      <View style={styles.headerWrap}>
+        <AuthStepHeader
+          onBack={onBack}
+          backAccessibilityLabel="Terug naar rolkeuze"
         />
       </View>
-
-      <AuthTextField
-        label="E-mailadres"
-        value={email}
-        onChangeText={(val) => { setEmail(val); if (emailError) setEmailError(''); }}
-        onBlur={() => {
-          setEmailTouched(true);
-          const err = validateEmailFormat(email);
-          setEmailError(err);
-          if (!err) {
-            // async check
-            checkEmailInUse(email).then((inUse) => {
-              if (inUse) setEmailError('Vul een geldig e-mailadres in');
-            });
-          }
-        }}
-        placeholder="jouw@email.be"
-        keyboardType="email-address"
-        autoCapitalize="none"
-        icon={<EnvelopeSimple size={18} color={COLORS.border} weight="regular" />}
-        error={!!emailError && (emailTouched || attemptedSubmit)}
-        accessibilityLabel="E-mailadres"
-        accessibilityHint="Vul je e-mailadres in"
-      />
-
-      {emailError && (emailTouched || attemptedSubmit) ? (
-        <FieldError message={emailError} />
-      ) : null}
-
-      <AuthTextField
-        label="Wachtwoord"
-        value={password}
-        onChangeText={(val) => { setPassword(val); setPasswordError(''); setPasswordStrength(calcStrength(val)); }}
-        onBlur={() => { setPasswordTouched(true); setPasswordError(validatePassword(password)); }}
-        placeholder="••••••••••"
-        secureTextEntry
-        icon={<LockKey size={18} color={COLORS.border} weight="regular" />}
-        error={!!passwordError && (passwordTouched || attemptedSubmit)}
-        accessibilityLabel="Wachtwoord"
-        accessibilityHint="Vul een wachtwoord in met minstens 8 tekens, een hoofdletter, een cijfer en een speciaal teken"
-      />
-
-      {passwordStrength ? (
-        <Text style={[styles.strength, passwordStrength === 'weak' ? styles.weak : passwordStrength === 'medium' ? styles.medium : styles.strong]}>
-          {passwordStrength === 'weak' ? 'Zwak' : passwordStrength === 'medium' ? 'Gemiddeld' : 'Sterk'}
-        </Text>
-      ) : null}
-
-      {passwordError && (passwordTouched || attemptedSubmit) ? (
-        <FieldError message={passwordError} />
-      ) : null}
-
-      <AuthCheckbox
-        checked={acceptedTerms}
-        onToggle={() => setAcceptedTerms((value) => {
-          const next = !value;
-          if (next) setAttemptedSubmit(false);
-          return next;
-        })}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: acceptedTerms }}
-        error={!acceptedTerms && attemptedSubmit}
+      <KeyboardAvoidingView
+        style={styles.kav}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        Ik ga akkoord met de <Text style={styles.termsLink}>Gebruiksvoorwaarden</Text> en het <Text style={styles.termsLink}>Privacybeleid</Text>
-      </AuthCheckbox>
-      {!acceptedTerms && attemptedSubmit ? (
-        <FieldError message="Je moet akkoord gaan met de voorwaarden" />
-      ) : null}
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.title}>Maak je account</Text>
+          <Text style={styles.subtitle}>Je wachtwoord wordt versleuteld opgeslagen en nooit gedeeld.</Text>
 
-      <View style={styles.footer}>
-        <AuthButton label="Volgende" onPress={handleContinue} variant="primary" />
-        <View style={styles.loginRow}>
-          <Text style={styles.loginText}>Al een account? </Text>
-          <Pressable onPress={onLogin || onBack}>
-            <Text style={styles.loginLink}>Inloggen</Text>
-          </Pressable>
+          <FormErrorBanner message={bannerError} />
+
+          <View style={styles.row}>
+            <AuthTextField
+              label="Voornaam"
+              value={values.firstName}
+              onChangeText={setFirstName}
+              halfWidth
+              autoFocus={!initialValues}
+              autoCapitalize="words"
+              textContentType="givenName"
+              autoComplete="given-name"
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => lastNameRef.current?.focus()}
+              accessibilityLabel="Voornaam"
+            />
+            <AuthTextField
+              ref={lastNameRef}
+              label="Achternaam"
+              value={values.lastName}
+              onChangeText={setLastName}
+              halfWidth
+              autoCapitalize="words"
+              textContentType="familyName"
+              autoComplete="family-name"
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => plaatsRef.current?.focus()}
+              accessibilityLabel="Achternaam"
+            />
+          </View>
+
+          <LocationAutocompleteField
+            ref={plaatsRef}
+            label="Woonplaats"
+            value={values.plaats}
+            onSelect={handlePlaatsSelect}
+            onChangeText={handlePlaatsChange}
+            error={!!errors.plaats}
+            onSubmitEditing={() => emailRef.current?.focus()}
+            accessibilityLabel="Woonplaats"
+            accessibilityHint="Selecteer je woonplaats uit de lijst"
+          />
+          {errors.plaats ? <FieldError message={errors.plaats} /> : null}
+
+          <AuthTextField
+            ref={emailRef}
+            label="E-mailadres"
+            value={values.email}
+            onChangeText={handleEmailChange}
+            onBlur={checkEmailOnBlur}
+            placeholder="jouw@email.be"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            textContentType="emailAddress"
+            icon={<EnvelopeSimple size={18} color={COLORS.border} weight="regular" />}
+            error={!!errors.email}
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => passwordRef.current?.focus()}
+            accessibilityLabel="E-mailadres"
+          />
+          {errors.email ? <FieldError message={errors.email} /> : null}
+
+          <AuthTextField
+            ref={passwordRef}
+            label="Wachtwoord"
+            value={values.password}
+            onChangeText={handlePasswordChange}
+            onBlur={handlePasswordBlur}
+            placeholder="••••••••••"
+            secureTextEntry
+            autoComplete="password-new"
+            textContentType="newPassword"
+            icon={<LockKey size={18} color={COLORS.border} weight="regular" />}
+            error={!!errors.password}
+            returnKeyType="done"
+            onSubmitEditing={onPressContinue}
+            accessibilityLabel="Wachtwoord"
+            accessibilityHint="Minimaal 8 tekens, een hoofdletter, een cijfer en een speciaal teken"
+          />
+          <PasswordStrengthBar strength={strength} />
+          {errors.password ? <FieldError message={errors.password} /> : null}
+
+          <AuthCheckbox
+            checked={values.acceptedTerms}
+            onToggle={toggleTerms}
+            error={!!errors.terms}
+            accessibilityLabel="Akkoord met gebruiksvoorwaarden en privacybeleid"
+          >
+            {'Ik ga akkoord met de '}
+            <Text
+              style={styles.termsLink}
+              onPress={onPressLegalLink}
+              accessibilityRole="link"
+              accessibilityLabel="Gebruiksvoorwaarden openen"
+            >
+              Gebruiksvoorwaarden
+            </Text>
+            {' en het '}
+            <Text
+              style={styles.termsLink}
+              onPress={onPressLegalLink}
+              accessibilityRole="link"
+              accessibilityLabel="Privacybeleid openen"
+            >
+              Privacybeleid
+            </Text>
+          </AuthCheckbox>
+          {errors.terms ? <FieldError message={errors.terms} /> : null}
+        </ScrollView>
+
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <AuthButton
+            label="Volgende"
+            onPress={onPressContinue}
+            variant="primary"
+            loading={submitting}
+            disabled={submitting}
+          />
+          <View style={styles.loginRow}>
+            <Text style={styles.loginText}>Al een account? </Text>
+            <Pressable
+              onPress={onLogin}
+              hitSlop={16}
+              accessibilityRole="button"
+              accessibilityLabel="Inloggen op bestaand account"
+            >
+              <Text style={styles.loginLink}>Inloggen</Text>
+            </Pressable>
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  safe:       { flex: 1, backgroundColor: COLORS.background },
+  headerWrap: { paddingHorizontal: SPACING.screenX },
+  kav:        { flex: 1 },
+  scroll:     { flex: 1 },
+  scrollContent: {
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: 20,
+    paddingBottom: 24,
+  },
+  title:    { fontFamily: FONTS.displaySemiBold, fontSize: 20, color: COLORS.textPrimary, marginBottom: 4 },
+  subtitle: { fontFamily: FONTS.body, fontSize: 12.8, lineHeight: 18, color: COLORS.textSecondary, marginBottom: 24 },
+  row:      { flexDirection: 'row', gap: 12 },
+  termsLink: { fontFamily: FONTS.bodyMedium, color: COLORS.textPrimary, textDecorationLine: 'underline' },
+  footer: {
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: 12,
     backgroundColor: COLORS.background,
   },
-  content: {
-    paddingHorizontal: SPACING.screenX,
-    paddingTop: 72,
-    paddingBottom: SPACING.lg,
-  },
-  backRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 20,
-  },
-  backText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-  },
-  title: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
-    color: COLORS.textPrimary,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontFamily: FONTS.body,
-    fontSize: 12.8,
-    color: COLORS.textSecondary,
-    marginBottom: 34,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  termsLink: {
-    fontFamily: FONTS.bodyMedium,
-    color: COLORS.textPrimary,
-  },
-  footer: {
-    marginTop: 36,
-  },
-  loginRow: {
-    marginTop: 12,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loginText: {
-    fontFamily: FONTS.body,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-  },
-  loginLink: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-  },
+  loginRow:  { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12 },
+  loginText: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.textPrimary },
+  loginLink: { fontFamily: FONTS.displaySemiBold, fontSize: 14, color: COLORS.textPrimary },
 });

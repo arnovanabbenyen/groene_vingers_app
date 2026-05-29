@@ -5,26 +5,30 @@ import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 import AuthProgressBar from '../../components/auth/AuthProgressBar';
 import AuthStepHeader from '../../components/auth/AuthStepHeader';
-import PhotoPickerCircle from '../../components/auth/PhotoPickerCircle';
+import CoverPhotoPicker from '../../components/auth/CoverPhotoPicker';
 import { useImagePicker } from '../../hooks/useImagePicker';
 
-export default function PhotoScreen({ onBack, onContinue, onSkip, initialUri }) {
+export default function CoverPhotoScreen({ onBack, onContinue, onSkip, initialUri }) {
   const insets = useSafeAreaInsets();
-  const { imageUri, openSheet } = useImagePicker({ aspect: [1, 1], sheetTitle: 'Foto toevoegen', initialUri });
+  const { imageUri, openSheet } = useImagePicker({
+    aspect: [16, 9],
+    sheetTitle: 'Omslagfoto toevoegen',
+    initialUri,
+  });
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <AuthProgressBar step={2} totalSteps={4} />
+      <AuthProgressBar step={3} totalSteps={4} />
       <View style={styles.inner}>
         <AuthStepHeader onBack={onBack} onSkip={onSkip} />
         <View style={styles.copy}>
-          <Text style={styles.title}>Voeg een foto toe</Text>
+          <Text style={styles.title}>Voeg een omslagfoto toe</Text>
           <Text style={styles.subtitle}>
-            Voeg een duidelijke foto van jezelf toe, zodat mensen jou direct kunnen herkennen.
+            Een omslagfoto maakt je profiel persoonlijker. Kies een foto van je tuin of een sfeervolle afbeelding.
           </Text>
         </View>
         <View style={styles.pickerWrap}>
-          <PhotoPickerCircle imageUri={imageUri} onPress={openSheet} />
+          <CoverPhotoPicker imageUri={imageUri} onPress={openSheet} />
         </View>
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.lg) }]}>
           <AuthButton
@@ -64,8 +68,8 @@ const styles = StyleSheet.create({
   },
   pickerWrap: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 24,
   },
   footer: {
     paddingTop: 8,

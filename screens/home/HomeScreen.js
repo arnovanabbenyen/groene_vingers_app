@@ -18,7 +18,8 @@
   import LogboekScreen from '../loggen/LogboekScreen';
   import KaartScreen from '../kaart/KaartScreen';
   import { MagnifyingGlassIcon } from 'phosphor-react-native';
-  import { COLORS, FONTS, LAYOUT, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
+  import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
+  import { PLOT_CARD } from '../../components/home/PlotCard';
 
   const PROFILE_IMAGE = require('../../images/tuinzoeker_pfp.png');
 
@@ -392,7 +393,7 @@
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.plotsScroller}
                   onMomentumScrollEnd={(event) => {
-                    const cardWidth = SIZES.plotCardWidth;
+                    const cardWidth = PLOT_CARD.cardWidth;
                     const nextDot = Math.round(event.nativeEvent.contentOffset.x / cardWidth);
                     setActiveDot(Math.max(0, Math.min(filteredPlots.length - 1, nextDot)));
                   }}
@@ -508,8 +509,8 @@
     },
     statusChip: {
       position: 'absolute',
-      top: LAYOUT.plot.cardPadding + LAYOUT.plot.badgeInset,
-      left: LAYOUT.plot.cardPadding + LAYOUT.plot.badgeInset,
+      top: PLOT_CARD.cardPadding + PLOT_CARD.badgeInset,
+      left: PLOT_CARD.cardPadding + PLOT_CARD.badgeInset,
       borderRadius: RADIUS.pill,
       paddingHorizontal: 10,
       paddingVertical: 5,

@@ -1,8 +1,25 @@
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { DropIcon, LeafIcon, MapPinIcon, ShovelIcon, PlantIcon, TreeIcon } from 'phosphor-react-native';
-import { COLORS, FONTS, LAYOUT, RADIUS, SHADOWS, SIZES } from '../theme/tokens';
+import { COLORS, FONTS, RADIUS, SHADOWS } from '../theme/tokens';
 import FavoriteHeartButton from '../parcel/FavoriteHeartButton';
+
+export const PLOT_CARD = {
+  cardWidth: 266,
+  imageHeight: 167,
+  metaCenterWidth: 99,
+  badgeLocationMinHeight: 29,
+  badgeRatingMinHeight: 27,
+  favoriteSize: 19,
+  metaDividerHeight: 18,
+  cardPadding: 8,
+  cardGap: 10,
+  titleGap: 8,
+  metaGap: 4,
+  pillGap: 4,
+  badgeInset: 8,
+  dividerSpacing: 8,
+};
 
 function AmenityIcon({ label }) {
   const normalized = (label || '').toLowerCase();
@@ -117,11 +134,11 @@ export default function PlotCard({ plot, onPress, isFavorited = false, onToggleF
 
 const styles = StyleSheet.create({
   card: {
-    width: SIZES.plotCardWidth,
+    width: PLOT_CARD.cardWidth,
     borderRadius: RADIUS.sm,
     backgroundColor: COLORS.background,
-    padding: LAYOUT.plot.cardPadding,
-    gap: LAYOUT.plot.cardGap,
+    padding: PLOT_CARD.cardPadding,
+    gap: PLOT_CARD.cardGap,
     ...SHADOWS.card,
   },
   imageWrap: {
@@ -131,7 +148,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: SIZES.plotCardImageHeight,
+    height: PLOT_CARD.imageHeight,
     position: 'relative',
   },
   imageEl: {
@@ -162,9 +179,9 @@ const styles = StyleSheet.create({
   },
   badgesRow: {
     position: 'absolute',
-    left: LAYOUT.plot.badgeInset,
-    right: LAYOUT.plot.badgeInset,
-    bottom: LAYOUT.plot.badgeInset,
+    left: PLOT_CARD.badgeInset,
+    right: PLOT_CARD.badgeInset,
+    bottom: PLOT_CARD.badgeInset,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -174,12 +191,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: LAYOUT.plot.pillGap,
-    paddingHorizontal: LAYOUT.plot.badgeInset,
-    paddingVertical: LAYOUT.plot.metaGap,
+    gap: PLOT_CARD.pillGap,
+    paddingHorizontal: PLOT_CARD.badgeInset,
+    paddingVertical: PLOT_CARD.metaGap,
   },
   locationPill: {
-    minHeight: SIZES.plotBadgeLocationMinHeight,
+    minHeight: PLOT_CARD.badgeLocationMinHeight,
     maxWidth: '68%',
   },
   pillText: {
@@ -190,19 +207,19 @@ const styles = StyleSheet.create({
   },
   heartButton: {
     position: 'absolute',
-    right: LAYOUT.plot.badgeInset,
-    top: LAYOUT.plot.badgeInset,
-    width: SIZES.plotFavoriteSize,
-    height: SIZES.plotFavoriteSize,
+    right: PLOT_CARD.badgeInset,
+    top: PLOT_CARD.badgeInset,
+    width: PLOT_CARD.favoriteSize,
+    height: PLOT_CARD.favoriteSize,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: SIZES.plotFavoriteSize / 2,
+    borderRadius: PLOT_CARD.favoriteSize / 2,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: LAYOUT.plot.titleGap,
+    gap: PLOT_CARD.titleGap,
   },
   title: {
     color: COLORS.textPrimary,
@@ -220,7 +237,7 @@ const styles = StyleSheet.create({
   metaRow: {
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    paddingTop: LAYOUT.plot.metaGap,
+    paddingTop: PLOT_CARD.metaGap,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
@@ -240,7 +257,7 @@ const styles = StyleSheet.create({
   },
   metaDivider: {
     width: 1,
-    height: SIZES.plotMetaDividerHeight,
+    height: PLOT_CARD.metaDividerHeight,
     backgroundColor: COLORS.border,
     marginLeft: 10,
   },

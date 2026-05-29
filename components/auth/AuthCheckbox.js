@@ -1,21 +1,27 @@
 import React from 'react';
 import { Pressable, View, Text, StyleSheet } from 'react-native';
+import { Check } from 'phosphor-react-native';
 import { COLORS, FONTS, SPACING } from '../theme/tokens';
 
-export default function AuthCheckbox({ checked, onToggle, children, error, accessibilityRole, accessibilityState, ...rest }) {
+export default function AuthCheckbox({ checked, onToggle, children, error, accessibilityLabel, accessibilityState }) {
   return (
-    <Pressable
-      style={styles.row}
-      onPress={onToggle}
-      accessibilityRole={accessibilityRole}
-      accessibilityState={accessibilityState}
-      {...rest}
-    >
-      <View style={[styles.checkbox, checked && styles.checkboxChecked, error && styles.checkboxError]}>
-        {checked ? <View style={styles.checkboxTick} /> : null}
-      </View>
-      <Text style={styles.text}>{children}</Text>
-    </Pressable>
+    <View style={styles.row}>
+      <Pressable
+        onPress={onToggle}
+        accessibilityRole="checkbox"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityState={accessibilityState ?? { checked }}
+        hitSlop={12}
+        style={styles.checkboxHit}
+      >
+        <View style={[styles.checkbox, checked && styles.checkboxChecked, error && styles.checkboxError]}>
+          {checked ? <Check size={11} color={COLORS.brand} weight="bold" /> : null}
+        </View>
+      </Pressable>
+      <Pressable onPress={onToggle} style={styles.labelArea} accessible={false}>
+        <Text style={styles.text}>{children}</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -26,6 +32,13 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: SPACING.xs,
   },
+  checkboxHit: {
+    padding: 2,
+  },
+  labelArea: {
+    flex: 1,
+    paddingTop: 2,
+  },
   checkbox: {
     width: 18,
     height: 18,
@@ -33,7 +46,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.surface,
-    marginTop: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -44,17 +56,10 @@ const styles = StyleSheet.create({
   checkboxError: {
     borderColor: COLORS.negative,
   },
-  checkboxTick: {
-    width: 8,
-    height: 8,
-    borderRadius: 2,
-    backgroundColor: COLORS.brand,
-  },
   text: {
-    flex: 1,
     fontFamily: FONTS.body,
     fontSize: 12.8,
     lineHeight: 18,
-    color: COLORS.indicatorMuted,
+    color: COLORS.textSecondary,
   },
 });

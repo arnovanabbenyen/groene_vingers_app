@@ -17,6 +17,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { decode as decodeBase64 } from 'base64-arraybuffer';
 import { CameraIcon, FloppyDiskIcon, LeafIcon, XIcon } from 'phosphor-react-native';
+import LocationAutocompleteField from '../../components/location/LocationAutocompleteField';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 import { supabase } from '../../services/supabase';
 
@@ -310,21 +311,13 @@ export default function ProfielBewerkenScreen({ onBack, onSaved }) {
                 </View>
               </View>
 
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Stad</Text>
-                {/* TODO: integrate LocationIQ autocomplete once the location feature ships */}
-                <View style={styles.inputShell}>
-                  <TextInput
-                    style={styles.input}
-                    value={plaats}
-                    onChangeText={setPlaats}
-                    placeholder="Bv. Leuven"
-                    placeholderTextColor={COLORS.border}
-                    autoCapitalize="words"
-                    returnKeyType="next"
-                  />
-                </View>
-              </View>
+              <LocationAutocompleteField
+                label="Stad"
+                value={plaats}
+                onSelect={(suggestion) => setPlaats(suggestion.plaats)}
+                onChangeText={setPlaats}
+                accessibilityLabel="Stad"
+              />
 
               <View style={styles.field}>
                 <View style={styles.bioLabelRow}>

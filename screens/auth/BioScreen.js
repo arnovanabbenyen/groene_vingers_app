@@ -1,90 +1,87 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { ArrowLeft } from 'phosphor-react-native';
+import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
+import AuthProgressBar from '../../components/auth/AuthProgressBar';
+import AuthStepHeader from '../../components/auth/AuthStepHeader';
 import AuthTextArea from '../../components/auth/AuthTextArea';
 
-export default function BioScreen({ onBack, onContinue, onSkip, isSubmitting = false }) {
-  const [bio, setBio] = useState('');
+const MAX_BIO = 300;
+
+export default function BioScreen({ onBack, onContinue, isSubmitting, initialBio = '' }) {
+  const insets = useSafeAreaInsets();
+  const [bio, setBio] = useState(initialBio);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <Pressable style={styles.backButton} onPress={onBack} accessibilityRole="button">
-          <ArrowLeft size={20} color={COLORS.textPrimary} weight="regular" />
-          <Text style={styles.backText}>Terug</Text>
-        </Pressable>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <AuthProgressBar step={4} totalSteps={4} />
+      <KeyboardAvoidingView
+        style={styles.kav}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <AuthStepHeader
+            onBack={() => onBack?.(bio)}
+            onSkip={() => onContinue?.('')}
+            skipDisabled={isSubmitting}
+          />
+          <View style={styles.copy}>
+            <Text style={styles.title}>Schrijf iets over jezelf</Text>
+            <Text style={styles.subtitle}>
+              Vertel iets over jezelf, je interesse in tuinieren en wat je hoopt te vinden.
+            </Text>
+          </View>
+          <AuthTextArea
+            value={bio}
+            onChangeText={setBio}
+            placeholder="Ik hoop iets dichtbij te vinden, want..."
+            maxLength={MAX_BIO}
+            autoCapitalize="sentences"
+            editable={!isSubmitting}
+            accessibilityLabel="Biografie"
+            accessibilityHint="Vertel iets over jezelf en je interesse in tuinieren"
+          />
+        </ScrollView>
 
-        <Pressable onPress={onSkip} accessibilityRole="button" hitSlop={8}>
-          <Text style={styles.skipText}>Overslaan</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.copy}>
-        <Text style={styles.title}>Schrijf iets over jezelf</Text>
-        <Text style={styles.subtitle}>
-          Vertel iets over jezelf, je interesse in tuinieren en wat je hoopt te vinden.
-        </Text>
-      </View>
-
-      <View style={styles.body}>
-        <AuthTextArea
-          value={bio}
-          onChangeText={setBio}
-          placeholder="Ik hoop iets dichtbij te vinden, want..."
-        />
-      </View>
-
-      <View style={styles.footer}>
-        <AuthButton
-          label={isSubmitting ? 'Bezig...' : 'Volgende'}
-          onPress={() => onContinue?.(bio)}
-          variant="primary"
-          disabled={isSubmitting}
-        />
-        <View style={styles.loginRow}>
-          <Text style={styles.loginText}>Al een account? </Text>
-          <Pressable onPress={onSkip}>
-            <Text style={styles.loginLink}>Inloggen</Text>
-          </Pressable>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.lg) }]}>
+          <AuthButton
+            label="Account aanmaken"
+            onPress={() => onContinue?.(bio.trim())}
+            variant="primary"
+            loading={isSubmitting}
+            disabled={isSubmitting}
+          />
         </View>
-      </View>
-    </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
     backgroundColor: COLORS.surface,
+  },
+  kav: {
+    flex: 1,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: SPACING.screenX,
-    paddingTop: 67,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  backText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-  },
-  skipText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: 16,
-    color: COLORS.brand,
-    textDecorationLine: 'underline',
-    textDecorationColor: COLORS.brand,
+    paddingTop: 0,
+    paddingBottom: 24,
   },
   copy: {
-    marginTop: 39,
+    marginTop: 32,
+    marginBottom: 24,
   },
   title: {
     fontFamily: FONTS.displaySemiBold,
@@ -98,26 +95,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: COLORS.textSecondary,
   },
-  body: {
-    marginTop: 24,
-  },
   footer: {
-    paddingBottom: SPACING.lg,
-  },
-  loginRow: {
-    marginTop: 12,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loginText: {
-    fontFamily: FONTS.body,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-  },
-  loginLink: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
-    color: COLORS.textPrimary,
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: 12,
+    backgroundColor: COLORS.surface,
   },
 });
