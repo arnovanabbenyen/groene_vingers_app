@@ -1,5 +1,4 @@
 import { useCallback } from 'react';
-import { supabase } from '../services/supabase';
 
 export function useFormValidation() {
   const validateEmailFormat = useCallback((email) => {
@@ -27,20 +26,9 @@ export function useFormValidation() {
     return 'strong';
   }, []);
 
-  const checkEmailInUse = useCallback(async (email) => {
-    try {
-      const { data, error } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle();
-      if (error) return false;
-      return !!data;
-    } catch (e) {
-      return false;
-    }
-  }, []);
-
   return {
     validateEmailFormat,
     validatePassword,
     passwordStrength,
-    checkEmailInUse,
   };
 }

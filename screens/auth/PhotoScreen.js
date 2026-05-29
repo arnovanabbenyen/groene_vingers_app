@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode as decodeBase64 } from 'base64-arraybuffer';
 import { ArrowLeft } from 'phosphor-react-native';
 import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 import PhotoPickerCircle from '../../components/auth/PhotoPickerCircle';
+import { supabase } from '../../services/supabase';
 
-export default function PhotoScreen({ onBack, onContinue, onSkip }) {
+export default function PhotoScreen({ onBack, onContinue, onSkip, userId }) {
   const [imageUri, setImageUri] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   async function pickFromLibrary() {
     try {
@@ -27,7 +31,7 @@ export default function PhotoScreen({ onBack, onContinue, onSkip }) {
       if (!result.canceled && result.assets?.[0]?.uri) {
         setImageUri(result.assets[0].uri);
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Galerij kon niet openen', 'Probeer het opnieuw.');
     }
   }
@@ -50,7 +54,7 @@ export default function PhotoScreen({ onBack, onContinue, onSkip }) {
       if (!result.canceled && result.assets?.[0]?.uri) {
         setImageUri(result.assets[0].uri);
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Camera kon niet openen', 'Probeer het opnieuw.');
     }
   }
@@ -62,6 +66,57 @@ export default function PhotoScreen({ onBack, onContinue, onSkip }) {
       imageUri ? { text: 'Verwijder foto', style: 'destructive', onPress: () => setImageUri(null) } : null,
       { text: 'Annuleer', style: 'cancel' },
     ].filter(Boolean));
+  }
+
+  async function handleContinue() {
+    if (!imageUri) {
+      onContinue?.();
+      return;
+    }
+
+    if (!supabase || !userId) {
+      onContinue?.();
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const base64Encoding = FileSystem.EncodingType?.Base64 ?? 'base64';
+      const base64 = await FileSystem.readAsStringAsync(imageUri, { encoding: base64Encoding });
+      const arrayBuffer = decodeBase64(base64);
+
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error('Foto kon niet worden gelezen.');
+      }
+
+      const filePath = `${userId}/${Date.now()}.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('profile-pfp')
+        .upload(filePath, arrayBuffer, { contentType: 'image/jpeg', upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from('profile-pfp').getPublicUrl(filePath);
+      const avatarUrl = urlData?.publicUrl;
+
+      if (avatarUrl) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ avatar_url: avatarUrl })
+          .eq('id', userId);
+
+        if (updateError) {
+          console.warn('Photo uploaded but avatar_url update failed:', updateError);
+        }
+      }
+
+      onContinue?.();
+    } catch (err) {
+      Alert.alert('Foto uploaden mislukt', err.message || 'Probeer het opnieuw.');
+    } finally {
+      setUploading(false);
+    }
   }
 
   return (
@@ -93,13 +148,13 @@ export default function PhotoScreen({ onBack, onContinue, onSkip }) {
       </View>
 
       <View style={styles.footer}>
-        <AuthButton label="Volgende" onPress={() => onContinue?.(imageUri)} variant="primary" />
-        <View style={styles.loginRow}>
-          <Text style={styles.loginText}>Al een account? </Text>
-          <Pressable onPress={onSkip}>
-            <Text style={styles.loginLink}>Inloggen</Text>
-          </Pressable>
-        </View>
+        <AuthButton
+          label="Volgende"
+          onPress={handleContinue}
+          variant="primary"
+          loading={uploading}
+          disabled={uploading}
+        />
       </View>
     </View>
   );
@@ -158,21 +213,5 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingBottom: SPACING.lg,
-  },
-  loginRow: {
-    marginTop: 12,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loginText: {
-    fontFamily: FONTS.body,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-  },
-  loginLink: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
-    color: COLORS.textPrimary,
   },
 });

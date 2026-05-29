@@ -2,6 +2,10 @@ import React from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { COLORS, FONTS, RADIUS } from '../theme/tokens';
 
+const FIELD = {
+  error: { background: '#FBEAEA' },
+};
+
 const AuthTextField = React.forwardRef(function AuthTextField(
   {
     label,
@@ -15,6 +19,7 @@ const AuthTextField = React.forwardRef(function AuthTextField(
     halfWidth = false,
     error = false,
     onBlur,
+    autoComplete,
     accessibilityLabel,
     accessibilityHint,
     accessibilityState,
@@ -55,6 +60,7 @@ const AuthTextField = React.forwardRef(function AuthTextField(
           placeholder={placeholder}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
+          autoComplete={autoComplete}
           secureTextEntry={secureTextEntry}
           style={[styles.input, variant === 'soft' && styles.inputSoft, inputStyle]}
           placeholderTextColor={COLORS.border}
@@ -103,6 +109,7 @@ const styles = StyleSheet.create({
   },
   inputShellError: {
     borderColor: COLORS.negative,
+    backgroundColor: FIELD.error.background,
   },
   inputShellErrorSoft: {
     borderWidth: 1,

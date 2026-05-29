@@ -1,12 +1,40 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { ArrowLeft } from 'phosphor-react-native';
 import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 import AuthTextArea from '../../components/auth/AuthTextArea';
+import { supabase } from '../../services/supabase';
 
-export default function BioScreen({ onBack, onContinue, onSkip, isSubmitting = false }) {
+export default function BioScreen({ onBack, onContinue, userId }) {
   const [bio, setBio] = useState('');
+  const [updating, setUpdating] = useState(false);
+
+  async function handleSubmit() {
+    const trimmed = bio.trim();
+
+    if (!trimmed || !userId || !supabase) {
+      // No bio entered, or no session — just move on
+      onContinue?.();
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ bio: trimmed })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      onContinue?.();
+    } catch (err) {
+      Alert.alert('Bio opslaan mislukt', err.message || 'Probeer het opnieuw.');
+    } finally {
+      setUpdating(false);
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -16,7 +44,12 @@ export default function BioScreen({ onBack, onContinue, onSkip, isSubmitting = f
           <Text style={styles.backText}>Terug</Text>
         </Pressable>
 
-        <Pressable onPress={onSkip} accessibilityRole="button" hitSlop={8}>
+        <Pressable
+          onPress={onContinue}
+          accessibilityRole="button"
+          hitSlop={8}
+          disabled={updating}
+        >
           <Text style={styles.skipText}>Overslaan</Text>
         </Pressable>
       </View>
@@ -38,17 +71,12 @@ export default function BioScreen({ onBack, onContinue, onSkip, isSubmitting = f
 
       <View style={styles.footer}>
         <AuthButton
-          label={isSubmitting ? 'Bezig...' : 'Volgende'}
-          onPress={() => onContinue?.(bio)}
+          label={updating ? 'Bezig...' : 'Volgende'}
+          onPress={handleSubmit}
           variant="primary"
-          disabled={isSubmitting}
+          loading={updating}
+          disabled={updating}
         />
-        <View style={styles.loginRow}>
-          <Text style={styles.loginText}>Al een account? </Text>
-          <Pressable onPress={onSkip}>
-            <Text style={styles.loginLink}>Inloggen</Text>
-          </Pressable>
-        </View>
       </View>
     </View>
   );
@@ -103,21 +131,6 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingBottom: SPACING.lg,
-  },
-  loginRow: {
-    marginTop: 12,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loginText: {
-    fontFamily: FONTS.body,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-  },
-  loginLink: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
-    color: COLORS.textPrimary,
+    marginTop: 'auto',
   },
 });
