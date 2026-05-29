@@ -4,7 +4,9 @@ const LOCATIONIQ_ENDPOINT = 'https://us1.locationiq.com/v1/autocomplete.php';
 const DEBOUNCE_MS = 300;
 const MIN_QUERY_LENGTH = 2;
 const COUNTRY_CODES = 'be,nl';
-const LIMIT = 5;
+const LIMIT = 10; // fetch more so dedup leaves enough after filtering
+
+const PLACE_TYPES = new Set(['city', 'town', 'village', 'hamlet', 'municipality']);
 
 export function useLocationSearch(query) {
   const [suggestions, setSuggestions] = useState([]);
@@ -60,16 +62,10 @@ export function useLocationSearch(query) {
         if (cancelled) return;
 
         const mapped = (Array.isArray(data) ? data : [])
+          .filter((item) => item.class === 'place' && PLACE_TYPES.has(item.type))
           .map((item) => {
-            const addr = item.address || {};
-            const plaats =
-              addr.city ||
-              addr.town ||
-              addr.village ||
-              addr.suburb ||
-              addr.municipality ||
-              '';
-
+            // Use the place's own name (first segment of display_name), not its containing city
+            const plaats = (item.display_name || '').split(',')[0].trim();
             return {
               id: String(item.place_id || `${item.lat}-${item.lon}`),
               displayName: item.display_name || '',
@@ -79,7 +75,10 @@ export function useLocationSearch(query) {
               lng: parseFloat(item.lon),
             };
           })
-          .filter((s) => s.plaats);
+          .filter((s) => s.plaats)
+          .filter((s) => s.plaats.toLowerCase().startsWith(trimmed.toLowerCase()))
+          .filter((s, i, arr) => arr.findIndex((o) => o.plaats === s.plaats) === i)
+          .slice(0, 5);
 
         setSuggestions(mapped);
       } catch (err) {

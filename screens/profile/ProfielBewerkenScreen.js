@@ -17,7 +17,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { decode as decodeBase64 } from 'base64-arraybuffer';
 import { CameraIcon, FloppyDiskIcon, LeafIcon, XIcon } from 'phosphor-react-native';
-import LocationAutocompleteField from '../../components/common/LocationAutocompleteField';
+import LocationAutocompleteField from '../../components/location/LocationAutocompleteField';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 import { supabase } from '../../services/supabase';
 

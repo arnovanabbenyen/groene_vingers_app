@@ -114,12 +114,7 @@ export default function LocationAutocompleteField({
                 accessibilityLabel={`Selecteer ${suggestion.plaats}`}
               >
                 <MapPinIcon size={14} color={COLORS.textSecondary} weight="regular" />
-                <View style={styles.dropdownText}>
-                  <Text style={styles.dropdownPlaats}>{suggestion.plaats}</Text>
-                  <Text style={styles.dropdownAdres} numberOfLines={1}>
-                    {suggestion.displayName}
-                  </Text>
-                </View>
+                <Text style={styles.dropdownPlaats}>{suggestion.plaats}</Text>
               </Pressable>
             ))
           )}
@@ -188,19 +183,10 @@ const styles = StyleSheet.create({
   dropdownRowPressed: {
     backgroundColor: COLORS.background,
   },
-  dropdownText: {
-    flex: 1,
-    gap: 2,
-  },
   dropdownPlaats: {
     fontFamily: FONTS.bodyMedium,
     fontSize: 14,
     color: COLORS.textPrimary,
-  },
-  dropdownAdres: {
-    fontFamily: FONTS.body,
-    fontSize: 11,
-    color: COLORS.textSecondary,
   },
   dropdownMuted: {
     fontFamily: FONTS.body,

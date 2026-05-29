@@ -14,7 +14,7 @@ import AuthStepHeader from '../../components/auth/AuthStepHeader';
 import FieldError from '../../components/notifications/FieldError';
 import FormErrorBanner from '../../components/notifications/FormErrorBanner';
 import PasswordStrengthBar from '../../components/auth/PasswordStrengthBar';
-import LocationAutocompleteField from '../../components/common/LocationAutocompleteField';
+import LocationAutocompleteField from '../../components/location/LocationAutocompleteField';
 import { useRegisterForm } from '../../hooks/useRegisterForm';
 import { supabase } from '../../services/supabase';
 
