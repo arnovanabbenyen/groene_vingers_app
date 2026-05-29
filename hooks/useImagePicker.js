@@ -2,8 +2,8 @@ import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
-export function useImagePicker({ aspect = [1, 1], sheetTitle = 'Foto toevoegen' } = {}) {
-  const [imageUri, setImageUri] = useState(null);
+export function useImagePicker({ aspect = [1, 1], sheetTitle = 'Foto toevoegen', initialUri = null } = {}) {
+  const [imageUri, setImageUri] = useState(initialUri);
 
   const pickFromLibrary = useCallback(async () => {
     try {

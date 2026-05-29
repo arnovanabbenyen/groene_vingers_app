@@ -4,19 +4,20 @@ import {
   ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, EnvelopeSimple, LockKey } from 'phosphor-react-native';
+import { EnvelopeSimple, LockKey } from 'phosphor-react-native';
 import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 import AuthTextField from '../../components/auth/AuthTextField';
 import AuthCheckbox from '../../components/auth/AuthCheckbox';
+import AuthProgressBar from '../../components/auth/AuthProgressBar';
+import AuthStepHeader from '../../components/auth/AuthStepHeader';
 import FieldError from '../../components/notifications/FieldError';
 import FormErrorBanner from '../../components/notifications/FormErrorBanner';
 import PasswordStrengthBar from '../../components/auth/PasswordStrengthBar';
-import AuthProgressBar from '../../components/auth/AuthProgressBar';
 import { useRegisterForm } from '../../hooks/useRegisterForm';
 import { supabase } from '../../services/supabase';
 
-export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
+export default function AccountDetailsScreen({ onBack, onContinue, onLogin, initialValues }) {
   const insets = useSafeAreaInsets();
   const lastNameRef = useRef(null);
   const emailRef = useRef(null);
@@ -39,7 +40,7 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
     validate,
     validateEmailFormat,
     setSignupError,
-  } = useRegisterForm();
+  } = useRegisterForm(initialValues);
 
   async function checkEmailOnBlur() {
     handleEmailBlur();
@@ -110,6 +111,12 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <AuthProgressBar step={1} totalSteps={4} />
+      <View style={styles.headerWrap}>
+        <AuthStepHeader
+          onBack={onBack}
+          backAccessibilityLabel="Terug naar rolkeuze"
+        />
+      </View>
       <KeyboardAvoidingView
         style={styles.kav}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -120,17 +127,6 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Pressable
-            style={styles.backRow}
-            onPress={onBack}
-            accessibilityRole="button"
-            accessibilityLabel="Terug naar rolkeuze"
-            hitSlop={16}
-          >
-            <ArrowLeft size={20} color={COLORS.textPrimary} weight="regular" />
-            <Text style={styles.backText}>Terug</Text>
-          </Pressable>
-
           <Text style={styles.title}>Maak je account</Text>
           <Text style={styles.subtitle}>Je wachtwoord wordt versleuteld opgeslagen en nooit gedeeld.</Text>
 
@@ -142,7 +138,7 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
               value={values.firstName}
               onChangeText={setFirstName}
               halfWidth
-              autoFocus
+              autoFocus={!initialValues}
               autoCapitalize="words"
               textContentType="givenName"
               autoComplete="given-name"
@@ -261,15 +257,18 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
 }
 
 const styles = StyleSheet.create({
-  safe:          { flex: 1, backgroundColor: COLORS.background },
-  kav:           { flex: 1 },
-  scroll:        { flex: 1 },
-  scrollContent: { paddingHorizontal: SPACING.screenX, paddingTop: 16, paddingBottom: 24 },
-  backRow:       { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 20 },
-  backText:      { fontFamily: FONTS.displayMedium, fontSize: 16, color: COLORS.textPrimary },
-  title:     { fontFamily: FONTS.displaySemiBold, fontSize: 22, color: COLORS.textPrimary, marginBottom: 4 },
-  subtitle:  { fontFamily: FONTS.body, fontSize: 13, color: COLORS.textSecondary, marginBottom: 24 },
-  row:       { flexDirection: 'row', gap: 12 },
+  safe:       { flex: 1, backgroundColor: COLORS.background },
+  headerWrap: { paddingHorizontal: SPACING.screenX },
+  kav:        { flex: 1 },
+  scroll:     { flex: 1 },
+  scrollContent: {
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: 20,
+    paddingBottom: 24,
+  },
+  title:    { fontFamily: FONTS.displaySemiBold, fontSize: 20, color: COLORS.textPrimary, marginBottom: 4 },
+  subtitle: { fontFamily: FONTS.body, fontSize: 12.8, lineHeight: 18, color: COLORS.textSecondary, marginBottom: 24 },
+  row:      { flexDirection: 'row', gap: 12 },
   termsLink: { fontFamily: FONTS.bodyMedium, color: COLORS.textPrimary, textDecorationLine: 'underline' },
   footer: {
     paddingHorizontal: SPACING.screenX,

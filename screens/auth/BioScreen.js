@@ -9,9 +9,9 @@ import AuthTextArea from '../../components/auth/AuthTextArea';
 
 const MAX_BIO = 300;
 
-export default function BioScreen({ onBack, onContinue, isSubmitting }) {
+export default function BioScreen({ onBack, onContinue, isSubmitting, initialBio = '' }) {
   const insets = useSafeAreaInsets();
-  const [bio, setBio] = useState('');
+  const [bio, setBio] = useState(initialBio);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -23,7 +23,7 @@ export default function BioScreen({ onBack, onContinue, isSubmitting }) {
       >
         <View style={styles.inner}>
           <AuthStepHeader
-            onBack={onBack}
+            onBack={() => onBack?.(bio)}
             onSkip={() => onContinue?.('')}
             skipDisabled={isSubmitting}
           />

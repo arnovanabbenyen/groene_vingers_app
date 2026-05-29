@@ -8,9 +8,9 @@ import AuthStepHeader from '../../components/auth/AuthStepHeader';
 import PhotoPickerCircle from '../../components/auth/PhotoPickerCircle';
 import { useImagePicker } from '../../hooks/useImagePicker';
 
-export default function PhotoScreen({ onBack, onContinue, onSkip }) {
+export default function PhotoScreen({ onBack, onContinue, onSkip, initialUri }) {
   const insets = useSafeAreaInsets();
-  const { imageUri, openSheet } = useImagePicker({ aspect: [1, 1], sheetTitle: 'Foto toevoegen' });
+  const { imageUri, openSheet } = useImagePicker({ aspect: [1, 1], sheetTitle: 'Foto toevoegen', initialUri });
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

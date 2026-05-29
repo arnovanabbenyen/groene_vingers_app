@@ -1,13 +1,13 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useFormValidation } from './useFormValidation';
 
-export function useRegisterForm() {
+export function useRegisterForm(initialValues) {
   const { validateEmailFormat, validatePassword, passwordStrength } = useFormValidation();
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState(initialValues?.firstName || '');
+  const [lastName, setLastName] = useState(initialValues?.lastName || '');
+  const [email, setEmail] = useState(initialValues?.email || '');
+  const [password, setPassword] = useState(initialValues?.password || '');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const [emailTouched, setEmailTouched] = useState(false);

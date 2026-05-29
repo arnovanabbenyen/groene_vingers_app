@@ -8,11 +8,12 @@ import AuthStepHeader from '../../components/auth/AuthStepHeader';
 import CoverPhotoPicker from '../../components/auth/CoverPhotoPicker';
 import { useImagePicker } from '../../hooks/useImagePicker';
 
-export default function CoverPhotoScreen({ onBack, onContinue, onSkip }) {
+export default function CoverPhotoScreen({ onBack, onContinue, onSkip, initialUri }) {
   const insets = useSafeAreaInsets();
   const { imageUri, openSheet } = useImagePicker({
     aspect: [16, 9],
     sheetTitle: 'Omslagfoto toevoegen',
+    initialUri,
   });
 
   return (

@@ -54,6 +54,7 @@ export default function App() {
   const [profileDraft, setProfileDraft] = useState(null);
   const [profilePhotoUri, setProfilePhotoUri] = useState(null);
   const [coverPhotoUri, setCoverPhotoUri] = useState(null);
+  const [draftBio, setDraftBio] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [needsEmailVerification, setNeedsEmailVerification] = useState(false);
   const [lastResetEmail, setLastResetEmail] = useState('');
@@ -638,6 +639,11 @@ export default function App() {
             setProfileDraft(data);
             setScreen('photo');
           }}
+          initialValues={profileDraft ? {
+            firstName: profileDraft.firstName,
+            lastName: profileDraft.lastName,
+            email: profileDraft.email,
+          } : null}
         />
       ) : screen === 'photo' ? (
         <PhotoScreen
@@ -647,6 +653,7 @@ export default function App() {
             setProfilePhotoUri(uri || null);
             setScreen('cover');
           }}
+          initialUri={profilePhotoUri}
         />
       ) : screen === 'cover' ? (
         <CoverPhotoScreen
@@ -656,12 +663,17 @@ export default function App() {
             setCoverPhotoUri(uri || null);
             setScreen('bio');
           }}
+          initialUri={coverPhotoUri}
         />
       ) : screen === 'bio' ? (
         <BioScreen
-          onBack={() => setScreen('cover')}
+          onBack={(currentBio) => {
+            setDraftBio(currentBio ?? '');
+            setScreen('cover');
+          }}
           onContinue={handleCompleteSignUp}
           isSubmitting={isSavingProfile}
+          initialBio={draftBio}
         />
       ) : screen === 'welcome' ? (
         <WelcomeScreen
