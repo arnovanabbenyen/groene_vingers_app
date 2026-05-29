@@ -1,75 +1,103 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { EnvelopeSimple } from 'phosphor-react-native';
+import { COLORS, FONT_SIZES, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 
 export default function PasswordResetSentScreen({ email, onBack, onResend }) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>E-mail verstuurd!</Text>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.content}>
+        <View style={styles.iconWrap} accessible={false}>
+          <EnvelopeSimple size={48} color={COLORS.brand} weight="duotone" />
+        </View>
+        <Text style={styles.title} accessibilityRole="header">
+          E-mail verstuurd!
+        </Text>
+        <Text style={styles.message}>
+          {'We hebben een resetlink gestuurd naar '}
+          <Text style={styles.emailBold}>{email}</Text>
+          {'. Controleer ook je spammap.'}
+        </Text>
+      </View>
 
-      <Text style={styles.message}>
-        We hebben een reset-link gestuurd naar <Text style={styles.email}>{email}</Text>. Controleer ook je spammap.
-      </Text>
-
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.lg) }]}>
         <AuthButton label="Terug naar login" variant="primary" onPress={onBack} />
         <View style={styles.resendRow}>
           <Text style={styles.resendText}>Geen e-mail ontvangen? </Text>
-          <Pressable onPress={onResend}>
+          <Pressable
+            onPress={onResend}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Opnieuw versturen"
+          >
             <Text style={styles.resendLink}>Opnieuw versturen</Text>
           </Pressable>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
     backgroundColor: COLORS.background,
-    paddingHorizontal: SPACING.screenX,
-    paddingTop: 120,
+  },
+  content: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.screenX,
+  },
+  iconWrap: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: COLORS.surfaceBrand,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.xl,
   },
   title: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 25,
+    fontSize: FONT_SIZES.xxl,
     color: COLORS.textPrimary,
-    marginBottom: 16,
+    textAlign: 'center',
+    marginBottom: SPACING.md,
   },
   message: {
     fontFamily: FONTS.body,
-    fontSize: 16,
-    color: COLORS.textMuted,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textSecondary,
     textAlign: 'center',
-    marginHorizontal: 10,
     lineHeight: 22,
   },
-  email: {
+  emailBold: {
     fontFamily: FONTS.bodyMedium,
     color: COLORS.textPrimary,
   },
   footer: {
-    marginTop: 80,
-    width: '100%',
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: SPACING.md,
   },
   resendRow: {
-    marginTop: 12,
+    marginTop: SPACING.sm,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
   resendText: {
     fontFamily: FONTS.body,
-    fontSize: 16,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textPrimary,
   },
   resendLink: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: 16,
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textPrimary,
-    textDecorationLine: 'underline',
   },
 });
