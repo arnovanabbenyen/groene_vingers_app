@@ -1,6 +1,24 @@
 import { View, StyleSheet } from 'react-native';
 import OnboardingLayout from './OnboardingLayout';
-import { ONBOARDING } from '../theme/tokens';
+
+const ONBOARDING = {
+  circleSize: 226,
+  iconSize: 90,
+  variants: {
+    green: {
+      circleBackground: '#E2EDD8',
+      iconColor: '#36392B',
+    },
+    yellow: {
+      circleBackground: '#FAE49C',
+      iconColor: '#8A7010',
+    },
+    beige: {
+      circleBackground: '#DCD7C6',
+      iconColor: '#36392B',
+    },
+  },
+};
 
 export default function OnboardingSlide({ slide, step, total, onContinue, onSkip, onBack, isLast = false }) {
   const variant = ONBOARDING.variants[slide.variant] ?? ONBOARDING.variants.green;

@@ -39,43 +39,8 @@ export const SIZES = {
   headerHeight: 212,
   searchBarHeight: 47,
   dot: 8,
-  plotCardWidth: 266,
-  plotCardImageHeight: 167,
-  plotCardMetaCenterWidth: 99,
-  plotBadgeLocationMinHeight: 29,
-  plotBadgeRatingMinHeight: 27,
-  plotFavoriteSize: 19,
-  plotMetaDividerHeight: 18,
-  promoCardHeight: 137,
-  promoBadgeSize: 38,
-  promoBadgeRadius: 19,
-  promoButtonHeight: 28,
   bottomNavClearance: 110,
   profileCoverHeight: 201,
-};
-
-export const LAYOUT = {
-  promo: {
-    badgeLeft: 9,
-    badgeTop: 18,
-    titleLeft: 65,
-    titleTop: 18,
-    titleWidth: 263,
-    bodyLeft: 65,
-    bodyTop: 42,
-    bodyWidth: 263,
-    buttonLeft: 65,
-    buttonTop: 92,
-  },
-  plot: {
-    cardPadding: 8,
-    cardGap: 10,
-    titleGap: 8,
-    metaGap: 4,
-    pillGap: 4,
-    badgeInset: 8,
-    dividerSpacing: 8,
-  },
 };
 
 export const FONT_SIZES = {
@@ -102,43 +67,6 @@ export const RADIUS = {
   md: 10,
   xl: 12,
   pill: 999,
-};
-
-export const ROLE_CARD = {
-  iconSize: 24,
-  borderRadius: 6,
-  borderWidth: 1.5,
-  iconColor: '#36392B',
-  subtitleColor: '#7B845F',
-  variants: {
-    unselected: {
-      background: '#FDFBF7',
-      borderColor: '#B5B8A7',
-    },
-    selected: {
-      background: '#EAF0D8',
-      borderColor: '#576238',
-    },
-  },
-};
-
-export const ONBOARDING = {
-  circleSize: 226,
-  iconSize: 90,
-  variants: {
-    green: {
-      circleBackground: '#E2EDD8',
-      iconColor: '#36392B',
-    },
-    yellow: {
-      circleBackground: '#FAE49C',
-      iconColor: '#8A7010',
-    },
-    beige: {
-      circleBackground: '#DCD7C6',
-      iconColor: '#36392B',
-    },
-  },
 };
 
 export const SHADOWS = {

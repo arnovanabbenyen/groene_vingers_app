@@ -19,7 +19,8 @@ import {
   PencilSimpleIcon,
 } from 'phosphor-react-native';
 import { useSavedPercelen } from '../../hooks/useSavedPercelen';
-import { COLORS, FONTS, LAYOUT, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
+import { COLORS, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
+import { PLOT_CARD } from '../../components/home/PlotCard';
 import BottomNav from '../../components/navigation/BottomNav';
 import PercelenCarousel from '../../components/perceel/PercelenCarousel';
 import { supabase } from '../../services/supabase';
@@ -694,16 +695,16 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xxs,
   },
   perceelCard: {
-    width: SIZES.plotCardWidth,
+    width: PLOT_CARD.cardWidth,
     borderRadius: RADIUS.sm,
     backgroundColor: COLORS.background,
-    padding: LAYOUT.plot.cardPadding,
-    gap: LAYOUT.plot.cardGap,
+    padding: PLOT_CARD.cardPadding,
+    gap: PLOT_CARD.cardGap,
     ...SHADOWS.card,
   },
   perceelCardImageWrap: {
     width: '100%',
-    height: SIZES.plotCardImageHeight,
+    height: PLOT_CARD.imageHeight,
     borderRadius: RADIUS.sm,
     overflow: 'hidden',
     position: 'relative',
@@ -725,8 +726,8 @@ const styles = StyleSheet.create({
   },
   perceelStatusChip: {
     position: 'absolute',
-    top: LAYOUT.plot.badgeInset,
-    left: LAYOUT.plot.badgeInset,
+    top: PLOT_CARD.badgeInset,
+    left: PLOT_CARD.badgeInset,
     borderRadius: RADIUS.pill,
     paddingHorizontal: 10,
     paddingVertical: 5,

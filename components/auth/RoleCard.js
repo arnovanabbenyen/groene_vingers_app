@@ -1,5 +1,23 @@
 import { Pressable, Text, StyleSheet } from 'react-native';
-import { ROLE_CARD, COLORS, FONTS, FONT_SIZES, SPACING } from '../theme/tokens';
+import { COLORS, FONTS, FONT_SIZES, SPACING } from '../theme/tokens';
+
+const ROLE_CARD = {
+  iconSize: 24,
+  borderRadius: 6,
+  borderWidth: 1.5,
+  iconColor: '#36392B',
+  subtitleColor: '#7B845F',
+  variants: {
+    unselected: {
+      background: '#FDFBF7',
+      borderColor: '#B5B8A7',
+    },
+    selected: {
+      background: '#EAF0D8',
+      borderColor: '#576238',
+    },
+  },
+};
 
 export default function RoleCard({ role, selected, onPress }) {
   const variant = selected ? ROLE_CARD.variants.selected : ROLE_CARD.variants.unselected;
