@@ -9,7 +9,7 @@ export default function IntroScreen({ onCreateAccount, onSignIn }) {
       {/* Logo */}
       <View style={styles.logoContainer}>
         <Image
-          source={require('../../images/logo.png')}
+          source={require('../../assets/logo.png')}
           style={styles.logo}
         />
       </View>

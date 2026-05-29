@@ -121,6 +121,7 @@ export default function App() {
         email: profileDraft.email,
         password: profileDraft.password,
         options: {
+          emailRedirectTo: 'groenevingers://',
           data: {
             first_name: profileDraft.firstName,
             last_name: profileDraft.lastName,

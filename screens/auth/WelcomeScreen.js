@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckCircle } from 'phosphor-react-native';
 import { supabase } from '../../services/supabase';
@@ -7,6 +7,7 @@ import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 
 const POLL_MS = 5000;
+const logo = require('../../assets/logo.png');
 
 export default function WelcomeScreen({
   email,
@@ -60,6 +61,16 @@ export default function WelcomeScreen({
     setStatus('checking');
     setFeedback(null);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!mountedRef.current) return;
+
+      if (!session) {
+        // No session yet — email link not clicked or deep link didn't open the app
+        setStatus('not_confirmed');
+        setFeedback('Klik eerst op de link in je mailbox. De app opent dan automatisch.');
+        return;
+      }
+
       const { data: { user }, error } = await supabase.auth.getUser();
       if (!mountedRef.current) return;
       if (error) {
@@ -89,8 +100,8 @@ export default function WelcomeScreen({
     return (
       <View style={styles.container}>
         <View style={styles.content}>
-          <View style={styles.iconWrap}>
-            <CheckCircle size={72} color={COLORS.brand} weight="fill" />
+          <View style={styles.logoWrap}>
+            <Image source={logo} style={styles.logo} />
           </View>
           <Text style={styles.title}>Welkom bij Groene Vingers</Text>
           <Text style={styles.subtitle}>Je profiel is compleet. Je kunt nu meteen aan de slag.</Text>
@@ -107,12 +118,13 @@ export default function WelcomeScreen({
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.content}>
-        <View style={styles.iconWrap}>
-          <CheckCircle
-            size={72}
-            color={isConfirmed ? COLORS.brand : COLORS.border}
-            weight={isConfirmed ? 'fill' : 'regular'}
-          />
+        <View style={styles.logoWrap}>
+          <Image source={logo} style={styles.logo} />
+          {isConfirmed ? (
+            <View style={styles.badge}>
+              <CheckCircle size={28} color={COLORS.brand} weight="fill" />
+            </View>
+          ) : null}
         </View>
 
         <Text style={styles.title} accessibilityRole="header">
@@ -180,14 +192,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: SPACING.screenX,
   },
-  iconWrap: {
-    width: 176,
-    height: 176,
-    borderRadius: 88,
-    backgroundColor: 'rgba(87,98,56,0.10)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  logoWrap: {
+    width: 120,
+    height: 120,
     marginBottom: 34,
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    borderRadius: 28,
+  },
+  badge: {
+    position: 'absolute',
+    bottom: -6,
+    right: -6,
+    backgroundColor: COLORS.background,
+    borderRadius: 16,
+    padding: 1,
   },
   title: {
     fontFamily: FONTS.displaySemiBold,
@@ -207,7 +228,7 @@ const styles = StyleSheet.create({
   feedback: {
     fontFamily: FONTS.body,
     fontSize: 14,
-    color: COLORS.brand,
+    color: COLORS.negative,
     textAlign: 'center',
     marginTop: 16,
     lineHeight: 20,
