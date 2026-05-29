@@ -17,19 +17,21 @@ export default function RoleSelectionScreen({ onContinue, onLogin }) {
         <Text style={styles.title} accessibilityRole="header">Wie ben jij?</Text>
         <Text style={styles.subtitle}>Kies jouw rol. Je kunt dit later aanpassen.</Text>
 
-        <View
-          style={styles.cards}
-          accessibilityRole="radiogroup"
-          accessibilityLabel="Kies jouw rol"
-        >
-          {ROLES.map((role) => (
-            <RoleCard
-              key={role.id}
-              role={role}
-              selected={selectedRoleId === role.id}
-              onPress={() => setSelectedRoleId(role.id)}
-            />
-          ))}
+        <View style={styles.cardsWrap}>
+          <View
+            style={styles.cards}
+            accessibilityRole="radiogroup"
+            accessibilityLabel="Kies jouw rol"
+          >
+            {ROLES.map((role) => (
+              <RoleCard
+                key={role.id}
+                role={role}
+                selected={selectedRoleId === role.id}
+                onPress={() => setSelectedRoleId(role.id)}
+              />
+            ))}
+          </View>
         </View>
       </View>
 
@@ -77,6 +79,10 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
     marginBottom: 48,
+  },
+  cardsWrap: {
+    flex: 1,
+    justifyContent: 'center',
   },
   cards: {
     gap: 24,
