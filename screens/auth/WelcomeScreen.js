@@ -3,7 +3,7 @@ import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckCircle } from 'phosphor-react-native';
 import { supabase } from '../../services/supabase';
-import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 
 const POLL_MS = 5000;
@@ -29,29 +29,23 @@ export default function WelcomeScreen({
     }, 800);
   }, [onConfirmed]);
 
-  // Realtime: react to SIGNED_IN event (fires when deep link establishes session)
+  // Realtime: fires when deep link brings the user back after clicking the email link
   useEffect(() => {
     if (!supabase || !emailVerificationRequired) return;
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
-          confirm();
-        }
-      },
-    );
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) confirm();
+    });
     return () => subscription?.unsubscribe();
   }, [emailVerificationRequired, confirm]);
 
-  // Polling: backup check every 5s (catches confirmation from another device/browser)
+  // Polling: backup check every 5 s (e.g. confirmed on another device)
   useEffect(() => {
     if (!supabase || !emailVerificationRequired) return;
     const timer = setInterval(async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user?.email_confirmed_at && mountedRef.current) confirm();
-      } catch {
-        // silent — polling is a backup
-      }
+      } catch { /* silent — polling is a backup */ }
     }, POLL_MS);
     return () => clearInterval(timer);
   }, [emailVerificationRequired, confirm]);
@@ -65,7 +59,6 @@ export default function WelcomeScreen({
       if (!mountedRef.current) return;
 
       if (!session) {
-        // No session yet — email link not clicked or deep link didn't open the app
         setStatus('not_confirmed');
         setFeedback('Klik eerst op de link in je mailbox. De app opent dan automatisch.');
         return;
@@ -75,7 +68,7 @@ export default function WelcomeScreen({
       if (!mountedRef.current) return;
       if (error) {
         setStatus('not_confirmed');
-        setFeedback('Kon status niet controleren. Probeer opnieuw.');
+        setFeedback('Kon de status niet controleren. Probeer opnieuw.');
         return;
       }
       if (user?.email_confirmed_at) {
@@ -95,47 +88,41 @@ export default function WelcomeScreen({
   const isChecking = status === 'checking';
   const isConfirmed = status === 'confirmed';
 
-  // Immediate success — no email verification needed
-  if (!emailVerificationRequired) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.content}>
-          <View style={styles.logoWrap}>
-            <Image source={logo} style={styles.logo} />
-          </View>
-          <Text style={styles.title}>Welkom bij Groene Vingers</Text>
-          <Text style={styles.subtitle}>Je profiel is compleet. Je kunt nu meteen aan de slag.</Text>
-        </View>
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.lg) }]}>
-          <AuthButton label="Start" onPress={onConfirmed} variant="primary" />
-          <Text style={styles.helperText}>Je kan je profiel later altijd aanpassen.</Text>
-        </View>
-      </View>
-    );
-  }
+  const titleText = emailVerificationRequired
+    ? (isConfirmed ? 'Bevestigd!' : 'Check je mailbox')
+    : 'Welkom bij Groene Vingers';
 
-  // Email verification waiting state
+  const subtitleText = emailVerificationRequired
+    ? (isConfirmed
+      ? 'Je account is geactiveerd. Even laden…'
+      : 'Je account is aangemaakt. Bevestig je e-mailadres via de link in je mailbox om verder te gaan.')
+    : 'Je profiel is compleet. Je kunt nu meteen aan de slag.';
+
+  const helperText = emailVerificationRequired
+    ? 'Na verificatie word je automatisch ingelogd.'
+    : 'Je kan je profiel later altijd aanpassen.';
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.content}>
         <View style={styles.logoWrap}>
-          <Image source={logo} style={styles.logo} />
-          {isConfirmed ? (
-            <View style={styles.badge}>
+          <Image
+            source={logo}
+            style={styles.logo}
+            accessibilityLabel="Groene Vingers logo"
+          />
+          {emailVerificationRequired && isConfirmed ? (
+            <View style={styles.badge} accessible={false}>
               <CheckCircle size={28} color={COLORS.brand} weight="fill" />
             </View>
           ) : null}
         </View>
 
         <Text style={styles.title} accessibilityRole="header">
-          {isConfirmed ? 'Bevestigd!' : 'Check je mailbox'}
+          {titleText}
         </Text>
 
-        <Text style={styles.subtitle}>
-          {isConfirmed
-            ? 'Je account is geactiveerd. Even laden…'
-            : 'Je account is aangemaakt. Bevestig je e-mailadres via de link in je mailbox om verder te gaan.'}
-        </Text>
+        <Text style={styles.subtitle}>{subtitleText}</Text>
 
         {feedback ? (
           <Text
@@ -156,20 +143,26 @@ export default function WelcomeScreen({
       </View>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.lg) }]}>
-        <AuthButton
-          label={isConfirmed ? 'Bevestigd' : 'Ik heb mijn email bevestigd'}
-          onPress={handleManualCheck}
-          variant="primary"
-          loading={isChecking}
-          disabled={isChecking || isConfirmed}
-        />
-        {email ? (
+        {emailVerificationRequired ? (
+          <AuthButton
+            label={isConfirmed ? 'Bevestigd' : 'Ik heb mijn e-mail bevestigd'}
+            onPress={handleManualCheck}
+            variant="primary"
+            loading={isChecking}
+            disabled={isChecking || isConfirmed}
+          />
+        ) : (
+          <AuthButton label="Start" onPress={onConfirmed} variant="primary" />
+        )}
+
+        {emailVerificationRequired && email ? (
           <Text style={styles.emailHint}>
-            {'Bevestigingsmail verstuurd naar\n'}
+            {'Bevestigingsmail verstuurd naar '}
             <Text style={styles.emailHintBold}>{email}</Text>
           </Text>
         ) : null}
-        <Text style={styles.helperText}>Na verificatie word je automatisch ingelogd.</Text>
+
+        <Text style={styles.helperText}>{helperText}</Text>
       </View>
     </SafeAreaView>
   );
@@ -180,12 +173,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    paddingHorizontal: SPACING.screenX,
-    paddingTop: 118,
-  },
   content: {
     flex: 1,
     alignItems: 'center',
@@ -195,7 +182,7 @@ const styles = StyleSheet.create({
   logoWrap: {
     width: 120,
     height: 120,
-    marginBottom: 34,
+    marginBottom: SPACING.xl,
   },
   logo: {
     width: 120,
@@ -212,48 +199,48 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 25,
+    fontSize: FONT_SIZES.xxl,
     color: COLORS.textPrimary,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: SPACING.sm,
   },
   subtitle: {
     fontFamily: FONTS.body,
-    fontSize: 15,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
-    paddingHorizontal: 8,
+    paddingHorizontal: SPACING.sm,
   },
   feedback: {
     fontFamily: FONTS.body,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     color: COLORS.negative,
     textAlign: 'center',
-    marginTop: 16,
+    marginTop: SPACING.md,
     lineHeight: 20,
   },
   checkingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 16,
+    gap: SPACING.sm,
+    marginTop: SPACING.md,
   },
   checkingText: {
     fontFamily: FONTS.body,
-    fontSize: 13,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
   },
   footer: {
     paddingHorizontal: SPACING.screenX,
-    paddingTop: 16,
+    paddingTop: SPACING.md,
   },
   emailHint: {
     fontFamily: FONTS.body,
-    fontSize: 13,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
     textAlign: 'center',
-    marginTop: 16,
+    marginTop: SPACING.md,
     lineHeight: 20,
   },
   emailHintBold: {
@@ -263,7 +250,7 @@ const styles = StyleSheet.create({
   helperText: {
     marginTop: SPACING.sm,
     fontFamily: FONTS.body,
-    fontSize: 12.8,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textMuted,
     textAlign: 'center',
   },
