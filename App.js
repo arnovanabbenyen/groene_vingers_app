@@ -124,6 +124,7 @@ export default function App() {
             last_name: profileDraft.lastName,
             role: selectedRole,
             bio: bio || '',
+            plaats: profileDraft.plaats || '',
           },
         },
       });
@@ -643,6 +644,7 @@ export default function App() {
             firstName: profileDraft.firstName,
             lastName: profileDraft.lastName,
             email: profileDraft.email,
+            plaats: profileDraft.plaats,
           } : null}
         />
       ) : screen === 'photo' ? (

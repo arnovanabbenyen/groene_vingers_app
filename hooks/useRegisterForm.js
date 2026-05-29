@@ -9,6 +9,7 @@ export function useRegisterForm(initialValues) {
   const [email, setEmail] = useState(initialValues?.email || '');
   const [password, setPassword] = useState(initialValues?.password || '');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [plaats, setPlaats] = useState(initialValues?.plaats || '');
 
   const [emailTouched, setEmailTouched] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
@@ -48,11 +49,16 @@ export function useRegisterForm(initialValues) {
       result.terms = 'Je moet akkoord gaan met de voorwaarden';
     }
 
+    if (attemptedSubmit && !plaats.trim()) {
+      result.plaats = 'Vul een woonplaats in';
+    }
+
     return result;
   }, [
     email, password, acceptedTerms, serverError,
     emailTouched, passwordTouched, attemptedSubmit,
     validateEmailFormat, validatePassword,
+    plaats,
   ]);
 
   const errorCount = Object.keys(errors).length;
@@ -81,14 +87,22 @@ export function useRegisterForm(initialValues) {
   const handlePasswordBlur = useCallback(() => setPasswordTouched(true), []);
   const toggleTerms = useCallback(() => setAcceptedTerms((v) => !v), []);
 
+  const handlePlaatsSelect = useCallback((suggestion) => {
+    setPlaats(suggestion.plaats);
+  }, []);
+
+  const handlePlaatsChange = useCallback((text) => {
+    setPlaats(text);
+  }, []);
+
   const validate = useCallback(() => {
     setAttemptedSubmit(true);
     setEmailTouched(true);
     setPasswordTouched(true);
     const formatError = validateEmailFormat(email);
     const pwdError = validatePassword(password);
-    return !formatError && !pwdError && acceptedTerms;
-  }, [email, password, acceptedTerms, validateEmailFormat, validatePassword]);
+    return !formatError && !pwdError && acceptedTerms && plaats.trim().length > 0;
+  }, [email, password, acceptedTerms, validateEmailFormat, validatePassword, plaats]);
 
   const setSignupError = useCallback((error) => {
     if (!error) { setServerErrorState(null); return; }
@@ -103,7 +117,7 @@ export function useRegisterForm(initialValues) {
   }, []);
 
   return {
-    values: { firstName, lastName, email, password, acceptedTerms },
+    values: { firstName, lastName, email, password, acceptedTerms, plaats },
     setFirstName,
     setLastName,
     toggleTerms,
@@ -111,6 +125,8 @@ export function useRegisterForm(initialValues) {
     handlePasswordChange,
     handleEmailBlur,
     handlePasswordBlur,
+    handlePlaatsSelect,
+    handlePlaatsChange,
     errors,
     bannerError,
     strength,

@@ -14,6 +14,7 @@ import AuthStepHeader from '../../components/auth/AuthStepHeader';
 import FieldError from '../../components/notifications/FieldError';
 import FormErrorBanner from '../../components/notifications/FormErrorBanner';
 import PasswordStrengthBar from '../../components/auth/PasswordStrengthBar';
+import LocationAutocompleteField from '../../components/common/LocationAutocompleteField';
 import { useRegisterForm } from '../../hooks/useRegisterForm';
 import { supabase } from '../../services/supabase';
 
@@ -32,6 +33,8 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin, init
     handlePasswordChange,
     handleEmailBlur,
     handlePasswordBlur,
+    handlePlaatsSelect,
+    handlePlaatsChange,
     errors,
     bannerError,
     strength,
@@ -65,6 +68,7 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin, init
         lastName: values.lastName.trim(),
         email: values.email.trim(),
         password: values.password,
+        plaats: values.plaats.trim(),
       });
       return;
     }
@@ -86,6 +90,7 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin, init
         lastName: values.lastName.trim(),
         email: values.email.trim(),
         password: values.password,
+        plaats: values.plaats.trim(),
       });
     } catch {
       // RPC onbeschikbaar: laat de gebruiker doorgaan, signUp zelf vangt het op
@@ -94,6 +99,7 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin, init
         lastName: values.lastName.trim(),
         email: values.email.trim(),
         password: values.password,
+        plaats: values.plaats.trim(),
       });
     } finally {
       setSubmitting(false);
@@ -162,6 +168,17 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin, init
               accessibilityLabel="Achternaam"
             />
           </View>
+
+          <LocationAutocompleteField
+            label="Woonplaats"
+            value={values.plaats}
+            onSelect={handlePlaatsSelect}
+            onChangeText={handlePlaatsChange}
+            error={!!errors.plaats}
+            accessibilityLabel="Woonplaats"
+            accessibilityHint="Selecteer je woonplaats uit de lijst"
+          />
+          {errors.plaats ? <FieldError message={errors.plaats} /> : null}
 
           <AuthTextField
             ref={emailRef}
