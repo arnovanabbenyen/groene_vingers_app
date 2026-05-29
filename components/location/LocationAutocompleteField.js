@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Keyboard,
@@ -14,7 +14,7 @@ import { useLocationSearch } from '../../hooks/useLocationSearch';
 
 const ERROR_BG = '#FBEAEA';
 
-export default function LocationAutocompleteField({
+const LocationAutocompleteField = forwardRef(function LocationAutocompleteField({
   label,
   value,
   onSelect,
@@ -22,13 +22,18 @@ export default function LocationAutocompleteField({
   placeholder = 'Bv. Leuven, Gent, Brussel',
   error = false,
   onBlur,
+  onSubmitEditing,
+  returnKeyType = 'next',
   accessibilityLabel,
   accessibilityHint,
-}) {
+}, ref) {
+  const inputRef = useRef(null);
   const [query, setQuery] = useState(value || '');
   const [focused, setFocused] = useState(false);
   const [hasPickedSuggestion, setHasPickedSuggestion] = useState(!!value);
   const isInitializedRef = useRef(!!value);
+
+  useImperativeHandle(ref, () => ({ focus: () => inputRef.current?.focus() }));
 
   // Sync when external value arrives asynchronously (e.g. profile loading from Supabase)
   useEffect(() => {
@@ -76,6 +81,7 @@ export default function LocationAutocompleteField({
       <View style={[styles.inputShell, error && styles.inputShellError]}>
         <MapPinIcon size={18} color={COLORS.border} weight="regular" />
         <TextInput
+          ref={inputRef}
           value={query}
           onChangeText={handleChange}
           onFocus={() => setFocused(true)}
@@ -85,6 +91,9 @@ export default function LocationAutocompleteField({
           style={styles.input}
           autoCapitalize="words"
           autoCorrect={false}
+          returnKeyType={returnKeyType}
+          blurOnSubmit={false}
+          onSubmitEditing={onSubmitEditing}
           accessibilityLabel={accessibilityLabel || label}
           accessibilityHint={accessibilityHint || 'Begin te typen om plaatsen te zoeken'}
           accessibilityRole="combobox"
@@ -122,7 +131,9 @@ export default function LocationAutocompleteField({
       ) : null}
     </View>
   );
-}
+});
+
+export default LocationAutocompleteField;
 
 const styles = StyleSheet.create({
   wrap: {

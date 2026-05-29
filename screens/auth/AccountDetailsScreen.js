@@ -21,6 +21,7 @@ import { supabase } from '../../services/supabase';
 export default function AccountDetailsScreen({ onBack, onContinue, onLogin, initialValues }) {
   const insets = useSafeAreaInsets();
   const lastNameRef = useRef(null);
+  const plaatsRef = useRef(null);
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
 
@@ -164,17 +165,19 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin, init
               autoComplete="family-name"
               returnKeyType="next"
               blurOnSubmit={false}
-              onSubmitEditing={() => emailRef.current?.focus()}
+              onSubmitEditing={() => plaatsRef.current?.focus()}
               accessibilityLabel="Achternaam"
             />
           </View>
 
           <LocationAutocompleteField
+            ref={plaatsRef}
             label="Woonplaats"
             value={values.plaats}
             onSelect={handlePlaatsSelect}
             onChangeText={handlePlaatsChange}
             error={!!errors.plaats}
+            onSubmitEditing={() => emailRef.current?.focus()}
             accessibilityLabel="Woonplaats"
             accessibilityHint="Selecteer je woonplaats uit de lijst"
           />
