@@ -117,6 +117,7 @@ export function useRegisterForm() {
     submitting,
     setSubmitting,
     validate,
+    validateEmailFormat,
     setSignupError,
   };
 }

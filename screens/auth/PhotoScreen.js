@@ -66,6 +66,17 @@ export default function PhotoScreen({ onBack, onContinue, onSkip }) {
 
   return (
     <View style={styles.container}>
+      <View
+        style={styles.progressTrack}
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel="Stap 2 van 4"
+        accessibilityValue={{ min: 0, max: 4, now: 2 }}
+      >
+        {[1,2,3,4].map(s => (
+          <View key={s} style={[styles.progressSegment, s <= 2 && styles.progressSegmentFill]} />
+        ))}
+      </View>
       <View style={styles.headerRow}>
         <Pressable style={styles.backButton} onPress={onBack} accessibilityRole="button">
           <ArrowLeft size={20} color={COLORS.textPrimary} weight="regular" />
@@ -75,12 +86,6 @@ export default function PhotoScreen({ onBack, onContinue, onSkip }) {
         <Pressable onPress={onSkip} accessibilityRole="button" hitSlop={8}>
           <Text style={styles.skipText}>Overslaan</Text>
         </Pressable>
-      </View>
-
-      <View style={styles.progressRow} accessible accessibilityLabel="Stap 2 van 4">
-        {[0,1,2,3].map(i => (
-          <View key={i} style={[styles.progressDot, i === 1 && styles.progressDotActive]} />
-        ))}
       </View>
 
       <View style={styles.copy}>
@@ -138,11 +143,11 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     textDecorationColor: COLORS.brand,
   },
-  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 20 },
-  progressDot: { height: 6, width: 6, borderRadius: 3, backgroundColor: '#B5B8A7' },
-  progressDotActive: { width: 22, backgroundColor: '#576238' },
+  progressTrack:       { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', gap: 3, height: 3 },
+  progressSegment:     { flex: 1, height: 3, backgroundColor: 'rgba(181,184,167,0.35)' },
+  progressSegmentFill: { backgroundColor: '#576238' },
   copy: {
-    marginTop: 20,
+    marginTop: 42,
   },
   title: {
     fontFamily: FONTS.displaySemiBold,

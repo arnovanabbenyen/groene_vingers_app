@@ -13,9 +13,7 @@ import FieldError from '../../components/notifications/FieldError';
 import FormErrorBanner from '../../components/notifications/FormErrorBanner';
 import PasswordStrengthBar from '../../components/auth/PasswordStrengthBar';
 import { useRegisterForm } from '../../hooks/useRegisterForm';
-
-const TOTAL_STEPS = 4;
-const CURRENT_STEP = 0;
+import { supabase } from '../../services/supabase';
 
 export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
   const insets = useSafeAreaInsets();
@@ -35,17 +33,69 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
     errors,
     bannerError,
     strength,
+    submitting,
+    setSubmitting,
     validate,
+    validateEmailFormat,
+    setSignupError,
   } = useRegisterForm();
 
-  function onPressContinue() {
+  async function checkEmailOnBlur() {
+    handleEmailBlur();
+    const email = values.email.trim();
+    if (!email || !supabase || validateEmailFormat(email)) return;
+    try {
+      const { data: isAvailable } = await supabase
+        .rpc('check_email_available', { p_email: email });
+      if (isAvailable === false) {
+        setSignupError({ message: 'User already registered' });
+      }
+    } catch {
+      // silent — submit-check vangt het op
+    }
+  }
+
+  async function onPressContinue() {
     if (!validate()) return;
-    onContinue?.({
-      firstName: values.firstName.trim(),
-      lastName: values.lastName.trim(),
-      email: values.email.trim(),
-      password: values.password,
-    });
+    if (!supabase) {
+      onContinue?.({
+        firstName: values.firstName.trim(),
+        lastName: values.lastName.trim(),
+        email: values.email.trim(),
+        password: values.password,
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { data: isAvailable, error: rpcError } = await supabase
+        .rpc('check_email_available', { p_email: values.email.trim() });
+
+      if (rpcError) throw rpcError;
+
+      if (!isAvailable) {
+        setSignupError({ message: 'User already registered' });
+        return;
+      }
+
+      onContinue?.({
+        firstName: values.firstName.trim(),
+        lastName: values.lastName.trim(),
+        email: values.email.trim(),
+        password: values.password,
+      });
+    } catch {
+      // RPC onbeschikbaar: laat de gebruiker doorgaan, signUp zelf vangt het op
+      onContinue?.({
+        firstName: values.firstName.trim(),
+        lastName: values.lastName.trim(),
+        email: values.email.trim(),
+        password: values.password,
+      });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function onPressLegalLink() {
@@ -58,6 +108,17 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      <View
+        style={styles.progressTrack}
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel="Stap 1 van 4"
+        accessibilityValue={{ min: 0, max: 4, now: 1 }}
+      >
+        {[1,2,3,4].map(s => (
+          <View key={s} style={[styles.progressSegment, s <= 1 && styles.progressSegmentFill]} />
+        ))}
+      </View>
       <KeyboardAvoidingView
         style={styles.kav}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -78,19 +139,6 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
             <ArrowLeft size={20} color={COLORS.textPrimary} weight="regular" />
             <Text style={styles.backText}>Terug</Text>
           </Pressable>
-
-          <View
-            style={styles.progressRow}
-            accessible
-            accessibilityLabel={`Stap 1 van ${TOTAL_STEPS}`}
-          >
-            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-              <View
-                key={i}
-                style={[styles.progressDot, i === CURRENT_STEP && styles.progressDotActive]}
-              />
-            ))}
-          </View>
 
           <Text style={styles.title}>Maak je account</Text>
           <Text style={styles.subtitle}>Je wachtwoord wordt versleuteld opgeslagen en nooit gedeeld.</Text>
@@ -133,7 +181,7 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
             label="E-mailadres"
             value={values.email}
             onChangeText={handleEmailChange}
-            onBlur={handleEmailBlur}
+            onBlur={checkEmailOnBlur}
             placeholder="jouw@email.be"
             keyboardType="email-address"
             autoCapitalize="none"
@@ -201,6 +249,8 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
             label="Volgende"
             onPress={onPressContinue}
             variant="primary"
+            loading={submitting}
+            disabled={submitting}
           />
           <View style={styles.loginRow}>
             <Text style={styles.loginText}>Al een account? </Text>
@@ -224,24 +274,11 @@ const styles = StyleSheet.create({
   kav:           { flex: 1 },
   scroll:        { flex: 1 },
   scrollContent: { paddingHorizontal: SPACING.screenX, paddingTop: 16, paddingBottom: 24 },
+  progressTrack:       { flexDirection: 'row', gap: 3, height: 3 },
+  progressSegment:     { flex: 1, height: 3, backgroundColor: 'rgba(181,184,167,0.35)' },
+  progressSegmentFill: { backgroundColor: COLORS.brand },
   backRow:       { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 20 },
   backText:      { fontFamily: FONTS.displayMedium, fontSize: 16, color: COLORS.textPrimary },
-  progressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 20,
-  },
-  progressDot: {
-    height: 6,
-    width: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.border,
-  },
-  progressDotActive: {
-    width: 22,
-    backgroundColor: COLORS.brand,
-  },
   title:     { fontFamily: FONTS.displaySemiBold, fontSize: 22, color: COLORS.textPrimary, marginBottom: 4 },
   subtitle:  { fontFamily: FONTS.body, fontSize: 13, color: COLORS.textSecondary, marginBottom: 24 },
   row:       { flexDirection: 'row', gap: 12 },
