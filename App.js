@@ -77,6 +77,7 @@ export default function App() {
   const [weeklyGoalSource, setWeeklyGoalSource] = useState('instellingen');
   const [opvolgingRefreshKey, setOpvolgingRefreshKey] = useState(0);
   const homeInitialTabRef = useRef('start');
+  const pendingPhotosRef = useRef(null);
   const { aanvragen: pendingAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
   const { samenwerking: activeSamenwerking, isLoading: isLoadingActiveSamenwerking } =
     useActiveSamenwerking(samenwerkingRefreshKey);
@@ -160,6 +161,9 @@ export default function App() {
           try { await uploadPhoto('profile-covers', userId, 'cover', coverPhotoUri); }
           catch (err) { console.warn('Cover photo upload failed:', err); }
         }
+      } else if (profilePhotoUri || coverPhotoUri) {
+        // Stash photo URIs — uploaded after email verification creates a session
+        pendingPhotosRef.current = { profilePhotoUri, coverPhotoUri };
       }
 
       setScreen('welcome');
@@ -343,6 +347,16 @@ export default function App() {
         if (user?.id) setCurrentUserId(user.id);
         setIsLoggedIn(true);
         setSamenwerkingRefreshKey((k) => k + 1);
+
+        // Upload photos that were skipped during signup (no session yet at that point)
+        if (user?.id && pendingPhotosRef.current) {
+          const { profilePhotoUri: pUri, coverPhotoUri: cUri } = pendingPhotosRef.current;
+          pendingPhotosRef.current = null;
+          if (pUri) uploadPhoto('profile-pfp', user.id, 'avatar', pUri)
+            .catch(err => console.warn('Pending profile photo upload failed:', err));
+          if (cUri) uploadPhoto('profile-covers', user.id, 'cover', cUri)
+            .catch(err => console.warn('Pending cover photo upload failed:', err));
+        }
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
         setSelectedRole('tuinzoeker');
