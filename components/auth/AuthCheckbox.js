@@ -60,6 +60,6 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     fontSize: 12.8,
     lineHeight: 18,
-    color: COLORS.indicatorMuted,
+    color: COLORS.textSecondary,
   },
 });
