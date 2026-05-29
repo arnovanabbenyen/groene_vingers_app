@@ -26,6 +26,12 @@ export default function BioScreen({ onBack, onContinue, isSubmitting }) {
         </Pressable>
       </View>
 
+      <View style={styles.progressRow} accessible accessibilityLabel="Stap 4 van 4">
+        {[0,1,2,3].map(i => (
+          <View key={i} style={[styles.progressDot, i === 3 && styles.progressDotActive]} />
+        ))}
+      </View>
+
       <View style={styles.copy}>
         <Text style={styles.title}>Schrijf iets over jezelf</Text>
         <Text style={styles.subtitle}>
@@ -83,8 +89,11 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     textDecorationColor: COLORS.brand,
   },
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 20 },
+  progressDot: { height: 6, width: 6, borderRadius: 3, backgroundColor: '#B5B8A7' },
+  progressDotActive: { width: 22, backgroundColor: '#576238' },
   copy: {
-    marginTop: 39,
+    marginTop: 20,
   },
   title: {
     fontFamily: FONTS.displaySemiBold,

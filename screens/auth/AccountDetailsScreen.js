@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Alert,
   ScrollView, KeyboardAvoidingView, Platform,
@@ -13,8 +13,16 @@ import FieldError from '../../components/notifications/FieldError';
 import FormErrorBanner from '../../components/notifications/FormErrorBanner';
 import PasswordStrengthBar from '../../components/auth/PasswordStrengthBar';
 import { useRegisterForm } from '../../hooks/useRegisterForm';
+
+const TOTAL_STEPS = 4;
+const CURRENT_STEP = 0;
+
 export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
   const insets = useSafeAreaInsets();
+  const lastNameRef = useRef(null);
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+
   const {
     values,
     setFirstName,
@@ -64,15 +72,28 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
             style={styles.backRow}
             onPress={onBack}
             accessibilityRole="button"
-            accessibilityLabel="Terug"
-            hitSlop={8}
+            accessibilityLabel="Terug naar rolkeuze"
+            hitSlop={16}
           >
             <ArrowLeft size={20} color={COLORS.textPrimary} weight="regular" />
             <Text style={styles.backText}>Terug</Text>
           </Pressable>
 
+          <View
+            style={styles.progressRow}
+            accessible
+            accessibilityLabel={`Stap 1 van ${TOTAL_STEPS}`}
+          >
+            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+              <View
+                key={i}
+                style={[styles.progressDot, i === CURRENT_STEP && styles.progressDotActive]}
+              />
+            ))}
+          </View>
+
           <Text style={styles.title}>Maak je account</Text>
-          <Text style={styles.subtitle}>Jouw gegevens zijn veilig bij ons.</Text>
+          <Text style={styles.subtitle}>Je wachtwoord wordt versleuteld opgeslagen en nooit gedeeld.</Text>
 
           <FormErrorBanner message={bannerError} />
 
@@ -82,20 +103,33 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
               value={values.firstName}
               onChangeText={setFirstName}
               halfWidth
-              accessibilityLabel="Voornaam"
+              autoFocus
               autoCapitalize="words"
+              textContentType="givenName"
+              autoComplete="given-name"
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => lastNameRef.current?.focus()}
+              accessibilityLabel="Voornaam"
             />
             <AuthTextField
+              ref={lastNameRef}
               label="Achternaam"
               value={values.lastName}
               onChangeText={setLastName}
               halfWidth
-              accessibilityLabel="Achternaam"
               autoCapitalize="words"
+              textContentType="familyName"
+              autoComplete="family-name"
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => emailRef.current?.focus()}
+              accessibilityLabel="Achternaam"
             />
           </View>
 
           <AuthTextField
+            ref={emailRef}
             label="E-mailadres"
             value={values.email}
             onChangeText={handleEmailChange}
@@ -104,13 +138,18 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
+            textContentType="emailAddress"
             icon={<EnvelopeSimple size={18} color={COLORS.border} weight="regular" />}
             error={!!errors.email}
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => passwordRef.current?.focus()}
             accessibilityLabel="E-mailadres"
           />
           {errors.email ? <FieldError message={errors.email} /> : null}
 
           <AuthTextField
+            ref={passwordRef}
             label="Wachtwoord"
             value={values.password}
             onChangeText={handlePasswordChange}
@@ -118,8 +157,11 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
             placeholder="••••••••••"
             secureTextEntry
             autoComplete="password-new"
+            textContentType="newPassword"
             icon={<LockKey size={18} color={COLORS.border} weight="regular" />}
             error={!!errors.password}
+            returnKeyType="done"
+            onSubmitEditing={onPressContinue}
             accessibilityLabel="Wachtwoord"
             accessibilityHint="Minimaal 8 tekens, een hoofdletter, een cijfer en een speciaal teken"
           />
@@ -130,14 +172,26 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
             checked={values.acceptedTerms}
             onToggle={toggleTerms}
             error={!!errors.terms}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: values.acceptedTerms }}
             accessibilityLabel="Akkoord met gebruiksvoorwaarden en privacybeleid"
           >
             {'Ik ga akkoord met de '}
-            <Text style={styles.termsLink} onPress={onPressLegalLink}>Gebruiksvoorwaarden</Text>
+            <Text
+              style={styles.termsLink}
+              onPress={onPressLegalLink}
+              accessibilityRole="link"
+              accessibilityLabel="Gebruiksvoorwaarden openen"
+            >
+              Gebruiksvoorwaarden
+            </Text>
             {' en het '}
-            <Text style={styles.termsLink} onPress={onPressLegalLink}>Privacybeleid</Text>
+            <Text
+              style={styles.termsLink}
+              onPress={onPressLegalLink}
+              accessibilityRole="link"
+              accessibilityLabel="Privacybeleid openen"
+            >
+              Privacybeleid
+            </Text>
           </AuthCheckbox>
           {errors.terms ? <FieldError message={errors.terms} /> : null}
         </ScrollView>
@@ -150,7 +204,12 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin }) {
           />
           <View style={styles.loginRow}>
             <Text style={styles.loginText}>Al een account? </Text>
-            <Pressable onPress={onLogin} hitSlop={4}>
+            <Pressable
+              onPress={onLogin}
+              hitSlop={16}
+              accessibilityRole="button"
+              accessibilityLabel="Inloggen op bestaand account"
+            >
               <Text style={styles.loginLink}>Inloggen</Text>
             </Pressable>
           </View>
@@ -165,12 +224,28 @@ const styles = StyleSheet.create({
   kav:           { flex: 1 },
   scroll:        { flex: 1 },
   scrollContent: { paddingHorizontal: SPACING.screenX, paddingTop: 16, paddingBottom: 24 },
-  backRow:       { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 24 },
+  backRow:       { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 20 },
   backText:      { fontFamily: FONTS.displayMedium, fontSize: 16, color: COLORS.textPrimary },
-  title:         { fontFamily: FONTS.displaySemiBold, fontSize: 22, color: COLORS.textPrimary, marginBottom: 4 },
-  subtitle:      { fontFamily: FONTS.body, fontSize: 13, color: COLORS.textSecondary, marginBottom: 24 },
-  row:           { flexDirection: 'row', gap: 12 },
-  termsLink:     { fontFamily: FONTS.bodyMedium, color: COLORS.textPrimary, textDecorationLine: 'underline' },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 20,
+  },
+  progressDot: {
+    height: 6,
+    width: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.border,
+  },
+  progressDotActive: {
+    width: 22,
+    backgroundColor: COLORS.brand,
+  },
+  title:     { fontFamily: FONTS.displaySemiBold, fontSize: 22, color: COLORS.textPrimary, marginBottom: 4 },
+  subtitle:  { fontFamily: FONTS.body, fontSize: 13, color: COLORS.textSecondary, marginBottom: 24 },
+  row:       { flexDirection: 'row', gap: 12 },
+  termsLink: { fontFamily: FONTS.bodyMedium, color: COLORS.textPrimary, textDecorationLine: 'underline' },
   footer: {
     paddingHorizontal: SPACING.screenX,
     paddingTop: 12,
