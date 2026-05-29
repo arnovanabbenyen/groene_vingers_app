@@ -274,8 +274,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.screenX,
     paddingTop: 12,
     backgroundColor: COLORS.background,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
   },
   loginRow:  { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12 },
   loginText: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.textPrimary },

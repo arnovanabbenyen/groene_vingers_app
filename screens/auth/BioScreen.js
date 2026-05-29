@@ -99,7 +99,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.screenX,
     paddingTop: 12,
     backgroundColor: COLORS.surface,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
   },
 });
