@@ -43,6 +43,30 @@ function AmenityIcon({ label }) {
   return <LeafIcon size={14} color={COLORS.textPrimary} weight="regular" />;
 }
 
+function PlotCardBadges({ location, isFavorited, onToggleFavorite, showFavoriteButton }) {
+  return (
+    <>
+      <View style={styles.badgesRow}>
+        <View style={[styles.pill, styles.locationPill]}>
+          <MapPinIcon size={18} color={COLORS.textPrimary} weight="regular" />
+          <Text style={styles.pillText} numberOfLines={1}>
+            {location || 'Locatie nog niet beschikbaar'}
+          </Text>
+        </View>
+      </View>
+      {showFavoriteButton && (
+        <View style={styles.heartButton}>
+          <FavoriteHeartButton
+            isFavorited={isFavorited}
+            onToggle={onToggleFavorite}
+            size="small"
+          />
+        </View>
+      )}
+    </>
+  );
+}
+
 export default function PlotCard({ plot, onPress, isFavorited = false, onToggleFavorite, showFavoriteButton = true }) {
   const [imageError, setImageError] = useState(false);
   const imageSource = typeof plot.image === 'string' ? { uri: plot.image } : plot.image;
@@ -50,8 +74,18 @@ export default function PlotCard({ plot, onPress, isFavorited = false, onToggleF
   const canShowImage = hasImage && !imageError;
   const amenities = (plot.chips || []).slice(0, 4);
 
+  const cardLabel = [plot.title, plot.location, plot.size]
+    .filter(Boolean)
+    .join(', ');
+
   return (
-    <Pressable style={styles.card} onPress={onPress}>
+    <Pressable
+      style={styles.card}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={cardLabel}
+      accessibilityHint="Tik om perceel details te bekijken"
+    >
       <View style={styles.imageWrap}>
         {canShowImage ? (
           <View style={styles.image}>
@@ -62,52 +96,32 @@ export default function PlotCard({ plot, onPress, isFavorited = false, onToggleF
                 console.warn('Image failed to load:', imageSource, e.nativeEvent);
                 setImageError(true);
               }}
-              onLoad={() => console.log('Image loaded:', imageSource?.uri)}
             />
-            <View style={styles.badgesRow}>
-              <View style={[styles.pill, styles.locationPill]}>
-                <MapPinIcon size={18} color={COLORS.textPrimary} weight="regular" />
-                <Text style={styles.pillText} numberOfLines={1}>
-                  {plot.location || 'Locatie nog niet beschikbaar'}
-                </Text>
-              </View>
-            </View>
-
-            {showFavoriteButton && (
-              <View style={styles.heartButton}>
-                <FavoriteHeartButton
-                  isFavorited={isFavorited}
-                  onToggle={onToggleFavorite}
-                  size="small"
-                />
-              </View>
-            )}
+            <PlotCardBadges
+              location={plot.location}
+              isFavorited={isFavorited}
+              onToggleFavorite={onToggleFavorite}
+              showFavoriteButton={showFavoriteButton}
+            />
           </View>
         ) : (
           <View style={[styles.image, styles.placeholderImage]}>
             <View style={styles.placeholderContent}>
-              <LeafIcon size={34} color={COLORS.brand} weight="regular" />
+              <LeafIcon
+                size={34}
+                color={COLORS.brand}
+                weight="regular"
+                accessibilityElementsHidden
+                importantForAccessibility="no"
+              />
               <Text style={styles.placeholderText}>Foto niet beschikbaar</Text>
             </View>
-
-            <View style={styles.badgesRow}>
-              <View style={[styles.pill, styles.locationPill]}>
-                <MapPinIcon size={18} color={COLORS.textPrimary} weight="regular" />
-                <Text style={styles.pillText} numberOfLines={1}>
-                  {plot.location || 'Locatie nog niet beschikbaar'}
-                </Text>
-              </View>
-            </View>
-
-            {showFavoriteButton && (
-              <View style={styles.heartButton}>
-                <FavoriteHeartButton
-                  isFavorited={isFavorited}
-                  onToggle={onToggleFavorite}
-                  size="small"
-                />
-              </View>
-            )}
+            <PlotCardBadges
+              location={plot.location}
+              isFavorited={isFavorited}
+              onToggleFavorite={onToggleFavorite}
+              showFavoriteButton={showFavoriteButton}
+            />
           </View>
         )}
       </View>

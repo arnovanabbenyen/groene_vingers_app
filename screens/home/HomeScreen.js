@@ -4,6 +4,7 @@
   import { ScrollView, StyleSheet, Text, View } from 'react-native';
   import BottomNav from '../../components/navigation/BottomNav';
   import HomeHeader from '../../components/home/HomeHeader';
+  import { mapPerceelToPlot } from '../../utils/mapPerceelToPlot';
   import HomePromoCard from '../../components/home/HomePromoCard';
   import HomeSectionCta from '../../components/home/HomeSectionCta';
   import PlotCard from '../../components/home/PlotCard';
@@ -62,6 +63,8 @@
     const [userPlan, setUserPlan] = useState('free');
     const [plots, setPlots] = useState(null); // null = loading not attempted
     const [myAanvragen, setMyAanvragen] = useState([]);
+    const [profileFirstName, setProfileFirstName] = useState('');
+    const [profilePlaats, setProfilePlaats] = useState('');
     const { isFavorite, toggleFavorite } = useFavorites();
 
     function handleRequestWithGate(plot) {
@@ -84,28 +87,7 @@
           return;
         }
 
-        const mapped = (data || []).map((row) => ({
-          id: row.id,
-          image: row.fotos && row.fotos[0] ? row.fotos[0] : null,
-          fotos: row.fotos || [],
-          location: row.plaats || 'Locatie nog niet beschikbaar',
-          rating: null,
-          title: row.naam,
-          size: row.grootte ? `${row.grootte}m²` : null,
-          description: row.beschrijving || null,
-          voorzieningen: row.voorzieningen || [],
-          extraInfo: row.extra_info || [],
-          chips: row.voorzieningen || [],
-          ownerId: row.owner_id,
-          adres: row.adres || null,
-          lat: row.lat || null,
-          lng: row.lng || null,
-          raw: row,
-        }));
-
-        if (mapped[0]?.image) {
-          console.log('Perceel foto URL:', mapped[0].image);
-        }
+        const mapped = (data || []).map(mapPerceelToPlot).filter(Boolean);
 
         if (mounted) setPlots(mapped);
       }
@@ -148,18 +130,20 @@
 
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
-            .select('avatar_url, plan')
+            .select('avatar_url, plan, first_name, plaats')
             .eq('id', user.id)
             .single();
 
           if (profileError) {
-            console.log('Failed to fetch profile avatar', profileError);
+            console.log('Failed to fetch profile', profileError);
             return;
           }
 
           if (mounted) {
             if (profile?.avatar_url) setProfileImageSource(profile.avatar_url);
             if (profile?.plan) setUserPlan(profile.plan);
+            if (profile?.first_name) setProfileFirstName(profile.first_name);
+            if (profile?.plaats) setProfilePlaats(profile.plaats);
           }
         } catch (e) {
           console.log('loadProfileAvatar error', e);
@@ -325,6 +309,8 @@
               onPressNotifications={onOpenNotifications}
               notificationCount={unreadNotificationsCount}
               onPressHeart={onOpenSaved}
+              firstName={profileFirstName}
+              plaats={profilePlaats}
             />
 
             <View style={styles.contentWrap}>
@@ -353,18 +339,7 @@
                     {myAanvragen.map((aanvraag) => {
                       const perceel = aanvraag.percelen;
                       if (!perceel) return null;
-                      const plot = {
-                        id: perceel.id,
-                        image: perceel.fotos?.[0] || null,
-                        fotos: perceel.fotos || [],
-                        location: perceel.plaats || 'Locatie niet beschikbaar',
-                        title: perceel.naam,
-                        size: perceel.grootte ? `${perceel.grootte}m²` : null,
-                        chips: perceel.voorzieningen || [],
-                        ownerId: perceel.owner_id,
-                        extra_info: perceel.extra_info || [],
-                        raw: perceel,
-                      };
+                      const plot = mapPerceelToPlot(perceel);
                       const chipConfig = AANVRAAG_STATUS_CHIP[aanvraag.status] ?? AANVRAAG_STATUS_CHIP.pending;
                       return (
                         <View key={aanvraag.id} style={styles.aanvraagCardWrap}>
@@ -417,7 +392,11 @@
                   </View>
                 ) : null}
 
-                <View style={styles.dotRow}>
+                <View
+                  style={styles.dotRow}
+                  accessibilityRole="adjustable"
+                  accessibilityLabel={`${visibleDotIndex + 1} van ${filteredPlots.length} percelen`}
+                >
                   {filteredPlots.map((plot, index) => (
                     <View
                       key={`dot-${plot.id}-${index}`}

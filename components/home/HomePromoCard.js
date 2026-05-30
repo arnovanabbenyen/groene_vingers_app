@@ -31,7 +31,13 @@ export default function HomePromoCard({ onPressUpgrade }) {
         Met Pro stuur je onbeperkt aanvragen en zie je wie jouw profiel bekeken heeft.
       </Text>
 
-      <Pressable style={styles.button} onPress={onPressUpgrade}>
+      <Pressable
+        style={styles.button}
+        onPress={onPressUpgrade}
+        accessibilityRole="button"
+        accessibilityLabel="Upgrade naar Pro plan"
+        accessibilityHint="Onbeperkt aanvragen sturen en meer matches zien"
+      >
         <Text style={styles.buttonText}>Upgrade naar Pro</Text>
       </Pressable>
     </View>

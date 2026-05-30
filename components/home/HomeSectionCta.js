@@ -4,7 +4,13 @@ import { COLORS, FONTS, RADIUS } from '../theme/tokens';
 
 export default function HomeSectionCta({ onPress }) {
   return (
-    <Pressable style={styles.card} onPress={onPress}>
+    <Pressable
+    style={styles.card}
+    onPress={onPress}
+    accessibilityRole="button"
+    accessibilityLabel="Bekijk tuinen op de kaart"
+    accessibilityHint="Gefilterd op jouw locatie en voorkeuren"
+  >
       <View style={styles.iconWrap}>
         <MapTrifoldIcon size={24} color={COLORS.textInverse} weight="regular" />
       </View>

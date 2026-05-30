@@ -4,9 +4,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BellIcon, HeartIcon, MapPinIcon, MagnifyingGlassIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../theme/tokens';
 
-export default function HomeHeader({ searchQuery, onSearchChange, onPressNotifications, notificationCount = 0, onPressHeart }) {
+export default function HomeHeader({
+  searchQuery,
+  onSearchChange,
+  onPressNotifications,
+  notificationCount = 0,
+  onPressHeart,
+  firstName,
+  plaats,
+}) {
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(46, insets.top + 18);
+  const displayName = firstName || 'daar';
+  const displayPlaats = plaats || 'Locatie';
 
   return (
     <View style={styles.headerWrap}>
@@ -20,13 +30,23 @@ export default function HomeHeader({ searchQuery, onSearchChange, onPressNotific
           <View>
             <View style={styles.locationRow}>
               <MapPinIcon size={14} color={COLORS.textInverse} weight="regular" />
-              <Text style={styles.locationText}>Leuven</Text>
+              <Text style={styles.locationText}>{displayPlaats}</Text>
             </View>
-            <Text style={styles.greeting}>Hallo, Arno</Text>
+            <Text style={styles.greeting}>Hallo, {displayName}</Text>
           </View>
 
           <View style={styles.headerActions}>
-            <Pressable onPress={onPressNotifications} hitSlop={8} style={styles.bellWrap}>
+            <Pressable
+              onPress={onPressNotifications}
+              hitSlop={8}
+              style={styles.bellWrap}
+              accessibilityRole="button"
+              accessibilityLabel={
+                notificationCount > 0
+                  ? `Meldingen, ${notificationCount} ongelezen`
+                  : 'Meldingen'
+              }
+            >
               <BellIcon size={24} color={COLORS.textInverse} weight="regular" />
               {notificationCount > 0 ? (
                 <View style={styles.bellBadge}>
@@ -36,7 +56,12 @@ export default function HomeHeader({ searchQuery, onSearchChange, onPressNotific
                 </View>
               ) : null}
             </Pressable>
-            <Pressable onPress={onPressHeart} hitSlop={8}>
+            <Pressable
+              onPress={onPressHeart}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Opgeslagen percelen"
+            >
               <HeartIcon size={24} color={COLORS.textInverse} weight="regular" />
             </Pressable>
           </View>
@@ -47,15 +72,22 @@ export default function HomeHeader({ searchQuery, onSearchChange, onPressNotific
           <TextInput
             value={searchQuery}
             onChangeText={onSearchChange}
-            placeholder="Zoeken naar een perceel"
+            placeholder="Zoeken naar een tuin"
             placeholderTextColor={COLORS.textSecondary}
             style={styles.searchInput}
             returnKeyType="search"
             autoCorrect={false}
             autoCapitalize="none"
+            accessibilityLabel="Zoeken naar een tuin"
+            accessibilityHint="Typ om percelen te zoeken"
           />
           {searchQuery ? (
-            <Pressable onPress={() => onSearchChange('')} hitSlop={8}>
+            <Pressable
+              onPress={() => onSearchChange('')}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Zoekopdracht wissen"
+            >
               <Text style={styles.clearText}>Wis</Text>
             </Pressable>
           ) : null}
@@ -107,6 +139,29 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
     paddingTop: 2,
   },
+  bellWrap: {
+    position: 'relative',
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.negative,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: COLORS.brand,
+  },
+  bellBadgeText: {
+    color: COLORS.surface,
+    fontSize: 9,
+    fontFamily: FONTS.bodyMedium,
+    lineHeight: 11,
+  },
   searchBar: {
     marginTop: SPACING.md,
     height: SIZES.searchBarHeight,
@@ -134,28 +189,5 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     fontFamily: FONTS.bodyMedium,
     fontWeight: '500',
-  },
-  bellWrap: {
-    position: 'relative',
-  },
-  bellBadge: {
-    position: 'absolute',
-    top: -5,
-    right: -6,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: COLORS.negative,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-    borderWidth: 1.5,
-    borderColor: COLORS.brand,
-  },
-  bellBadgeText: {
-    color: COLORS.surface,
-    fontSize: 9,
-    fontFamily: FONTS.bodyMedium,
-    lineHeight: 11,
   },
 });
