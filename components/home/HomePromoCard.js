@@ -5,7 +5,7 @@ import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
 export default function HomePromoCard({ onPressUpgrade }) {
   return (
     <Pressable
-      style={styles.card}
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       onPress={onPressUpgrade}
       accessibilityRole="button"
       accessibilityLabel="Upgrade naar Pro plan"
@@ -13,7 +13,7 @@ export default function HomePromoCard({ onPressUpgrade }) {
     >
       <View style={styles.row}>
         <View style={styles.badge}>
-          <StarIcon size={22} color={COLORS.accent} weight="regular" />
+          <StarIcon size={22} color={COLORS.accent} weight="fill" />
         </View>
 
         <View style={styles.textContent}>
@@ -35,17 +35,20 @@ export default function HomePromoCard({ onPressUpgrade }) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: RADIUS.sm,
+    borderRadius: RADIUS.md,
     backgroundColor: COLORS.brand,
     overflow: 'hidden',
-    paddingLeft: 9,        // matches original badge inset (badgeLeft: 9)
+    paddingLeft: 9,
     paddingRight: SPACING.md,
-    paddingVertical: 18,   // matches original badge/title top position
+    paddingVertical: 18,
+  },
+  cardPressed: {
+    opacity: 0.85,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 18,               // titleLeft(65) - paddingLeft(9) - badgeSize(38) = 18
+    gap: 18,
   },
   badge: {
     width: 38,
@@ -58,15 +61,15 @@ const styles = StyleSheet.create({
   },
   textContent: {
     flex: 1,
-    gap: 12,               // body-bottom to button-top from original layout
+    gap: SPACING.sm,
   },
   textGroup: {
-    gap: SPACING.sm,       // title-bottom to body-top (8px = bodyTop - titleTop - titleLineHeight)
+    gap: SPACING.xxs,
   },
   title: {
     color: COLORS.accent,
     fontSize: FONT_SIZES.lg,
-    lineHeight: 16,
+    lineHeight: 22,
     fontFamily: FONTS.displayMedium,
     fontWeight: '500',
   },
@@ -77,19 +80,20 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   buttonWrap: {
-    alignSelf: 'flex-start',
+    alignSelf: 'stretch',
     borderRadius: RADIUS.sm,
     backgroundColor: COLORS.accent,
-    height: 28,
+    height: 36,
     paddingHorizontal: SPACING.md,
     justifyContent: 'center',
     alignItems: 'center',
+    minWidth: 44,
   },
   buttonText: {
     color: COLORS.textPrimary,
     fontSize: FONT_SIZES.sm,
     lineHeight: 13,
-    fontFamily: FONTS.body,
-    fontWeight: '400',
+    fontFamily: FONTS.bodyMedium,
+    fontWeight: '500',
   },
 });
