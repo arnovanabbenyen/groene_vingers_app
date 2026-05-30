@@ -1,67 +1,68 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { DropIcon, LeafIcon, MapPinIcon, ShovelIcon, PlantIcon, TreeIcon } from 'phosphor-react-native';
-import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS } from '../theme/tokens';
-import FavoriteHeartButton from '../parcel/FavoriteHeartButton';
+import {
+  CloudIcon,
+  DropIcon,
+  HeartIcon,
+  LeafIcon,
+  LightbulbIcon,
+  LightningIcon,
+  MapPinIcon,
+  PlantIcon,
+  SunIcon,
+  WrenchIcon,
+} from 'phosphor-react-native';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
 export const PLOT_CARD = {
   cardWidth: 266,
   imageHeight: 167,
-  metaCenterWidth: 99,
-  badgeLocationMinHeight: 29,
-  badgeRatingMinHeight: 27,
-  favoriteSize: 19,
-  metaDividerHeight: 18,
-  cardPadding: 8,
-  cardGap: 10,
-  titleGap: 8,
-  metaGap: 4,
-  pillGap: 4,
-  badgeInset: 8,
-  dividerSpacing: 8,
+  cardPadding: 8,  // retained for HomeScreen statusChip positioning: top/left = cardPadding + badgeInset
+  badgeInset: 8,   // retained for HomeScreen statusChip positioning
 };
 
-function AmenityIcon({ label }) {
-  const normalized = (label || '').toLowerCase();
+const VOORZIENING_ICONS = {
+  Water: DropIcon,
+  'Stromend water': DropIcon,
+  Materiaal: WrenchIcon,
+  Gereedschap: WrenchIcon,
+  Elektriciteit: LightningIcon,
+  Verlichting: LightbulbIcon,
+  Schaduw: CloudIcon,
+  Zonlicht: SunIcon,
+  Zaden: PlantIcon,
+  Planten: PlantIcon,
+};
 
-  if (normalized.includes('water') || normalized.includes('drop')) {
-    return <DropIcon size={14} color={COLORS.textPrimary} weight="regular" />;
-  }
-
-  if (normalized.includes('tool') || normalized.includes('shovel') || normalized.includes('materiaal')) {
-    return <ShovelIcon size={14} color={COLORS.textPrimary} weight="regular" />;
-  }
-
-  if (normalized.includes('zaden') || normalized.includes('plant')) {
-    return <PlantIcon size={14} color={COLORS.textPrimary} weight="regular" />;
-  }
-
-  if (normalized.includes('boom') || normalized.includes('tree')) {
-    return <TreeIcon size={14} color={COLORS.textPrimary} weight="regular" />;
-  }
-
-  return <LeafIcon size={14} color={COLORS.textPrimary} weight="regular" />;
+function getVoorzieningIcon(name) {
+  return VOORZIENING_ICONS[name] || LeafIcon;
 }
 
 function PlotCardBadges({ location, isFavorited, onToggleFavorite, showFavoriteButton }) {
   return (
     <>
-      <View style={styles.badgesRow}>
-        <View style={[styles.pill, styles.locationPill]}>
-          <MapPinIcon size={18} color={COLORS.textPrimary} weight="regular" />
-          <Text style={styles.pillText} numberOfLines={1}>
-            {location || 'Locatie nog niet beschikbaar'}
-          </Text>
-        </View>
+      <View style={styles.locationBadge}>
+        <MapPinIcon size={11} color={COLORS.textPrimary} weight="regular" />
+        <Text style={styles.locationText} numberOfLines={1}>
+          {location || 'Locatie onbekend'}
+        </Text>
       </View>
+
       {showFavoriteButton && (
-        <View style={styles.heartButton}>
-          <FavoriteHeartButton
-            isFavorited={isFavorited}
-            onToggle={onToggleFavorite}
-            size="small"
+        <Pressable
+          onPress={(e) => { e.stopPropagation(); onToggleFavorite?.(); }}
+          hitSlop={8}
+          style={styles.heartWrap}
+          accessibilityRole="button"
+          accessibilityLabel={isFavorited ? 'Verwijder uit opgeslagen' : 'Sla op'}
+          accessibilityState={{ selected: isFavorited }}
+        >
+          <HeartIcon
+            size={22}
+            color={isFavorited ? COLORS.negative : COLORS.surface}
+            weight={isFavorited ? 'fill' : 'regular'}
           />
-        </View>
+        </Pressable>
       )}
     </>
   );
@@ -72,11 +73,12 @@ export default function PlotCard({ plot, onPress, isFavorited = false, onToggleF
   const imageSource = typeof plot.image === 'string' ? { uri: plot.image } : plot.image;
   const hasImage = plot.image != null && plot.image !== '';
   const canShowImage = hasImage && !imageError;
-  const amenities = (plot.chips || []).slice(0, 4);
 
-  const cardLabel = [plot.title, plot.location, plot.size]
-    .filter(Boolean)
-    .join(', ');
+  const voorzieningen = plot.voorzieningen || plot.chips || [];
+  const visibleVoorzieningen = voorzieningen.slice(0, 2);
+  const overflowCount = voorzieningen.length - visibleVoorzieningen.length;
+
+  const cardLabel = [plot.title, plot.location, plot.size].filter(Boolean).join(', ');
 
   return (
     <Pressable
@@ -88,59 +90,72 @@ export default function PlotCard({ plot, onPress, isFavorited = false, onToggleF
     >
       <View style={styles.imageWrap}>
         {canShowImage ? (
-          <View style={styles.image}>
-            <Image
-              source={imageSource}
-              style={styles.imageEl}
-              onError={(e) => {
-                console.warn('Image failed to load:', imageSource, e.nativeEvent);
-                setImageError(true);
-              }}
-            />
-            <PlotCardBadges
-              location={plot.location}
-              isFavorited={isFavorited}
-              onToggleFavorite={onToggleFavorite}
-              showFavoriteButton={showFavoriteButton}
-            />
-          </View>
+          <Image
+            source={imageSource}
+            style={styles.image}
+            resizeMode="cover"
+            onError={(e) => {
+              console.warn('Image failed to load:', imageSource, e.nativeEvent);
+              setImageError(true);
+            }}
+          />
         ) : (
-          <View style={[styles.image, styles.placeholderImage]}>
-            <View style={styles.placeholderContent}>
-              <LeafIcon
-                size={34}
-                color={COLORS.brand}
-                weight="regular"
-                accessibilityElementsHidden
-                importantForAccessibility="no"
-              />
-              <Text style={styles.placeholderText}>Foto niet beschikbaar</Text>
-            </View>
-            <PlotCardBadges
-              location={plot.location}
-              isFavorited={isFavorited}
-              onToggleFavorite={onToggleFavorite}
-              showFavoriteButton={showFavoriteButton}
+          <View style={styles.imagePlaceholder}>
+            <LeafIcon
+              size={34}
+              color={COLORS.brand}
+              weight="regular"
+              accessibilityElementsHidden
+              importantForAccessibility="no"
             />
+            <Text style={styles.placeholderText}>Foto niet beschikbaar</Text>
           </View>
         )}
+
+        <PlotCardBadges
+          location={plot.location}
+          isFavorited={isFavorited}
+          onToggleFavorite={onToggleFavorite}
+          showFavoriteButton={showFavoriteButton}
+        />
       </View>
 
-      <View style={styles.headerRow}>
-        <Text style={styles.title} numberOfLines={1}>
-          {plot.title}
-        </Text>
-        <Text style={styles.size}>{plot.size || '30m²'}</Text>
-      </View>
+      <View style={styles.body}>
+        <View style={styles.titleRow}>
+          <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+            {plot.title}
+          </Text>
+          {plot.size && <Text style={styles.size}>{plot.size}</Text>}
+        </View>
 
-      <View style={styles.metaRow}>
-        {amenities.map((chip, index) => (
-          <View key={`${plot.id}-${chip}`} style={styles.metaItem}>
-            <AmenityIcon label={chip} />
-            <Text style={styles.metaText}>{chip}</Text>
-            {index < amenities.length - 1 ? <View style={styles.metaDivider} /> : null}
-          </View>
-        ))}
+        {voorzieningen.length > 0 && (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.voorzieningenRow}>
+              {visibleVoorzieningen.map((v, index) => {
+                const Icon = getVoorzieningIcon(v);
+                return (
+                  <Fragment key={`${plot.id}-${v}-${index}`}>
+                    <View style={styles.voorzieningItem}>
+                      <Icon size={16} color={COLORS.textSecondary} weight="regular" />
+                      <Text style={styles.voorzieningLabel}>{v}</Text>
+                    </View>
+                    {index < visibleVoorzieningen.length - 1 && (
+                      <View style={styles.voorzieningDivider} />
+                    )}
+                  </Fragment>
+                );
+              })}
+
+              {overflowCount > 0 && (
+                <>
+                  <View style={styles.voorzieningDivider} />
+                  <Text style={styles.voorzieningOverflow}>+ {overflowCount} meer</Text>
+                </>
+              )}
+            </View>
+          </>
+        )}
       </View>
     </Pressable>
   );
@@ -149,38 +164,28 @@ export default function PlotCard({ plot, onPress, isFavorited = false, onToggleF
 const styles = StyleSheet.create({
   card: {
     width: PLOT_CARD.cardWidth,
+    backgroundColor: COLORS.surface,
     borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.background,
-    padding: PLOT_CARD.cardPadding,
-    gap: PLOT_CARD.cardGap,
-    ...SHADOWS.card,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
   imageWrap: {
     width: '100%',
-    borderRadius: RADIUS.sm,
-    overflow: 'hidden',
+    height: PLOT_CARD.imageHeight,
+    backgroundColor: COLORS.surfaceMuted,
+    position: 'relative',
   },
   image: {
     width: '100%',
-    height: PLOT_CARD.imageHeight,
-    position: 'relative',
+    height: '100%',
   },
-  imageEl: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+  imagePlaceholder: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
-  },
-  placeholderImage: {
-    backgroundColor: COLORS.surfaceMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  placeholderContent: {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
@@ -191,88 +196,97 @@ const styles = StyleSheet.create({
     lineHeight: 13,
     fontFamily: FONTS.body,
   },
-  badgesRow: {
+  locationBadge: {
     position: 'absolute',
-    left: PLOT_CARD.badgeInset,
-    right: PLOT_CARD.badgeInset,
-    bottom: PLOT_CARD.badgeInset,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  pill: {
-    borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.surface,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: PLOT_CARD.pillGap,
-    paddingHorizontal: PLOT_CARD.badgeInset,
-    paddingVertical: PLOT_CARD.metaGap,
-  },
-  locationPill: {
-    minHeight: PLOT_CARD.badgeLocationMinHeight,
-    maxWidth: '68%',
-  },
-  pillText: {
-    color: COLORS.textPrimary,
-    fontSize: FONT_SIZES.sm,
-    lineHeight: 13,
-    fontFamily: FONTS.body,
-  },
-  heartButton: {
-    position: 'absolute',
-    right: PLOT_CARD.badgeInset,
-    top: PLOT_CARD.badgeInset,
-    width: PLOT_CARD.favoriteSize,
-    height: PLOT_CARD.favoriteSize,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: PLOT_CARD.favoriteSize / 2,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: PLOT_CARD.titleGap,
-  },
-  title: {
-    color: COLORS.textPrimary,
-    fontSize: FONT_SIZES.lg,
-    fontFamily: FONTS.displayMedium,
-    fontWeight: '500',
-    flex: 1,
-  },
-  size: {
-    color: COLORS.textPrimary,
-    fontSize: FONT_SIZES.sm,
-    lineHeight: 13,
-    fontFamily: FONTS.body,
-  },
-  metaRow: {
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    paddingTop: PLOT_CARD.metaGap,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-  },
-  metaItem: {
+    bottom: SPACING.md,
+    left: SPACING.md,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginRight: 10,
-    marginBottom: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.pill,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
+    maxWidth: '70%',
   },
-  metaText: {
-    color: COLORS.textPrimary,
+  locationText: {
+    fontFamily: FONTS.bodyMedium,
     fontSize: FONT_SIZES.sm,
-    lineHeight: 13,
-    fontFamily: FONTS.body,
+    color: COLORS.textPrimary,
   },
-  metaDivider: {
+  heartWrap: {
+    position: 'absolute',
+    top: SPACING.md,
+    right: SPACING.md,
+    width: 32,
+    height: 32,
+    borderRadius: RADIUS.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  body: {
+    backgroundColor: COLORS.surface,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.sm,
+    gap: SPACING.sm,
+  },
+  title: {
+    flex: 1,
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.textPrimary,
+  },
+  size: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.dividerSoft,
+    marginHorizontal: SPACING.md,
+  },
+  voorzieningenRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.md,
+    gap: SPACING.sm,
+  },
+  voorzieningItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  voorzieningLabel: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+  },
+  voorzieningDivider: {
     width: 1,
-    height: PLOT_CARD.metaDividerHeight,
+    height: 14,
     backgroundColor: COLORS.border,
-    marginLeft: 10,
+  },
+  voorzieningOverflow: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
   },
 });

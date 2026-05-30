@@ -263,6 +263,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
                   horizontal
                   nestedScrollEnabled
                   showsHorizontalScrollIndicator={false}
+                  style={styles.plotsScrollView}
                   contentContainerStyle={styles.plotsScroller}
                 >
                   {aanvragen.map((aanvraag) => {
@@ -296,9 +297,10 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
                   horizontal
                   nestedScrollEnabled
                   showsHorizontalScrollIndicator={false}
+                  style={styles.plotsScrollView}
                   contentContainerStyle={styles.plotsScroller}
                   onMomentumScrollEnd={(event) => {
-                    const nextDot = Math.round(event.nativeEvent.contentOffset.x / PLOT_CARD.cardWidth);
+                    const nextDot = Math.round(event.nativeEvent.contentOffset.x / (PLOT_CARD.cardWidth + PLOT_CARD.carouselGap));
                     setActiveDot(Math.max(0, Math.min(filteredPlots.length - 1, nextDot)));
                   }}
                 >
