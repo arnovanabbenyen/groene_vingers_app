@@ -2,7 +2,6 @@ import { Fragment, useState } from 'react';
 import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   DropIcon,
-  HeartIcon,
   LeafIcon,
   MapPinIcon,
   PlantIcon,
@@ -11,6 +10,7 @@ import {
   TreeIcon,
 } from 'phosphor-react-native';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
+import FavoriteHeartButton from '../parcel/FavoriteHeartButton';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -46,20 +46,12 @@ function PlotCardBadges({ location, isFavorited, onToggleFavorite, showFavoriteB
       </View>
 
       {showFavoriteButton && (
-        <Pressable
-          onPress={(e) => { e.stopPropagation(); onToggleFavorite?.(); }}
-          hitSlop={8}
-          style={styles.heartWrap}
-          accessibilityRole="button"
-          accessibilityLabel={isFavorited ? 'Verwijder uit opgeslagen' : 'Sla op'}
-          accessibilityState={{ selected: isFavorited }}
-        >
-          <HeartIcon
-            size={18}
-            color={isFavorited ? COLORS.negative : COLORS.textSecondary}
-            weight={isFavorited ? 'fill' : 'regular'}
+        <View style={styles.heartWrap}>
+          <FavoriteHeartButton
+            isFavorited={isFavorited}
+            onToggle={onToggleFavorite}
           />
-        </Pressable>
+        </View>
       )}
     </>
   );
@@ -221,17 +213,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: SPACING.md,
     right: SPACING.md,
-    width: 34,
-    height: 34,
-    borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    elevation: 3,
   },
   body: {
     backgroundColor: COLORS.surface,
