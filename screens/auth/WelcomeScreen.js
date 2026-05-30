@@ -13,6 +13,7 @@ export default function WelcomeScreen({
   email,
   emailVerificationRequired = false,
   onConfirmed,
+  onGoToLogin,
 }) {
   const insets = useSafeAreaInsets();
   const [status, setStatus] = useState('waiting'); // waiting | checking | not_confirmed | confirmed
@@ -60,7 +61,7 @@ export default function WelcomeScreen({
 
       if (!session) {
         setStatus('not_confirmed');
-        setFeedback('Klik eerst op de link in je mailbox. De app opent dan automatisch.');
+        setFeedback('Heb je de link in je mailbox geopend? Dan kan je nu inloggen met je gegevens.');
         return;
       }
 
@@ -144,13 +145,22 @@ export default function WelcomeScreen({
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.lg) }]}>
         {emailVerificationRequired ? (
-          <AuthButton
-            label={isConfirmed ? 'Bevestigd' : 'Ik heb mijn e-mail bevestigd'}
-            onPress={handleManualCheck}
-            variant="primary"
-            loading={isChecking}
-            disabled={isChecking || isConfirmed}
-          />
+          <>
+            <AuthButton
+              label={isConfirmed ? 'Bevestigd' : 'Ik heb mijn e-mail bevestigd'}
+              onPress={handleManualCheck}
+              variant="primary"
+              loading={isChecking}
+              disabled={isChecking || isConfirmed}
+            />
+            {status === 'not_confirmed' && onGoToLogin ? (
+              <AuthButton
+                label="Ga naar inloggen"
+                onPress={onGoToLogin}
+                variant="secondary"
+              />
+            ) : null}
+          </>
         ) : (
           <AuthButton label="Start" onPress={onConfirmed} variant="primary" />
         )}

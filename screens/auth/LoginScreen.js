@@ -1,62 +1,68 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert, ScrollView } from 'react-native';
+import React, { useRef, useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EnvelopeSimple, LockKey } from 'phosphor-react-native';
-import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 import AuthTextField from '../../components/auth/AuthTextField';
 import ErrorAlert from '../../components/auth/ErrorAlert';
 import { supabase } from '../../services/supabase';
 
 export default function LoginScreen({ onCreateAccount, onLoginSuccess, onForgotPassword }) {
+  const insets = useSafeAreaInsets();
+  const passwordRef = useRef(null);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({ email: false, password: false });
 
+  function clearError() {
+    if (!error) return;
+    setError('');
+    setFieldErrors({ email: false, password: false });
+  }
+
   async function handleLogin() {
-    if (!email || !password) {
-      Alert.alert('Velden invullen', 'Vul je e-mailadres en wachtwoord in.');
+    if (!email.trim() || !password) {
+      setError('Vul je e-mailadres en wachtwoord in.');
+      setFieldErrors({ email: !email.trim(), password: !password });
       return;
     }
 
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
         password,
       });
 
-      if (error) {
-        throw error;
-      }
+      if (loginError) throw loginError;
 
       if (data?.user) {
-        // Try to get role from user metadata first
-        const user = data.user;
-        let role = user?.user_metadata?.role || null;
-
-        // Fallback: try to read from profiles table
+        let role = data.user.user_metadata?.role || null;
         if (!role) {
           try {
-            const { data: profileData, error: profileError } = await supabase
+            const { data: profile } = await supabase
               .from('profiles')
               .select('role')
-              .eq('id', user.id)
+              .eq('id', data.user.id)
               .single();
-
-            if (!profileError && profileData?.role) {
-              role = profileData.role;
-            }
-          } catch (e) {
-            // ignore
-          }
+            if (profile?.role) role = profile.role;
+          } catch { /* ignore — onAuthStateChange handles role fallback */ }
         }
-
         onLoginSuccess?.(role);
       }
-    } catch (loginError) {
+    } catch {
       setError('E-mailadres of wachtwoord is onjuist.');
       setFieldErrors({ email: true, password: true });
     } finally {
@@ -65,110 +71,146 @@ export default function LoginScreen({ onCreateAccount, onLoginSuccess, onForgotP
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>Login</Text>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <KeyboardAvoidingView
+        style={styles.kav}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.title}>Inloggen</Text>
 
-      <ErrorAlert message={error} />
+          <ErrorAlert message={error} />
 
-      <AuthTextField
-        label="E-mailadres"
-        value={email}
-          onChangeText={(newEmail) => {
-            setEmail(newEmail);
-            setError('');
-            setFieldErrors(prev => ({ ...prev, email: false }));
-          }}
-        placeholder="jouw@email.be"
-        keyboardType="email-address"
-        autoCapitalize="none"
-          error={fieldErrors.email}
-        icon={<EnvelopeSimple size={18} color={COLORS.border} weight="regular" />}
-      />
+          <AuthTextField
+            label="E-mailadres"
+            value={email}
+            onChangeText={(v) => { setEmail(v); clearError(); }}
+            placeholder="jouw@email.be"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            textContentType="emailAddress"
+            autoFocus
+            error={fieldErrors.email}
+            icon={<EnvelopeSimple size={18} color={COLORS.border} weight="regular" />}
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => passwordRef.current?.focus()}
+            accessibilityLabel="E-mailadres"
+          />
 
-      <View style={styles.passwordSection}>
-        <AuthTextField
-          label="Wachtwoord"
-          value={password}
-            onChangeText={(newPassword) => {
-              setPassword(newPassword);
-              setError('');
-              setFieldErrors(prev => ({ ...prev, password: false }));
-            }}
-          placeholder="••••••••••"
-          secureTextEntry
-            error={fieldErrors.password}
-          icon={<LockKey size={18} color={COLORS.border} weight="regular" />}
-        />
-        <Pressable style={styles.forgotPasswordContainer} onPress={onForgotPassword}>
-          <Text style={styles.forgotPassword}>Wachtwoord vergeten?</Text>
-        </Pressable>
-      </View>
+          <View style={styles.passwordWrap}>
+            <AuthTextField
+              ref={passwordRef}
+              label="Wachtwoord"
+              value={password}
+              onChangeText={(v) => { setPassword(v); clearError(); }}
+              placeholder="••••••••••"
+              secureTextEntry
+              autoComplete="password"
+              textContentType="password"
+              error={fieldErrors.password}
+              icon={<LockKey size={18} color={COLORS.border} weight="regular" />}
+              returnKeyType="done"
+              onSubmitEditing={handleLogin}
+              accessibilityLabel="Wachtwoord"
+            />
+            <Pressable
+              style={styles.forgotWrap}
+              onPress={onForgotPassword}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Wachtwoord vergeten"
+            >
+              <Text style={styles.forgotText}>Wachtwoord vergeten?</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
 
-      <View style={styles.footer}>
-        <AuthButton 
-          label="Inloggen" 
-          onPress={handleLogin} 
-          variant="primary"
-          disabled={isLoading}
-        />
-        <View style={styles.signupRow}>
-          <Text style={styles.signupText}>Nog geen account? </Text>
-          <Pressable onPress={onCreateAccount}>
-            <Text style={styles.signupLink}>Registreer je hier</Text>
-          </Pressable>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.lg) }]}>
+          <AuthButton
+            label="Inloggen"
+            onPress={handleLogin}
+            variant="primary"
+            loading={isLoading}
+            disabled={isLoading}
+          />
+          <View style={styles.signupRow}>
+            <Text style={styles.signupText}>Nog geen account? </Text>
+            <Pressable
+              onPress={onCreateAccount}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Registreer je hier"
+            >
+              <Text style={styles.signupLink}>Registreer je hier</Text>
+            </Pressable>
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  content: {
+  kav: {
+    flex: 1,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: SPACING.screenX,
-    paddingTop: 72,
+    paddingTop: SPACING.xl + SPACING.md,
     paddingBottom: SPACING.lg,
   },
   title: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
+    fontSize: FONT_SIZES.xl,
     color: COLORS.textPrimary,
-    marginBottom: 32,
+    marginBottom: SPACING.xl,
   },
-  passwordSection: {
-    marginTop: 16,
+  passwordWrap: {
+    marginBottom: SPACING.sm,
   },
-  forgotPasswordContainer: {
-    marginTop: 8,
-    alignItems: 'flex-end',
+  forgotWrap: {
+    alignSelf: 'flex-end',
+    marginTop: SPACING.xs,
   },
-  forgotPassword: {
+  forgotText: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 12.8,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textPrimary,
     textDecorationLine: 'underline',
   },
   footer: {
-    marginTop: 48,
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: SPACING.md,
+    backgroundColor: COLORS.background,
   },
   signupRow: {
-    marginTop: 12,
+    marginTop: SPACING.sm,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
   signupText: {
     fontFamily: FONTS.body,
-    fontSize: 16,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textPrimary,
   },
   signupLink: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: 16,
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textPrimary,
-    textDecorationLine: 'underline',
   },
 });

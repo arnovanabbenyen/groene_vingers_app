@@ -60,7 +60,8 @@
           "merchantIdentifier": "merchant.com.arnovan.groenevingers",
           "enableGooglePay": false
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }
