@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     backgroundColor: COLORS.background,
-    paddingBottom: SIZES.bottomNavClearance,
+    paddingBottom: SIZES.bottomNavClearance + SPACING.xl,
   },
   contentWrap: {
     paddingHorizontal: SPACING.screenX,
@@ -412,9 +412,13 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     marginTop: -6,
   },
+  plotsScrollView: {
+    marginHorizontal: -SPACING.screenX,
+  },
   plotsScroller: {
     gap: SPACING.md,
     paddingBottom: SPACING.xxs,
+    paddingHorizontal: SPACING.screenX,
   },
   dotRow: {
     marginTop: -4,
@@ -426,10 +430,11 @@ const styles = StyleSheet.create({
   dot: {
     width: SIZES.dot,
     height: SIZES.dot,
-    borderRadius: RADIUS.xs,
+    borderRadius: RADIUS.pill,
     backgroundColor: COLORS.indicatorMuted,
   },
   dotActive: {
+    width: 24,
     backgroundColor: COLORS.brand,
   },
   aanvraagCardWrap: {

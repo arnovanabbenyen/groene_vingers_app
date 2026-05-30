@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   CloudIcon,
   DropIcon,
@@ -12,11 +12,14 @@ import {
   SunIcon,
   WrenchIcon,
 } from 'phosphor-react-native';
-import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export const PLOT_CARD = {
-  cardWidth: 266,
-  imageHeight: 167,
+  cardWidth: SCREEN_WIDTH - SPACING.screenX * 2 - 28,
+  imageHeight: 185,
+  carouselGap: SPACING.md,
   cardPadding: 8,  // retained for HomeScreen statusChip positioning: top/left = cardPadding + badgeInset
   badgeInset: 8,   // retained for HomeScreen statusChip positioning
 };
@@ -82,7 +85,7 @@ export default function PlotCard({ plot, onPress, isFavorited = false, onToggleF
 
   return (
     <Pressable
-      style={styles.card}
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={cardLabel}
@@ -94,6 +97,7 @@ export default function PlotCard({ plot, onPress, isFavorited = false, onToggleF
             source={imageSource}
             style={styles.image}
             resizeMode="cover"
+            accessibilityLabel={`Foto van ${plot.title}`}
             onError={(e) => {
               console.warn('Image failed to load:', imageSource, e.nativeEvent);
               setImageError(true);
@@ -165,13 +169,12 @@ const styles = StyleSheet.create({
   card: {
     width: PLOT_CARD.cardWidth,
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.sm,
+    borderRadius: RADIUS.md,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    ...SHADOWS.card,
+  },
+  cardPressed: {
+    opacity: 0.88,
   },
   imageWrap: {
     width: '100%',
