@@ -238,13 +238,15 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
               <HomePromoCard onPressUpgrade={() => setActiveTab('pro-plan')} />
             )}
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Tijd om te beginnen!</Text>
-              <Text style={styles.sectionBody}>
-                Je hebt nog geen perceel gematched. Bekijk wat er beschikbaar is
-              </Text>
-              <HomeSectionCta onPress={() => setActiveTab('kaart')} />
-            </View>
+            {aanvragen.length === 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Tijd om te beginnen!</Text>
+                <Text style={styles.sectionBody}>
+                  Je hebt nog geen perceel gematched. Bekijk wat er beschikbaar is
+                </Text>
+                <HomeSectionCta onPress={() => setActiveTab('kaart')} />
+              </View>
+            )}
 
             {aanvragen.length > 0 && (
               <View style={styles.section}>
