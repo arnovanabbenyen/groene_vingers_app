@@ -87,7 +87,7 @@ export default function BottomNav({
             key={item.key}
             style={styles.tabItem}
             onPress={() => onTabPress?.(item)}
-            hitSlop={6}
+            hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel={`${item.label}${badgeCount > 0 ? `, ${badgeLabel} nieuwe` : ''}`}
           >
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 23,
     height: 23,
-    borderRadius: RADIUS.pill / 2,
+    borderRadius: RADIUS.pill,
   },
   badge: {
     position: 'absolute',

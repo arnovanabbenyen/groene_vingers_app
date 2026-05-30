@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useReducer, useState } from 'react';
 import { useFavorites } from '../../hooks/useFavorites';
 import { usePercelen } from '../../hooks/usePercelen';
 import { useMyAanvragen } from '../../hooks/useMyAanvragen';
@@ -21,7 +21,7 @@ import AanvraagBevestigingScreen from '../aanvraag/AanvraagBevestigingScreen';
 import LogboekScreen from '../loggen/LogboekScreen';
 import KaartScreen from '../kaart/KaartScreen';
 import { MagnifyingGlassIcon } from 'phosphor-react-native';
-import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 import { PLOT_CARD } from '../../components/home/PlotCard';
 
 const AANVRAAG_STATUS_CHIP = {
@@ -30,16 +30,40 @@ const AANVRAAG_STATUS_CHIP = {
   confirmed: { label: 'Samenwerking bevestigd', bg: 'rgba(87,98,56,0.92)', color: COLORS.textInverse },
 };
 
+const initialNavState = { type: 'home', payload: null };
+
+function navReducer(state, action) {
+  switch (action.type) {
+    case 'OPEN_PLOT':
+      return { type: 'plot', payload: action.plot };
+    case 'CLOSE_PLOT':
+      return { type: 'home', payload: null };
+    case 'OPEN_REQUEST':
+      return { type: 'request', payload: action.plot };
+    case 'REQUEST_SUCCESS':
+      return { type: 'request-success', payload: action.perceel };
+    case 'CLOSE_REQUEST':
+      return { type: 'home', payload: null };
+    case 'CLOSE_REQUEST_SUCCESS':
+      return { type: 'home', payload: null };
+    case 'OPEN_GEEN_TOEGANG':
+      return { type: 'geen-toegang', payload: action.plot };
+    case 'CLOSE_GEEN_TOEGANG':
+      return { type: 'home', payload: null };
+    case 'RESET':
+      return initialNavState;
+    default:
+      return state;
+  }
+}
+
 export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConversation, selectedConversation: appSelectedConversation = null, onCloseConversation, onConfirmSamenwerking, unreadNotificationsCount = 0, onOpenNotifications, onOpenProfiel, onOpenSaved }) {
   const [activeTab, setActiveTab] = useState(() => getInitialTab?.() ?? 'start');
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [activeDot, setActiveDot] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPlot, setSelectedPlot] = useState(null);
-  const [requestPlot, setRequestPlot] = useState(null);
-  const [requestSuccessPerceel, setRequestSuccessPerceel] = useState(null);
-  const [geenToegangActive, setGeenToegangActive] = useState(false);
   const [dataRefreshKey, setDataRefreshKey] = useState(0);
+  const [navState, navDispatch] = useReducer(navReducer, initialNavState);
 
   const { isFavorite, toggleFavorite } = useFavorites();
   const { percelen, isLoading: isLoadingPercelen } = usePercelen(dataRefreshKey);
@@ -50,9 +74,9 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
 
   function handleRequestWithGate(plot) {
     if (userPlan === 'pro') {
-      setRequestPlot(plot);
+      navDispatch({ type: 'OPEN_REQUEST', plot });
     } else {
-      setGeenToegangActive(true);
+      navDispatch({ type: 'OPEN_GEEN_TOEGANG', plot });
     }
   }
 
@@ -71,30 +95,31 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
 
   const visibleDotIndex = Math.max(0, Math.min(filteredPlots.length - 1, activeDot));
 
-  if (requestPlot) {
-    const perceelToRequest = requestPlot;
+  if (navState.type === 'request') {
+    const perceelToRequest = navState.payload;
     return (
       <AanvraagDoenScreen
-        onBack={() => setRequestPlot(null)}
+        onBack={() => navDispatch({ type: 'CLOSE_REQUEST' })}
         onContinue={(res) => {
-          setRequestPlot(null);
           if (res?.success) {
             setDataRefreshKey((k) => k + 1);
-            setRequestSuccessPerceel(perceelToRequest);
+            navDispatch({ type: 'REQUEST_SUCCESS', perceel: perceelToRequest });
+          } else {
+            navDispatch({ type: 'CLOSE_REQUEST' });
           }
         }}
-        perceel={requestPlot}
+        perceel={perceelToRequest}
       />
     );
   }
 
-  if (requestSuccessPerceel) {
+  if (navState.type === 'request-success') {
     return (
       <AanvraagBevestigingScreen
-        perceel={requestSuccessPerceel}
-        onBackToListings={() => setRequestSuccessPerceel(null)}
+        perceel={navState.payload}
+        onBackToListings={() => navDispatch({ type: 'CLOSE_REQUEST_SUCCESS' })}
         onBackToMessages={() => {
-          setRequestSuccessPerceel(null);
+          navDispatch({ type: 'CLOSE_REQUEST_SUCCESS' });
           setActiveTab('berichten');
         }}
       />
@@ -107,33 +132,33 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
         onBack={() => setActiveTab('start')}
         onUpgradeSuccess={() => {
           setDataRefreshKey((k) => k + 1);
-          setGeenToegangActive(false);
+          navDispatch({ type: 'CLOSE_GEEN_TOEGANG' });
           setActiveTab('start');
         }}
       />
     );
   }
 
-  if (geenToegangActive && selectedPlot) {
+  if (navState.type === 'geen-toegang' && navState.payload) {
     return (
       <GeenToegangScreen
-        onBack={() => setGeenToegangActive(false)}
+        onBack={() => navDispatch({ type: 'CLOSE_GEEN_TOEGANG' })}
         onUpgrade={() => {
-          setGeenToegangActive(false);
+          navDispatch({ type: 'CLOSE_GEEN_TOEGANG' });
           setActiveTab('pro-plan');
         }}
       />
     );
   }
 
-  if (selectedPlot) {
+  if (navState.type === 'plot') {
     return (
       <ParcelDetailScreen
-        perceel={selectedPlot}
-        onBack={() => setSelectedPlot(null)}
-        onRequest={() => handleRequestWithGate(selectedPlot)}
-        isFavorited={isFavorite(selectedPlot?.id)}
-        onToggleFavorite={() => toggleFavorite(selectedPlot?.id)}
+        perceel={navState.payload}
+        onBack={() => navDispatch({ type: 'CLOSE_PLOT' })}
+        onRequest={() => handleRequestWithGate(navState.payload)}
+        isFavorited={isFavorite(navState.payload?.id)}
+        onToggleFavorite={() => toggleFavorite(navState.payload?.id)}
         showFavoriteButton
       />
     );
@@ -163,7 +188,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
         onTabPress={(item) => setActiveTab(item.key)}
         profileImageSource={avatarSource}
         badgeCounts={badgeCounts}
-        onOpenPerceel={(plot) => setSelectedPlot(plot)}
+        onOpenPerceel={(plot) => navDispatch({ type: 'OPEN_PLOT', plot })}
       />
     );
   }
@@ -249,7 +274,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
                       <View key={aanvraag.id} style={styles.aanvraagCardWrap}>
                         <PlotCard
                           plot={plot}
-                          onPress={() => setSelectedPlot(plot)}
+                          onPress={() => navDispatch({ type: 'OPEN_PLOT', plot })}
                           isFavorited={isFavorite(plot.id)}
                           onToggleFavorite={() => toggleFavorite(plot.id)}
                         />
@@ -281,7 +306,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
                     <PlotCard
                       key={`${plot.id}-${index}`}
                       plot={plot}
-                      onPress={() => setSelectedPlot(plot)}
+                      onPress={() => navDispatch({ type: 'OPEN_PLOT', plot })}
                       isFavorited={isFavorite(plot.id)}
                       onToggleFavorite={() => toggleFavorite(plot.id)}
                     />
@@ -307,12 +332,21 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
                 <View
                   style={styles.dotRow}
                   accessibilityRole="adjustable"
-                  accessibilityLabel={`${visibleDotIndex + 1} van ${filteredPlots.length} percelen`}
+                  accessibilityLabel="Percelen carrousel"
+                  accessibilityValue={{
+                    min: 1,
+                    max: filteredPlots.length,
+                    now: visibleDotIndex + 1,
+                    text: `Perceel ${visibleDotIndex + 1} van ${filteredPlots.length}`,
+                  }}
+                  accessibilityLiveRegion="polite"
                 >
                   {filteredPlots.map((plot, index) => (
                     <View
                       key={`dot-${plot.id}-${index}`}
                       style={[styles.dot, index === visibleDotIndex && styles.dotActive]}
+                      accessibilityElementsHidden
+                      importantForAccessibility="no"
                     />
                   ))}
                 </View>
@@ -364,14 +398,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: COLORS.textPrimary,
-    fontSize: 20,
+    fontSize: FONT_SIZES.xl,
     lineHeight: 22,
     fontFamily: FONTS.displaySemiBold,
     fontWeight: '600',
   },
   sectionBody: {
     color: COLORS.textSecondary,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     lineHeight: 24,
     fontFamily: FONTS.body,
     marginTop: -6,
@@ -410,7 +444,7 @@ const styles = StyleSheet.create({
   },
   statusChipText: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 12,
+    fontSize: FONT_SIZES.xs,
     lineHeight: 14,
   },
   emptyState: {
@@ -421,13 +455,13 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.textPrimary,
     textAlign: 'center',
   },
   emptySubtext: {
     fontFamily: FONTS.body,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textSecondary,
     lineHeight: 20,
     textAlign: 'center',

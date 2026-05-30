@@ -51,6 +51,7 @@ export const FONT_SIZES = {
   lg: 16,
   xl: 20,
   xxl: 24,
+  xxxl: 25,
 };
 
 export const FONTS = {

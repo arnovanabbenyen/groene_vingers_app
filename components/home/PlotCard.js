@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { DropIcon, LeafIcon, MapPinIcon, ShovelIcon, PlantIcon, TreeIcon } from 'phosphor-react-native';
-import { COLORS, FONTS, RADIUS, SHADOWS } from '../theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS } from '../theme/tokens';
 import FavoriteHeartButton from '../parcel/FavoriteHeartButton';
 
 export const PLOT_CARD = {
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     color: COLORS.textSecondary,
-    fontSize: 12.8,
+    fontSize: FONT_SIZES.sm,
     lineHeight: 13,
     fontFamily: FONTS.body,
   },
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   },
   pillText: {
     color: COLORS.textPrimary,
-    fontSize: 12.8,
+    fontSize: FONT_SIZES.sm,
     lineHeight: 13,
     fontFamily: FONTS.body,
   },
@@ -237,14 +237,14 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.textPrimary,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     fontFamily: FONTS.displayMedium,
     fontWeight: '500',
     flex: 1,
   },
   size: {
     color: COLORS.textPrimary,
-    fontSize: 12.8,
+    fontSize: FONT_SIZES.sm,
     lineHeight: 13,
     fontFamily: FONTS.body,
   },
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     color: COLORS.textPrimary,
-    fontSize: 12.8,
+    fontSize: FONT_SIZES.sm,
     lineHeight: 13,
     fontFamily: FONTS.body,
   },

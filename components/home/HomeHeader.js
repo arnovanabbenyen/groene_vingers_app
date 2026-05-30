@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BellIcon, HeartIcon, MapPinIcon, MagnifyingGlassIcon } from 'phosphor-react-native';
-import { COLORS, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../theme/tokens';
 
 export default function HomeHeader({
   searchQuery,
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     color: COLORS.textInverse,
-    fontSize: 12.8,
+    fontSize: FONT_SIZES.sm,
     lineHeight: 13,
     fontFamily: FONTS.body,
     fontWeight: '400',
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   greeting: {
     marginTop: 3,
     color: COLORS.textInverse,
-    fontSize: 25,
+    fontSize: FONT_SIZES.xxxl,
     lineHeight: 25,
     fontFamily: FONTS.displaySemiBold,
     fontWeight: '600',
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 14,
     color: COLORS.textSecondary,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     lineHeight: 16,
     fontFamily: FONTS.bodyMedium,
     fontWeight: '500',
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   clearText: {
     marginLeft: 12,
     color: COLORS.brand,
-    fontSize: 13,
+    fontSize: 13, // intentional: distinct from FONT_SIZES.sm (12.8) per design
     lineHeight: 16,
     fontFamily: FONTS.bodyMedium,
     fontWeight: '500',
