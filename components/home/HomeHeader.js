@@ -1,12 +1,11 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BellIcon, HeartIcon, MapPinIcon, MagnifyingGlassIcon } from 'phosphor-react-native';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../theme/tokens';
 
 export default function HomeHeader({
-  searchQuery,
-  onSearchChange,
+  onPressSearchBar,
   onPressNotifications,
   notificationCount = 0,
   onPressHeart,
@@ -67,31 +66,16 @@ export default function HomeHeader({
           </View>
         </View>
 
-        <View style={styles.searchBar}>
-          <MagnifyingGlassIcon size={27} color={COLORS.textSecondary} weight="regular" />
-          <TextInput
-            value={searchQuery}
-            onChangeText={onSearchChange}
-            placeholder="Zoeken naar een tuin"
-            placeholderTextColor={COLORS.textSecondary}
-            style={styles.searchInput}
-            returnKeyType="search"
-            autoCorrect={false}
-            autoCapitalize="none"
-            accessibilityLabel="Zoeken naar een tuin"
-            accessibilityHint="Typ om percelen te zoeken"
-          />
-          {searchQuery ? (
-            <Pressable
-              onPress={() => onSearchChange('')}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Zoekopdracht wissen"
-            >
-              <Text style={styles.clearText}>Wis</Text>
-            </Pressable>
-          ) : null}
-        </View>
+        <Pressable
+          style={styles.searchBar}
+          onPress={onPressSearchBar}
+          accessibilityRole="search"
+          accessibilityLabel="Zoeken naar een tuin"
+          accessibilityHint="Tik om percelen te zoeken op de kaart"
+        >
+          <MagnifyingGlassIcon size={18} color={COLORS.textSecondary} weight="regular" />
+          <Text style={styles.searchPlaceholder}>Zoek percelen op naam of plaats...</Text>
+        </Pressable>
       </LinearGradient>
     </View>
   );
@@ -126,7 +110,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   greeting: {
-    marginTop: 3,
+    marginTop: SPACING.sm,
     color: COLORS.textInverse,
     fontSize: FONT_SIZES.xxxl,
     lineHeight: 25,
@@ -166,28 +150,17 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
     height: SIZES.searchBarHeight,
     borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.surfaceMuted,
-    paddingHorizontal: 18,
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: SPACING.md,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: SPACING.sm,
     ...SHADOWS.search,
   },
-  searchInput: {
+  searchPlaceholder: {
     flex: 1,
-    marginLeft: 14,
     color: COLORS.textSecondary,
-    fontSize: FONT_SIZES.lg,
-    lineHeight: 16,
-    fontFamily: FONTS.bodyMedium,
-    fontWeight: '500',
-    paddingVertical: 0,
-  },
-  clearText: {
-    marginLeft: 12,
-    color: COLORS.brand,
-    fontSize: 13, // intentional: distinct from FONT_SIZES.sm (12.8) per design
-    lineHeight: 16,
-    fontFamily: FONTS.bodyMedium,
-    fontWeight: '500',
+    fontSize: FONT_SIZES.md,
+    fontFamily: FONTS.body,
   },
 });

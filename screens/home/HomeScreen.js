@@ -61,8 +61,8 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
   const [activeTab, setActiveTab] = useState(() => getInitialTab?.() ?? 'start');
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [activeDot, setActiveDot] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
   const [dataRefreshKey, setDataRefreshKey] = useState(0);
+  const [autoFocusKaartSearch, setAutoFocusKaartSearch] = useState(false);
   const [navState, navDispatch] = useReducer(navReducer, initialNavState);
 
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -81,17 +81,9 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
   }
 
   const filteredPlots = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
     const aangevraagdeIds = new Set(aanvragen.map((a) => a.perceel_id));
-    const source = (percelen || []).filter((p) => !aangevraagdeIds.has(p.id));
-
-    if (!normalizedQuery) return source;
-
-    return source.filter((plot) => {
-      const searchableText = [plot.location, plot.title, plot.size, ...(plot.chips || [])].join(' ').toLowerCase();
-      return searchableText.includes(normalizedQuery);
-    });
-  }, [searchQuery, percelen, aanvragen]);
+    return (percelen || []).filter((p) => !aangevraagdeIds.has(p.id));
+  }, [percelen, aanvragen]);
 
   const visibleDotIndex = Math.max(0, Math.min(filteredPlots.length - 1, activeDot));
 
@@ -185,10 +177,11 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
   if (activeTab === 'kaart') {
     return (
       <KaartScreen
-        onTabPress={(item) => setActiveTab(item.key)}
+        onTabPress={(item) => { setAutoFocusKaartSearch(false); setActiveTab(item.key); }}
         profileImageSource={avatarSource}
         badgeCounts={badgeCounts}
         onOpenPerceel={(plot) => navDispatch({ type: 'OPEN_PLOT', plot })}
+        autoFocusSearch={autoFocusKaartSearch}
       />
     );
   }
@@ -218,8 +211,6 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
     );
   }
 
-  const hasSearchQuery = searchQuery.trim().length > 0;
-
   return (
     <View style={styles.safeArea}>
       <StatusBar style="light" />
@@ -234,8 +225,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
           showsVerticalScrollIndicator={false}
         >
           <HomeHeader
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
+            onPressSearchBar={() => { setAutoFocusKaartSearch(true); setActiveTab('kaart'); }}
             onPressNotifications={onOpenNotifications}
             notificationCount={unreadNotificationsCount}
             onPressHeart={onOpenSaved}
@@ -319,14 +309,8 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
               {!isLoadingPercelen && filteredPlots.length === 0 ? (
                 <View style={styles.emptyState} accessible accessibilityRole="text">
                   <MagnifyingGlassIcon size={40} color={COLORS.brand} weight="regular" />
-                  <Text style={styles.emptyTitle}>
-                    {hasSearchQuery ? 'Geen resultaten' : 'Geen percelen beschikbaar'}
-                  </Text>
-                  <Text style={styles.emptySubtext}>
-                    {hasSearchQuery
-                      ? 'Geen percelen gevonden voor je zoekopdracht.'
-                      : 'Er zijn momenteel geen percelen beschikbaar.'}
-                  </Text>
+                  <Text style={styles.emptyTitle}>Geen percelen beschikbaar</Text>
+                  <Text style={styles.emptySubtext}>Er zijn momenteel geen percelen beschikbaar.</Text>
                 </View>
               ) : null}
 
