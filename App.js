@@ -723,6 +723,7 @@ export default function App() {
           email={signedUpEmail}
           emailVerificationRequired={needsEmailVerification}
           onConfirmed={() => setIsLoggedIn(true)}
+          onGoToLogin={() => setScreen('login')}
         />
       ) : (
         <IntroScreen
