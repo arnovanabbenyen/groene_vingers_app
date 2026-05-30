@@ -638,7 +638,7 @@ export default function App() {
             if (role) setSelectedRole(role);
             setIsLoggedIn(true);
           }}
-          onForgotPassword={() => setScreen('passwordReset')}
+          onForgotPassword={() => { setLastResetEmail(''); setScreen('passwordReset'); }}
         />
       ) : screen === 'passwordReset' ? (
         <PasswordResetScreen
