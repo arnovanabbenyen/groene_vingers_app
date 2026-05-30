@@ -1,16 +1,14 @@
 import { Fragment, useState } from 'react';
 import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
-  CloudIcon,
   DropIcon,
   HeartIcon,
   LeafIcon,
-  LightbulbIcon,
-  LightningIcon,
   MapPinIcon,
   PlantIcon,
-  SunIcon,
-  WrenchIcon,
+  RecycleIcon,
+  ShovelIcon,
+  TreeIcon,
 } from 'phosphor-react-native';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 
@@ -26,15 +24,11 @@ export const PLOT_CARD = {
 
 const VOORZIENING_ICONS = {
   Water: DropIcon,
-  'Stromend water': DropIcon,
-  Materiaal: WrenchIcon,
-  Gereedschap: WrenchIcon,
-  Elektriciteit: LightningIcon,
-  Verlichting: LightbulbIcon,
-  Schaduw: CloudIcon,
-  Zonlicht: SunIcon,
+  Tools: ShovelIcon,
+  Materiaal: ShovelIcon,
   Zaden: PlantIcon,
-  Planten: PlantIcon,
+  Compost: RecycleIcon,
+  Bomen: TreeIcon,
 };
 
 function getVoorzieningIcon(name) {
@@ -61,8 +55,8 @@ function PlotCardBadges({ location, isFavorited, onToggleFavorite, showFavoriteB
           accessibilityState={{ selected: isFavorited }}
         >
           <HeartIcon
-            size={22}
-            color={isFavorited ? COLORS.negative : COLORS.surface}
+            size={18}
+            color={isFavorited ? COLORS.negative : COLORS.textSecondary}
             weight={isFavorited ? 'fill' : 'regular'}
           />
         </Pressable>
@@ -78,7 +72,8 @@ export default function PlotCard({ plot, onPress, isFavorited = false, onToggleF
   const canShowImage = hasImage && !imageError;
 
   const voorzieningen = plot.voorzieningen || plot.chips || [];
-  const visibleVoorzieningen = voorzieningen.slice(0, 2);
+  const hasOverflow = voorzieningen.length > 3;
+  const visibleVoorzieningen = voorzieningen.slice(0, hasOverflow ? 2 : 3);
   const overflowCount = voorzieningen.length - visibleVoorzieningen.length;
 
   const cardLabel = [plot.title, plot.location, plot.size].filter(Boolean).join(', ');
@@ -140,13 +135,11 @@ export default function PlotCard({ plot, onPress, isFavorited = false, onToggleF
                 const Icon = getVoorzieningIcon(v);
                 return (
                   <Fragment key={`${plot.id}-${v}-${index}`}>
+                    {index > 0 && <View style={styles.voorzieningDivider} />}
                     <View style={styles.voorzieningItem}>
-                      <Icon size={16} color={COLORS.textSecondary} weight="regular" />
-                      <Text style={styles.voorzieningLabel}>{v}</Text>
+                      <Icon size={15} color={COLORS.textSecondary} weight="regular" />
+                      <Text style={styles.voorzieningLabel} numberOfLines={1}>{v}</Text>
                     </View>
-                    {index < visibleVoorzieningen.length - 1 && (
-                      <View style={styles.voorzieningDivider} />
-                    )}
                   </Fragment>
                 );
               })}
@@ -154,7 +147,9 @@ export default function PlotCard({ plot, onPress, isFavorited = false, onToggleF
               {overflowCount > 0 && (
                 <>
                   <View style={styles.voorzieningDivider} />
-                  <Text style={styles.voorzieningOverflow}>+ {overflowCount} meer</Text>
+                  <View style={styles.voorzieningItem}>
+                    <Text style={styles.voorzieningOverflow}>+{overflowCount}</Text>
+                  </View>
                 </>
               )}
             </View>
@@ -205,17 +200,17 @@ const styles = StyleSheet.create({
     left: SPACING.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.pill,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 2,
-    maxWidth: '70%',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
+    maxWidth: '72%',
   },
   locationText: {
     fontFamily: FONTS.bodyMedium,
@@ -226,15 +221,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: SPACING.md,
     right: SPACING.md,
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
   },
   body: {
     backgroundColor: COLORS.surface,
@@ -270,17 +267,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingTop: SPACING.sm,
     paddingBottom: SPACING.md,
-    gap: SPACING.sm,
   },
   voorzieningItem: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
+    gap: 5,
   },
   voorzieningLabel: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
+    flexShrink: 1,
   },
   voorzieningDivider: {
     width: 1,
