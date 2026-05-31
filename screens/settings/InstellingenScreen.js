@@ -8,12 +8,14 @@ import {
   Text,
   View,
 } from 'react-native';
+import * as Linking from 'expo-linking';
 import { CaretRightIcon, SignOutIcon, StarIcon, TrashSimpleIcon } from 'phosphor-react-native';
 import Header from '../../components/navigation/Header';
 import SettingsRow from '../../components/settings/SettingsRow';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
 import { supabase } from '../../services/supabase';
 import { useActiveSamenwerking } from '../../hooks/useActiveSamenwerking';
+import { createBillingPortalSession } from '../../services/stripe';
 
 export default function InstellingenScreen({
   role = 'tuinzoeker',
@@ -27,6 +29,7 @@ export default function InstellingenScreen({
 }) {
   const [plan, setPlan] = useState('free');
   const [isLoading, setIsLoading] = useState(true);
+  const [isOpeningBillingPortal, setIsOpeningBillingPortal] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -59,7 +62,8 @@ export default function InstellingenScreen({
   }, []);
 
   const { samenwerking: activeSamenwerking } = useActiveSamenwerking(role === 'tuinzoeker' ? 0 : null);
-  const showProFeatures = role === 'tuinzoeker' && plan === 'free';
+  const showProBanner = role === 'tuinzoeker' && plan === 'free';
+  const showSubscriptionSection = role === 'tuinzoeker';
 
   async function handleLogout() {
     Alert.alert(
@@ -116,6 +120,28 @@ export default function InstellingenScreen({
     );
   }
 
+  async function handleOpenSubscription() {
+    if (isOpeningBillingPortal) return;
+
+    setIsOpeningBillingPortal(true);
+    try {
+      const session = await createBillingPortalSession({
+        returnUrl: Linking.createURL(''),
+      });
+
+      if (!session?.url) {
+        throw new Error('Stripe kon de abonnementspagina niet openen.');
+      }
+
+      await Linking.openURL(session.url);
+    } catch (error) {
+      console.warn('Failed to open billing portal', error);
+      Alert.alert('Abonnement', error.message || 'Probeer het opnieuw.');
+    } finally {
+      setIsOpeningBillingPortal(false);
+    }
+  }
+
   return (
     <View style={styles.screen}>
       <Header title="Instellingen" onBack={onBack} />
@@ -130,7 +156,7 @@ export default function InstellingenScreen({
         ) : (
           <>
             {/* Pro nudging */}
-            {showProFeatures && (
+            {showProBanner && (
               <>
                 <Pressable
                   style={({ pressed }) => [styles.proBanner, pressed && styles.proBannerPressed]}
@@ -150,8 +176,23 @@ export default function InstellingenScreen({
                 <View style={styles.sectionCard}>
                   <SettingsRow
                     label="Abonnement"
-                    badge="Gratis"
+                    badge={plan === 'pro' ? 'Pro' : 'Gratis'}
                     onPress={onOpenKiesPlan}
+                  />
+                </View>
+              </>
+            )}
+
+            {showSubscriptionSection && plan === 'pro' && (
+              <>
+                <Text style={styles.sectionLabel}>Abonnement</Text>
+                <View style={styles.sectionCard}>
+                  <SettingsRow
+                    label="Mijn abonnement"
+                    badge="Pro"
+                    onPress={handleOpenSubscription}
+                    sublabel="Beheer of zeg je abonnement op via Stripe."
+                    disabled={isOpeningBillingPortal}
                   />
                 </View>
               </>
