@@ -386,7 +386,7 @@ export default function App() {
           <ParcelDetailScreen
             perceel={selectedSavedPerceel || {}}
             onBack={() => {
-              setCurrentScreen('opgeslagen');
+              setCurrentScreen(opgeslagenSource || 'home');
               setSelectedSavedPerceel(null);
             }}
             showFavoriteButton
@@ -448,6 +448,7 @@ export default function App() {
             onOpenSettings={() => setCurrentScreen('instellingen')}
             onOpenSavedScreen={() => { setOpgeslagenSource('profiel'); setCurrentScreen('opgeslagen'); }}
             onPerceelPress={(plot) => {
+              setOpgeslagenSource('profiel');
               setSelectedSavedPerceel(plot);
               setCurrentScreen('opgeslagen-detail');
             }}
