@@ -207,6 +207,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
           setSelectedConversation(conversation);
           onOpenConversation?.(conversation);
         }}
+        onNavigateToKaart={() => setActiveTab('kaart')}
       />
     );
   }

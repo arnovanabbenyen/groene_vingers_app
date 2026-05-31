@@ -10,9 +10,10 @@ export default function EmptyState({
   title,
   body,
   cta,
+  style,
 }) {
   return (
-    <View style={styles.container} accessible accessibilityRole="text">
+    <View style={[styles.container, style]} accessible accessibilityRole="text">
       {Icon && (
         <View style={[styles.iconCircle, { backgroundColor: iconBgColor }]}>
           <Icon
