@@ -251,7 +251,7 @@ export default function FilterScreen({
                     accessibilityState={{ selected }}
                     accessibilityLabel={label}
                   >
-                    <Text style={[styles.pillLabel, selected && styles.pillLabelSelected]}>
+                    <Text style={[styles.pillLabel, selected && styles.pillLabelSelected]} numberOfLines={1}>
                       {label}
                     </Text>
                   </Pressable>
@@ -275,7 +275,7 @@ export default function FilterScreen({
                 accessibilityState={{ selected: filters.samenwerking.length === 0 }}
                 accessibilityLabel="Maakt niet uit"
               >
-                <Text style={[styles.pillLabel, filters.samenwerking.length === 0 && styles.pillLabelSelected]}>
+                <Text style={[styles.pillLabel, filters.samenwerking.length === 0 && styles.pillLabelSelected]} numberOfLines={1}>
                   Maakt niet uit
                 </Text>
               </Pressable>
@@ -294,7 +294,7 @@ export default function FilterScreen({
                     accessibilityState={{ selected }}
                     accessibilityLabel={type}
                   >
-                    <Text style={[styles.pillLabel, selected && styles.pillLabelSelected]}>
+                    <Text style={[styles.pillLabel, selected && styles.pillLabelSelected]} numberOfLines={1}>
                       {type}
                     </Text>
                   </Pressable>
@@ -496,7 +496,6 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   pill: {
-    flex: 1,
     borderWidth: 2,
     borderColor: COLORS.brand,
     borderRadius: RADIUS.pill,
