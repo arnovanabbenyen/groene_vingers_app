@@ -9,9 +9,18 @@ export default function ScreenHeader({ title = 'Meldingen', onBack }) {
   return (
     <View style={[styles.header, { paddingTop: Math.max(16, insets.top) }]}>
       <View style={styles.headerContent}>
-        <Pressable style={styles.backButton} onPress={onBack} hitSlop={8}>
+        <Pressable
+          style={styles.backButton}
+          onPress={onBack}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="Terug"
+          accessibilityHint="Ga terug naar het vorige scherm"
+        >
           <ArrowLeftIcon size={24} color={COLORS.textInverse} weight="regular" />
-          <Text style={styles.backText}>Terug</Text>
+          <Text style={styles.backText} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            Terug
+          </Text>
         </Pressable>
 
         <Text style={styles.headerTitle}>{title}</Text>

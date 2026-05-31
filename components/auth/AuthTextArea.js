@@ -1,38 +1,44 @@
 import React, { useCallback } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
-import { COLORS, FONTS, RADIUS, SPACING } from '../theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
 const ERROR_BG = '#FBEAEA';
 
-export default function AuthTextArea({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  height = 160,
-  maxLength,
-  autoCapitalize = 'sentences',
-  editable = true,
-  error = false,
-  onBlur,
-  accessibilityLabel,
-  accessibilityHint,
-  accessibilityState,
-  shellStyle,
-  inputStyle,
-  labelStyle,
-}) {
-  const handleChange = useCallback((text) => {
-    if (!onChangeText) return;
-    if (text.length > 0) {
-      const upper = text[0].toUpperCase();
-      if (upper !== text[0]) {
-        onChangeText(upper + text.slice(1));
-        return;
+const AuthTextArea = React.forwardRef(function AuthTextArea(
+  {
+    label,
+    value,
+    onChangeText,
+    placeholder,
+    height = 160,
+    maxLength,
+    autoCapitalize = 'sentences',
+    editable = true,
+    error = false,
+    onBlur,
+    accessibilityLabel,
+    accessibilityHint,
+    accessibilityState,
+    shellStyle,
+    inputStyle,
+    labelStyle,
+  },
+  ref,
+) {
+  const handleChange = useCallback(
+    (text) => {
+      if (!onChangeText) return;
+      if (text.length > 0) {
+        const upper = text[0].toUpperCase();
+        if (upper !== text[0]) {
+          onChangeText(upper + text.slice(1));
+          return;
+        }
       }
-    }
-    onChangeText(text);
-  }, [onChangeText]);
+      onChangeText(text);
+    },
+    [onChangeText],
+  );
 
   const resolvedAccessibilityState = {
     ...(accessibilityState || {}),
@@ -52,6 +58,7 @@ export default function AuthTextArea({
         ]}
       >
         <TextInput
+          ref={ref}
           value={value}
           onChangeText={handleChange}
           onBlur={onBlur}
@@ -64,7 +71,7 @@ export default function AuthTextArea({
           spellCheck
           textAlignVertical="top"
           style={[styles.input, inputStyle]}
-          placeholderTextColor={COLORS.border}
+          placeholderTextColor={COLORS.textMuted}
           accessibilityLabel={accessibilityLabel}
           accessibilityHint={accessibilityHint}
           accessibilityState={resolvedAccessibilityState}
@@ -77,7 +84,9 @@ export default function AuthTextArea({
       ) : null}
     </View>
   );
-}
+});
+
+export default AuthTextArea;
 
 const styles = StyleSheet.create({
   fieldWrap: {
@@ -85,7 +94,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: FONTS.body,
-    fontSize: 12.8,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textPrimary,
     marginBottom: SPACING.sm,
   },
@@ -94,7 +103,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.surface,
-    paddingHorizontal: 12,
+    paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
   },
   inputShellError: {
@@ -107,14 +116,14 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontFamily: FONTS.body,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: FONT_SIZES.md,
+    lineHeight: 22,
     color: COLORS.textPrimary,
     padding: 0,
   },
   counter: {
     fontFamily: FONTS.body,
-    fontSize: 11,
+    fontSize: FONT_SIZES.xxs,
     color: COLORS.textMuted,
     textAlign: 'right',
     marginTop: SPACING.xs,

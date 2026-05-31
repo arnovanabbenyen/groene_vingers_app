@@ -68,7 +68,7 @@ const AuthTextField = React.forwardRef(function AuthTextField(
           textContentType={textContentType}
           secureTextEntry={secureTextEntry && !passwordVisible}
           style={[styles.input, variant === 'soft' && styles.inputSoft, inputStyle]}
-          placeholderTextColor={COLORS.border}
+          placeholderTextColor={COLORS.textMuted}
           accessibilityLabel={accessibilityLabel}
           accessibilityHint={accessibilityHint}
           accessibilityState={resolvedAccessibilityState}

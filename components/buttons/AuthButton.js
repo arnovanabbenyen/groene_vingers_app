@@ -8,6 +8,7 @@ export default function AuthButton({
   variant = 'primary',
   disabled = false,
   loading = false,
+  ...rest
 }) {
   const isPrimary = variant === 'primary';
   const isDisabled = disabled || loading;
@@ -24,6 +25,7 @@ export default function AuthButton({
       disabled={isDisabled}
       accessibilityRole="button"
       accessibilityState={{ disabled: isDisabled, busy: loading }}
+      {...rest}
     >
       <View style={styles.content}>
         {loading ? (
