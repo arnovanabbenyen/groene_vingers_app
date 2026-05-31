@@ -32,7 +32,7 @@ export function useMyAanvragen(refreshKey = 0) {
             created_at,
             perceel_id,
             percelen!inner (
-              id, naam, grootte, plaats, fotos, owner_id
+              id, naam, grootte, plaats, fotos, voorzieningen, extra_info, owner_id
             )
           `)
           .eq('sender_id', userId)

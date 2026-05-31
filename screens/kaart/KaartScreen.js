@@ -71,9 +71,11 @@ export default function KaartScreen({
   profileImageSource,
   badgeCounts = {},
   onOpenPerceel,
+  autoFocusSearch = false,
 }) {
   const insets = useSafeAreaInsets();
   const mapRef = useRef(null);
+  const searchInputRef = useRef(null);
   const { percelen, isLoading } = useMapPercelen();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPerceel, setSelectedPerceel] = useState(null);
@@ -140,6 +142,12 @@ export default function KaartScreen({
       }
     })();
   }, []);
+
+  useEffect(() => {
+    if (!autoFocusSearch) return;
+    const timer = setTimeout(() => searchInputRef.current?.focus(), 350);
+    return () => clearTimeout(timer);
+  }, [autoFocusSearch]);
 
   const filteredPercelen = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -246,6 +254,7 @@ export default function KaartScreen({
             <View style={styles.searchPill}>
               <MagnifyingGlassIcon size={18} color={COLORS.textSecondary} weight="regular" />
               <TextInput
+                ref={searchInputRef}
                 style={styles.searchInput}
                 value={searchQuery}
                 onChangeText={setSearchQuery}

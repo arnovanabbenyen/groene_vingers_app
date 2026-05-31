@@ -1,10 +1,16 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { CaretRightIcon, MapTrifoldIcon } from 'phosphor-react-native';
-import { COLORS, FONTS, RADIUS } from '../theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
 export default function HomeSectionCta({ onPress }) {
   return (
-    <Pressable style={styles.card} onPress={onPress}>
+    <Pressable
+    style={styles.card}
+    onPress={onPress}
+    accessibilityRole="button"
+    accessibilityLabel="Bekijk tuinen op de kaart"
+    accessibilityHint="Gefilterd op jouw locatie en voorkeuren"
+  >
       <View style={styles.iconWrap}>
         <MapTrifoldIcon size={24} color={COLORS.textInverse} weight="regular" />
       </View>
@@ -24,14 +30,14 @@ const styles = StyleSheet.create({
     minHeight: 80,
     borderRadius: RADIUS.sm,
     backgroundColor: COLORS.brand,
-    paddingHorizontal: 16,
+    paddingHorizontal: SPACING.md,
     flexDirection: 'row',
     alignItems: 'center',
   },
   iconWrap: {
     width: 46,
     height: 46,
-    borderRadius: 23,
+    borderRadius: RADIUS.pill,
     backgroundColor: COLORS.brandSoft2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -42,14 +48,14 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.textInverse,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     fontFamily: FONTS.displayMedium,
     fontWeight: '500',
   },
   subtitle: {
     color: COLORS.textInverse,
-    fontSize: 13,
+    fontSize: 13, // intentional: distinct from FONT_SIZES.sm (12.8) per design
     fontFamily: FONTS.body,
-    marginTop: 2,
+    marginTop: SPACING.xxs,
   },
 });

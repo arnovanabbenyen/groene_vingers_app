@@ -3,8 +3,7 @@ import { ChatsCircleIcon, HouseIcon, MapTrifoldIcon, PlusCircleIcon, EnvelopeSim
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 
-const DEFAULT_PROFILE_IMAGE =
-  'http://localhost:3845/assets/5268695094ed7bc20eac210bd6af6feec43ec8ef.png';
+const DEFAULT_PROFILE_IMAGE = require('../../images/tuinzoeker_pfp.png');
 
 const DEFAULT_ITEMS = [
   { key: 'start', label: 'Start', icon: 'home' },
@@ -29,7 +28,7 @@ function NavIcon({ item, isActive, profileImageSource }) {
     const source = typeof profileImageSource === 'string'
       ? { uri: profileImageSource }
       : profileImageSource;
-    return <Image source={source} style={styles.avatar} />;
+    return <Image source={source} style={styles.avatar} accessibilityLabel="Profiel" />;
   }
 
   const color = isActive ? COLORS.brand : COLORS.textPrimary;
@@ -82,14 +81,13 @@ export default function BottomNav({
       {navItems.map((item) => {
         const isActive = item.key === activeKey;
         const badgeCount = item.type === 'avatar' ? 0 : Number(badgeCounts?.[item.key] || 0);
-        const badgeLabel = badgeCount > 9 ? '9+' : String(badgeCount);
 
         return (
           <Pressable
             key={item.key}
             style={styles.tabItem}
             onPress={() => onTabPress?.(item)}
-            hitSlop={6}
+            hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel={`${item.label}${badgeCount > 0 ? `, ${badgeLabel} nieuwe` : ''}`}
           >
@@ -160,7 +158,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 23,
     height: 23,
-    borderRadius: RADIUS.pill / 2,
+    borderRadius: RADIUS.pill,
   },
   badge: {
     position: 'absolute',

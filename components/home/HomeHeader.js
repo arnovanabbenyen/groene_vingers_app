@@ -1,12 +1,21 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BellIcon, HeartIcon, MapPinIcon, MagnifyingGlassIcon } from 'phosphor-react-native';
-import { COLORS, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../theme/tokens';
 
-export default function HomeHeader({ searchQuery, onSearchChange, onPressNotifications, notificationCount = 0, onPressHeart }) {
+export default function HomeHeader({
+  onPressSearchBar,
+  onPressNotifications,
+  notificationCount = 0,
+  onPressHeart,
+  firstName,
+  plaats,
+}) {
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(46, insets.top + 18);
+  const displayName = firstName || 'daar';
+  const displayPlaats = plaats || 'Locatie';
 
   return (
     <View style={styles.headerWrap}>
@@ -20,13 +29,23 @@ export default function HomeHeader({ searchQuery, onSearchChange, onPressNotific
           <View>
             <View style={styles.locationRow}>
               <MapPinIcon size={14} color={COLORS.textInverse} weight="regular" />
-              <Text style={styles.locationText}>Leuven</Text>
+              <Text style={styles.locationText}>{displayPlaats}</Text>
             </View>
-            <Text style={styles.greeting}>Hallo, Arno</Text>
+            <Text style={styles.greeting}>Hallo, {displayName}</Text>
           </View>
 
           <View style={styles.headerActions}>
-            <Pressable onPress={onPressNotifications} hitSlop={8} style={styles.bellWrap}>
+            <Pressable
+              onPress={onPressNotifications}
+              hitSlop={8}
+              style={styles.bellWrap}
+              accessibilityRole="button"
+              accessibilityLabel={
+                notificationCount > 0
+                  ? `Meldingen, ${notificationCount} ongelezen`
+                  : 'Meldingen'
+              }
+            >
               <BellIcon size={24} color={COLORS.textInverse} weight="regular" />
               {notificationCount > 0 ? (
                 <View style={styles.bellBadge}>
@@ -36,30 +55,27 @@ export default function HomeHeader({ searchQuery, onSearchChange, onPressNotific
                 </View>
               ) : null}
             </Pressable>
-            <Pressable onPress={onPressHeart} hitSlop={8}>
+            <Pressable
+              onPress={onPressHeart}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Opgeslagen percelen"
+            >
               <HeartIcon size={24} color={COLORS.textInverse} weight="regular" />
             </Pressable>
           </View>
         </View>
 
-        <View style={styles.searchBar}>
-          <MagnifyingGlassIcon size={27} color={COLORS.textSecondary} weight="regular" />
-          <TextInput
-            value={searchQuery}
-            onChangeText={onSearchChange}
-            placeholder="Zoeken naar een perceel"
-            placeholderTextColor={COLORS.textSecondary}
-            style={styles.searchInput}
-            returnKeyType="search"
-            autoCorrect={false}
-            autoCapitalize="none"
-          />
-          {searchQuery ? (
-            <Pressable onPress={() => onSearchChange('')} hitSlop={8}>
-              <Text style={styles.clearText}>Wis</Text>
-            </Pressable>
-          ) : null}
-        </View>
+        <Pressable
+          style={styles.searchBar}
+          onPress={onPressSearchBar}
+          accessibilityRole="search"
+          accessibilityLabel="Zoeken naar een tuin"
+          accessibilityHint="Tik om percelen te zoeken op de kaart"
+        >
+          <MagnifyingGlassIcon size={18} color={COLORS.textSecondary} weight="regular" />
+          <Text style={styles.searchPlaceholder}>Zoek percelen op naam of plaats...</Text>
+        </Pressable>
       </LinearGradient>
     </View>
   );
@@ -88,15 +104,15 @@ const styles = StyleSheet.create({
   },
   locationText: {
     color: COLORS.textInverse,
-    fontSize: 12.8,
+    fontSize: FONT_SIZES.sm,
     lineHeight: 13,
     fontFamily: FONTS.body,
     fontWeight: '400',
   },
   greeting: {
-    marginTop: 3,
+    marginTop: SPACING.sm,
     color: COLORS.textInverse,
-    fontSize: 25,
+    fontSize: FONT_SIZES.xxxl,
     lineHeight: 25,
     fontFamily: FONTS.displaySemiBold,
     fontWeight: '600',
@@ -106,34 +122,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.md,
     paddingTop: 2,
-  },
-  searchBar: {
-    marginTop: SPACING.md,
-    height: SIZES.searchBarHeight,
-    borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.surfaceMuted,
-    paddingHorizontal: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    ...SHADOWS.search,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 14,
-    color: COLORS.textSecondary,
-    fontSize: 16,
-    lineHeight: 16,
-    fontFamily: FONTS.bodyMedium,
-    fontWeight: '500',
-    paddingVertical: 0,
-  },
-  clearText: {
-    marginLeft: 12,
-    color: COLORS.brand,
-    fontSize: 13,
-    lineHeight: 16,
-    fontFamily: FONTS.bodyMedium,
-    fontWeight: '500',
   },
   bellWrap: {
     position: 'relative',
@@ -157,5 +145,22 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontFamily: FONTS.bodyMedium,
     lineHeight: 11,
+  },
+  searchBar: {
+    marginTop: SPACING.md,
+    height: SIZES.searchBarHeight,
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: SPACING.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    ...SHADOWS.search,
+  },
+  searchPlaceholder: {
+    flex: 1,
+    color: COLORS.textSecondary,
+    fontSize: FONT_SIZES.md,
+    fontFamily: FONTS.body,
   },
 });

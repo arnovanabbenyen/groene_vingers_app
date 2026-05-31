@@ -14,7 +14,8 @@ import { ArrowLeftIcon, HeartIcon, MagnifyingGlassIcon, XIcon } from 'phosphor-r
 import { useSavedPercelen } from '../../hooks/useSavedPercelen';
 import { useFavorites } from '../../hooks/useFavorites';
 import PlotCard from '../../components/home/PlotCard';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
+import { mapPerceelToPlot } from '../../utils/mapPerceelToPlot';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
 
 export default function OpgeslagenScreen({ onBack, onPerceelPress }) {
   const insets = useSafeAreaInsets();
@@ -43,38 +44,24 @@ export default function OpgeslagenScreen({ onBack, onPerceelPress }) {
     toggleFavorite(perceelId);
   }
 
-  function toPlotShape(perceel) {
-    return {
-      id: perceel.id,
-      image: perceel.fotos?.[0] || null,
-      fotos: perceel.fotos || [],
-      location: perceel.plaats || 'Locatie niet beschikbaar',
-      title: perceel.naam,
-      naam: perceel.naam,
-      plaats: perceel.plaats,
-      adres: perceel.adres || null,
-      beschrijving: perceel.beschrijving || null,
-      size: perceel.grootte ? `${perceel.grootte}m²` : null,
-      grootte: perceel.grootte,
-      chips: perceel.voorzieningen || [],
-      voorzieningen: perceel.voorzieningen || [],
-      ownerId: perceel.owner_id,
-      owner_id: perceel.owner_id,
-    };
-  }
-
   const isEmpty = !isLoading && filteredPercelen.length === 0;
 
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
 
-      <View style={[styles.header, { paddingTop: Math.max(32, insets.top + 16) }]}>
+      <View style={[styles.header, { paddingTop: Math.max(SPACING.xl, insets.top + SPACING.md) }]}>
         <View style={styles.titleRow}>
-          <Pressable style={styles.backBtn} onPress={onBack} hitSlop={8}>
+          <Pressable
+            style={styles.backBtn}
+            onPress={onBack}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Terug"
+          >
             <ArrowLeftIcon size={24} color={COLORS.textInverse} weight="regular" />
           </Pressable>
-          <Text style={styles.headerTitle}>Opgeslagen</Text>
+          <Text style={styles.headerTitle} accessibilityRole="header">Opgeslagen</Text>
         </View>
 
         <View style={styles.searchPill}>
@@ -86,21 +73,34 @@ export default function OpgeslagenScreen({ onBack, onPerceelPress }) {
             placeholder="Zoek in opgeslagen..."
             placeholderTextColor={COLORS.textSecondary}
             returnKeyType="search"
+            autoCorrect={false}
+            autoCapitalize="none"
+            accessibilityLabel="Zoek in opgeslagen percelen"
+            accessibilityHint="Typ om te filteren op naam of plaats"
           />
           {searchQuery.length > 0 && (
-            <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+            <Pressable
+              onPress={() => setSearchQuery('')}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Zoekopdracht wissen"
+            >
               <XIcon size={16} color={COLORS.textSecondary} weight="regular" />
             </Pressable>
           )}
         </View>
       </View>
 
-
       {isLoading ? (
-        <ActivityIndicator size="small" color={COLORS.brand} style={styles.loader} />
+        <ActivityIndicator
+          size="small"
+          color={COLORS.brand}
+          style={styles.loader}
+          accessibilityLabel="Laden..."
+        />
       ) : isEmpty ? (
-        <View style={styles.emptyState}>
-          <HeartIcon size={48} color={COLORS.brand} weight="regular" />
+        <View style={styles.emptyState} accessible accessibilityRole="text">
+          <HeartIcon size={48} color={COLORS.brand} weight="regular" accessibilityElementsHidden />
           <Text style={styles.emptyTitle}>
             {searchQuery.trim() ? 'Geen resultaten' : 'Nog niets opgeslagen'}
           </Text>
@@ -117,7 +117,7 @@ export default function OpgeslagenScreen({ onBack, onPerceelPress }) {
           showsVerticalScrollIndicator={false}
         >
           {filteredPercelen.map((perceel) => {
-            const plot = toPlotShape(perceel);
+            const plot = mapPerceelToPlot(perceel);
             return (
               <PlotCard
                 key={perceel.id}
@@ -143,8 +143,8 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: COLORS.brand,
     paddingHorizontal: SPACING.screenX,
-    paddingBottom: 16,
-    gap: 14,
+    paddingBottom: SPACING.md,
+    gap: SPACING.md,
   },
   titleRow: {
     flexDirection: 'row',
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: COLORS.textInverse,
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
+    fontSize: FONT_SIZES.xl,
     lineHeight: 22,
   },
   searchPill: {
@@ -171,6 +171,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     height: SIZES.searchBarHeight,
     gap: SPACING.sm,
+    ...SHADOWS.search,
   },
   searchInput: {
     flex: 1,
@@ -180,34 +181,34 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   loader: {
-    marginTop: 40,
+    marginTop: SPACING.xl,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: SPACING.screenX,
-    paddingTop: 20,
-    paddingBottom: 40,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.xl,
     alignItems: 'center',
-    gap: 16,
+    gap: SPACING.lg,
   },
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SPACING.screenX,
-    gap: 12,
+    gap: SPACING.md,
   },
   emptyTitle: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 18,
+    fontSize: FONT_SIZES.xl,
     color: COLORS.textPrimary,
     textAlign: 'center',
   },
   emptyBody: {
     fontFamily: FONTS.body,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
