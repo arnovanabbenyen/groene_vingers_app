@@ -39,7 +39,7 @@ function PlotCardBadges({ location, isFavorited, onToggleFavorite, showFavoriteB
   return (
     <>
       <View style={styles.locationBadge}>
-        <MapPinIcon size={11} color={COLORS.textPrimary} weight="regular" />
+        <MapPinIcon size={13} color={COLORS.textPrimary} weight="regular" />
         <Text style={styles.locationText} numberOfLines={1}>
           {location || 'Locatie onbekend'}
         </Text>
