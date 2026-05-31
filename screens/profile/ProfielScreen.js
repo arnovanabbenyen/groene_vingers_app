@@ -19,6 +19,7 @@ import {
   PencilSimpleIcon,
   StarIcon,
 } from 'phosphor-react-native';
+import Header from '../../components/navigation/Header';
 import { useSavedPercelen } from '../../hooks/useSavedPercelen';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
 import BottomNav from '../../components/navigation/BottomNav';
@@ -67,6 +68,8 @@ export default function ProfielScreen({
   profileImageSource,
   badgeCounts = {},
   onOpenSamenwerking,
+  profileUserId = null,
+  onBack,
 }) {
   const [profile, setProfile] = useState(null);
   const [percelen, setPercelen] = useState([]);
@@ -103,7 +106,8 @@ export default function ProfielScreen({
 
       try {
         const { data: sessionData } = await supabase.auth.getSession();
-        const userId = sessionData?.session?.user?.id;
+        const sessionUserId = sessionData?.session?.user?.id;
+        const userId = profileUserId || sessionUserId;
         if (!userId) { if (mounted) setIsLoadingProfile(false); return; }
 
         const { data: profileData, error: profileError } = await supabase
@@ -121,17 +125,17 @@ export default function ProfielScreen({
           });
         }
 
-        if (role === 'tuineigenaar') {
-          const { data: percelenData, error: percelenError } = await supabase
-            .from('percelen')
-            .select('id, owner_id, naam, beschrijving, grootte, adres, plaats, fotos, voorzieningen, status, created_at')
-            .eq('owner_id', userId)
-            .neq('status', PERCEEL_STATUS_DELETED)
-            .order('created_at', { ascending: false });
+        const { data: percelenData, error: percelenError } = await supabase
+          .from('percelen')
+          .select('id, owner_id, naam, beschrijving, grootte, adres, plaats, fotos, voorzieningen, status, created_at')
+          .eq('owner_id', userId)
+          .neq('status', PERCEEL_STATUS_DELETED)
+          .order('created_at', { ascending: false });
 
-          if (percelenError) console.warn('Failed to load percelen', percelenError);
-          if (mounted) setPercelen(percelenData || []);
+        if (percelenError) console.warn('Failed to load percelen', percelenError);
+        if (mounted) setPercelen(percelenData || []);
 
+        if (!profileUserId && role === 'tuineigenaar') {
           const perceelIds = (percelenData || []).map((p) => p.id);
           if (perceelIds.length > 0) {
             const { data: samenwerkingenRaw, error: swError } = await supabase
@@ -174,7 +178,7 @@ export default function ProfielScreen({
 
     loadProfile();
     return () => { mounted = false; };
-  }, [role, refreshKey]);
+  }, [profileUserId, role, refreshKey]);
 
   function handleSettingsPress() {
     if (onOpenSettings) { onOpenSettings(); return; }
@@ -190,6 +194,113 @@ export default function ProfielScreen({
     : profileImageSource ?? null;
 
   const coverSource = profile?.cover_url ? { uri: profile.cover_url } : null;
+
+  if (profileUserId) {
+    return (
+      <View style={styles.screen}>
+        <Header title={displayName || 'Profiel'} onBack={onBack || (() => {})} />
+
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.coverContainer}>
+            {coverSource ? (
+              <Image
+                source={coverSource}
+                style={styles.cover}
+                resizeMode="cover"
+                accessibilityElementsHidden
+              />
+            ) : (
+              <View style={[styles.cover, styles.coverPlaceholder]}>
+                <LeafIcon size={48} color={COLORS.brand} weight="regular" accessibilityElementsHidden />
+              </View>
+            )}
+
+            <View style={styles.avatarWrap}>
+              {avatarSource ? (
+                <Image
+                  source={typeof avatarSource === 'string' ? { uri: avatarSource } : avatarSource}
+                  style={styles.avatar}
+                  accessibilityLabel={`Profielfoto van ${displayName}`}
+                />
+              ) : (
+                <View
+                  style={[styles.avatar, styles.avatarPlaceholder]}
+                  accessible
+                  accessibilityLabel={`Profielfoto van ${displayName}`}
+                >
+                  <Text style={styles.avatarInitials} accessibilityElementsHidden>
+                    {[profile?.first_name, profile?.last_name]
+                      .filter(Boolean)
+                      .map((n) => n[0])
+                      .join('')
+                      .toUpperCase() || '?'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.identityBlock}>
+            {isLoadingProfile ? (
+              <ActivityIndicator
+                size="small"
+                color={COLORS.brand}
+                style={styles.profileLoader}
+                accessibilityLabel="Profiel wordt geladen"
+              />
+            ) : (
+              <>
+                <View style={styles.nameRow}>
+                  <Text style={styles.displayName} accessibilityRole="header" numberOfLines={1}>
+                    {displayName}
+                  </Text>
+                  <View
+                    style={styles.ratingRow}
+                    accessible
+                    accessibilityLabel={ratingData.average != null
+                      ? `Beoordeling: ${ratingData.average.toFixed(1)} van 5`
+                      : 'Nieuw profiel, nog geen beoordelingen'}
+                  >
+                    <StarIcon size={14} color="#FFB800" weight="fill" accessibilityElementsHidden />
+                    <Text style={styles.ratingText}>
+                      {ratingData.average != null ? ratingData.average.toFixed(1) : 'Nieuw'}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.locationRow}>
+                  <MapPinIcon
+                    size={14}
+                    color={profile?.plaats ? COLORS.textPrimary : COLORS.textSecondary}
+                    weight="regular"
+                    accessibilityElementsHidden
+                  />
+                  <Text style={[styles.locationText, !profile?.plaats && styles.locationTextMuted]}>
+                    {profile?.plaats || 'Stad nog niet ingesteld'}
+                  </Text>
+                </View>
+                {profile?.bio ? (
+                  <Text style={styles.bio}>{profile.bio}</Text>
+                ) : null}
+              </>
+            )}
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Percelen</Text>
+            {isLoadingProfile ? (
+              <ActivityIndicator size="small" color={COLORS.brand} />
+            ) : (
+              <PercelenCarousel percelen={percelen} />
+            )}
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.screen}>

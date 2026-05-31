@@ -8,6 +8,7 @@ import ParcelPresenceSection from '../../components/parcel/ParcelPresenceSection
 import ParcelInfoList from '../../components/parcel/ParcelInfoList';
 import ParcelOwnerCard from '../../components/parcel/ParcelOwnerCard';
 import ParcelLocationMap from '../../components/parcel/ParcelLocationMap';
+import ProfielScreen from '../profile/ProfielScreen';
 import { supabase } from '../../services/supabase';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -54,6 +55,7 @@ export default function ParcelDetailScreen({
   const insets = useSafeAreaInsets();
   const [ownerProfile, setOwnerProfile] = useState(null);
   const [existingAanvraag, setExistingAanvraag] = useState(null);
+  const [showOwnerProfile, setShowOwnerProfile] = useState(false);
   const handleAanvraag = onAanvraag || onRequest || (() => {});
   const perceelStatus = perceel.status || PERCEEL_STATUS.ACTIVE;
   const hiddenBannerVisible = isOwner && perceelStatus === PERCEEL_STATUS.HIDDEN;
@@ -129,6 +131,15 @@ export default function ParcelDetailScreen({
   const ownerJoinYear = ownerProfile?.created_at
     ? new Date(ownerProfile.created_at).getFullYear()
     : null;
+
+  if (showOwnerProfile && ownerId) {
+    return (
+      <ProfielScreen
+        profileUserId={ownerId}
+        onBack={() => setShowOwnerProfile(false)}
+      />
+    );
+  }
 
   return (
     <View style={styles.screen}>
@@ -217,6 +228,7 @@ export default function ParcelDetailScreen({
             ownerProfile={ownerProfile}
             joinYear={ownerJoinYear}
             rating={perceel.rating ?? perceel.score ?? null}
+            onPress={ownerId ? () => setShowOwnerProfile(true) : undefined}
           />
         </View>
 
