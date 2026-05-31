@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { ChatCircleIcon, EyeIcon, EyeSlashIcon, MapPinIcon, PencilSimpleIcon } from 'phosphor-react-native';
-import ParcelDetailHeader from '../../components/parcel/ParcelDetailHeader';
+import Header from '../../components/navigation/Header';
 import ParcelOverviewSection from '../../components/parcel/ParcelOverviewSection';
 import ParcelPresenceSection from '../../components/parcel/ParcelPresenceSection';
 import ParcelInfoList from '../../components/parcel/ParcelInfoList';
 import ParcelOwnerCard from '../../components/parcel/ParcelOwnerCard';
+import ParcelLocationMap from '../../components/parcel/ParcelLocationMap';
+import ProfielScreen from '../profile/ProfielScreen';
 import { supabase } from '../../services/supabase';
-import { COLORS, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const HERO_IMAGE = require('../../images/overdekt_perceel_met_serre.png');
+
 const PERCEEL_STATUS = {
   ACTIVE: 'active',
   HIDDEN: 'hidden',
@@ -42,7 +45,6 @@ export default function ParcelDetailScreen({
   onEdit,
   onToggleVisibility,
   onDelete,
-  onMorePress = () => {},
   isFavorited = false,
   onToggleFavorite,
   showFavoriteButton = false,
@@ -53,6 +55,7 @@ export default function ParcelDetailScreen({
   const insets = useSafeAreaInsets();
   const [ownerProfile, setOwnerProfile] = useState(null);
   const [existingAanvraag, setExistingAanvraag] = useState(null);
+  const [showOwnerProfile, setShowOwnerProfile] = useState(false);
   const handleAanvraag = onAanvraag || onRequest || (() => {});
   const perceelStatus = perceel.status || PERCEEL_STATUS.ACTIVE;
   const hiddenBannerVisible = isOwner && perceelStatus === PERCEEL_STATUS.HIDDEN;
@@ -60,7 +63,8 @@ export default function ParcelDetailScreen({
 
   const title = perceel.naam || perceel.title || 'Perceel';
   const location = perceel.plaats || perceel.location || 'Locatie nog niet beschikbaar';
-  const sizeValue = perceel.grootte || perceel.size || '';
+  const sizeValue = perceel.grootte || perceel.size || null;
+  const sizeDisplay = sizeValue ? `${String(sizeValue).replace('m²', '').trim()} m²` : null;
   const description = perceel.beschrijving || perceel.description || 'Geen beschrijving';
   const extraInfo = Array.isArray(perceel.extra_info)
     ? perceel.extra_info
@@ -128,10 +132,19 @@ export default function ParcelDetailScreen({
     ? new Date(ownerProfile.created_at).getFullYear()
     : null;
 
+  if (showOwnerProfile && ownerId) {
+    return (
+      <ProfielScreen
+        profileUserId={ownerId}
+        onBack={() => setShowOwnerProfile(false)}
+      />
+    );
+  }
+
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
-      <ParcelDetailHeader title="Perceel" onBack={onBack} onMorePress={isOwner ? undefined : onMorePress} />
+      <Header title="Perceel" onBack={onBack} />
 
       <ScrollView
         style={styles.scroll}
@@ -140,7 +153,7 @@ export default function ParcelDetailScreen({
       >
         {hiddenBannerVisible ? (
           <View style={styles.hiddenBanner}>
-            <EyeSlashIcon size={16} color={COLORS.textMuted} weight="regular" />
+            <EyeSlashIcon size={16} color={COLORS.textMuted} weight="regular" accessibilityElementsHidden />
             <Text style={styles.hiddenBannerText}>Dit perceel is verborgen voor tuinzoekers.</Text>
           </View>
         ) : null}
@@ -152,11 +165,8 @@ export default function ParcelDetailScreen({
           location={location}
           distance={perceel.distance || ''}
           ownerName={ownerDisplayName}
-          stats={perceel.stats || [
-            { value: sizeValue ? String(sizeValue).replace('m²', '') : '—', valueSuffix: 'm²', label: 'Grootte' },
-            { value: 'Nu vrij', label: 'Beschikbaar' },
-            { value: '4.5', label: 'Score' },
-          ]}
+          size={sizeDisplay}
+          stats={perceel.stats || []}
           isFavorited={isFavorited}
           onFavoritePress={onToggleFavorite}
           showFavoriteButton={showFavoriteButton && !isOwner}
@@ -166,26 +176,43 @@ export default function ParcelDetailScreen({
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Beschrijving</Text>
-          <Text style={styles.description}>
-            {description}
-          </Text>
+          <Text style={styles.description}>{description}</Text>
         </View>
 
-        {!isOwner && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Locatie</Text>
-            {hasConfirmedSamenwerking && perceel.adres ? (
-              <Text style={[styles.description, { marginTop: 8 }]}>{perceel.adres}</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Type samenwerking</Text>
+          {Array.isArray(perceel.voorkeur_samenwerking) && perceel.voorkeur_samenwerking.length > 0 ? (
+            <View style={styles.pillsRow}>
+              {perceel.voorkeur_samenwerking.map((type, i) => (
+                <View key={`${type}-${i}`} style={styles.pill}>
+                  <Text style={styles.pillText}>{type}</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.description}>Geen voorkeur opgegeven</Text>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Locatie</Text>
+          {!isOwner && (
+            hasConfirmedSamenwerking && perceel.adres ? (
+              <Text style={[styles.description, { marginBottom: SPACING.sm }]}>{perceel.adres}</Text>
             ) : (
               <View style={styles.locationNotice}>
-                <MapPinIcon size={14} color={COLORS.textSecondary} weight="regular" />
+                <MapPinIcon size={14} color={COLORS.textPrimary} weight="regular" accessibilityElementsHidden />
                 <Text style={styles.locationNoticeText}>
                   Exacte locatie zichtbaar na bevestigde samenwerking
                 </Text>
               </View>
-            )}
-          </View>
-        )}
+            )
+          )}
+          <ParcelLocationMap
+            latitude={perceel.approximate_lat}
+            longitude={perceel.approximate_lng}
+          />
+        </View>
 
         <View style={styles.section}>
           <ParcelPresenceSection voorzieningen={perceel.voorzieningen || []} />
@@ -196,18 +223,22 @@ export default function ParcelDetailScreen({
         </View>
 
         <View style={styles.section}>
-          <ParcelOwnerCard ownerProfile={ownerProfile} joinYear={ownerJoinYear} />
+          <Text style={styles.sectionTitle}>Over de eigenaar</Text>
+          <ParcelOwnerCard
+            ownerProfile={ownerProfile}
+            joinYear={ownerJoinYear}
+            rating={perceel.rating ?? perceel.score ?? null}
+            onPress={ownerId ? () => setShowOwnerProfile(true) : undefined}
+          />
         </View>
 
         <View style={styles.divider} />
 
         {samenwerking ? (
-          // ── Samenwerking management (owner via SamenwerkingCard) ──
-          <View style={[styles.samenwerkingSection, { paddingBottom: insets.bottom + 16 }]}>
+          <View style={[styles.samenwerkingSection, { paddingBottom: insets.bottom + SPACING.md }]}>
             <Text style={styles.sectionTitle}>Actieve samenwerking</Text>
 
             <View style={styles.samenwerkingCard}>
-              {/* Person row */}
               <View style={styles.samenwerkingPersonRow}>
                 <Image
                   source={
@@ -216,6 +247,7 @@ export default function ParcelDetailScreen({
                       : FALLBACK_AVATAR
                   }
                   style={styles.samenwerkingAvatar}
+                  accessibilityElementsHidden
                 />
                 <View style={styles.samenwerkingPersonText}>
                   <Text style={styles.samenwerkingName} numberOfLines={1}>
@@ -230,28 +262,24 @@ export default function ParcelDetailScreen({
                 </View>
               </View>
 
-              {/* Chat button */}
-              <TouchableOpacity
-                style={styles.openChatButton}
+              <Pressable
+                style={({ pressed }) => [styles.openChatButton, pressed && styles.buttonPressed]}
                 onPress={() => onOpenConversation?.(samenwerking)}
                 accessibilityRole="button"
                 accessibilityLabel="Open gesprek"
-                activeOpacity={0.8}
               >
-                <ChatCircleIcon size={18} color={COLORS.surface} weight="fill" />
+                <ChatCircleIcon size={18} color={COLORS.surface} weight="fill" accessibilityElementsHidden />
                 <Text style={styles.openChatButtonText}>Open gesprek</Text>
-              </TouchableOpacity>
+              </Pressable>
 
-              {/* End samenwerking button */}
-              <TouchableOpacity
-                style={styles.endButton}
+              <Pressable
+                style={({ pressed }) => [styles.endButton, pressed && styles.buttonPressed]}
                 onPress={() => onEndSamenwerking?.(samenwerking)}
                 accessibilityRole="button"
                 accessibilityLabel="Beëindig samenwerking"
-                activeOpacity={0.8}
               >
                 <Text style={styles.endButtonText}>Beëindig samenwerking</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         ) : !isOwner ? (
@@ -262,47 +290,47 @@ export default function ParcelDetailScreen({
               </Text>
             </View>
           ) : (
-            <Pressable style={styles.primaryButton} onPress={handleAanvraag}>
+            <Pressable
+              style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
+              onPress={handleAanvraag}
+            >
               <Text style={styles.primaryButtonText}>Stuur verzoek</Text>
             </Pressable>
           )
         ) : (
-          <View style={[styles.ownerActionStack, { paddingBottom: insets.bottom + 16 }]}>
-            <TouchableOpacity
-              style={styles.ownerPrimaryButton}
+          <View style={[styles.ownerActionStack, { paddingBottom: insets.bottom + SPACING.md }]}>
+            <Pressable
+              style={({ pressed }) => [styles.ownerPrimaryButton, pressed && styles.buttonPressed]}
               onPress={() => onEdit?.()}
               accessibilityRole="button"
               accessibilityLabel="Perceel bewerken"
-              activeOpacity={0.8}
             >
-              <PencilSimpleIcon size={18} color={COLORS.surface} weight="regular" />
+              <PencilSimpleIcon size={18} color={COLORS.surface} weight="regular" accessibilityElementsHidden />
               <Text style={styles.ownerPrimaryButtonText}>Bewerken</Text>
-            </TouchableOpacity>
+            </Pressable>
 
-            <TouchableOpacity
-              style={styles.ownerSecondaryButton}
+            <Pressable
+              style={({ pressed }) => [styles.ownerSecondaryButton, pressed && styles.buttonPressed]}
               onPress={() => onToggleVisibility?.()}
               accessibilityRole="button"
               accessibilityLabel={visibilityLabel}
-              activeOpacity={0.8}
             >
               {perceelStatus === PERCEEL_STATUS.HIDDEN ? (
-                <EyeIcon size={18} color={COLORS.brand} weight="regular" />
+                <EyeIcon size={18} color={COLORS.brand} weight="regular" accessibilityElementsHidden />
               ) : (
-                <EyeSlashIcon size={18} color={COLORS.brand} weight="regular" />
+                <EyeSlashIcon size={18} color={COLORS.brand} weight="regular" accessibilityElementsHidden />
               )}
               <Text style={styles.ownerSecondaryButtonText}>{visibilityLabel}</Text>
-            </TouchableOpacity>
+            </Pressable>
 
-            <TouchableOpacity
-              style={styles.ownerDeleteButton}
+            <Pressable
+              style={({ pressed }) => [styles.ownerDeleteButton, pressed && styles.buttonPressed]}
               onPress={() => onDelete?.()}
               accessibilityRole="button"
               accessibilityLabel="Perceel verwijderen"
-              activeOpacity={0.8}
             >
               <Text style={styles.ownerDeleteButtonText}>Verwijderen</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         )}
       </ScrollView>
@@ -322,67 +350,102 @@ const styles = StyleSheet.create({
   scrollContent: {
     backgroundColor: COLORS.surface,
     paddingHorizontal: SPACING.screenX,
-    paddingTop: 31,
-    paddingBottom: 20,
+    paddingTop: SPACING.xl,
+    paddingBottom: SPACING.xl,
   },
   divider: {
-    marginTop: 24,
+    marginTop: SPACING.xl,
+    marginBottom: SPACING.sm,
     height: 1,
     backgroundColor: COLORS.border,
   },
   hiddenBanner: {
-    backgroundColor: '#FFF3CD',
-    borderRadius: 8,
-    padding: 12,
-    marginHorizontal: SPACING.screenX,
-    marginTop: 12,
+    backgroundColor: COLORS.accentSoft,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    marginBottom: SPACING.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: SPACING.sm,
   },
   hiddenBannerText: {
+    flex: 1,
     color: COLORS.textPrimary,
     fontFamily: FONTS.bodyMedium,
-    fontSize: 14,
-    flex: 1,
+    fontSize: FONT_SIZES.md,
   },
   section: {
-    marginTop: 18,
+    marginTop: SPACING.lg,
   },
   sectionTitle: {
     color: COLORS.textPrimary,
-    fontSize: 20,
+    fontSize: FONT_SIZES.xl,
     lineHeight: 22,
     fontFamily: FONTS.displaySemiBold,
-    fontWeight: '600',
   },
   description: {
-    marginTop: 12,
+    marginTop: SPACING.sm,
     color: COLORS.textPrimary,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     lineHeight: 24,
     fontFamily: FONTS.body,
-    fontWeight: '400',
+  },
+  pillsRow: {
+    marginTop: SPACING.sm,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+  },
+  pill: {
+    backgroundColor: COLORS.surfaceBrand,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+  },
+  pillText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
+  },
+  locationNotice: {
+    marginTop: SPACING.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    backgroundColor: COLORS.surfaceBrand,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+  },
+  locationNoticeText: {
+    flex: 1,
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textPrimary,
+    lineHeight: 18,
+  },
+  buttonPressed: {
+    opacity: 0.8,
   },
   primaryButton: {
-    marginTop: 18,
-    height: 41,
-    borderRadius: RADIUS.xs,
+    marginTop: SPACING.md,
+    height: 44,
+    borderRadius: RADIUS.sm,
     backgroundColor: COLORS.brand,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryButtonText: {
     color: COLORS.textInverse,
-    fontSize: 16,
-    lineHeight: 16,
+    fontSize: FONT_SIZES.lg,
+    lineHeight: 20,
     fontFamily: FONTS.displayMedium,
-    fontWeight: '500',
   },
   aanvraagBanner: {
-    marginTop: 18,
-    height: 41,
-    borderRadius: RADIUS.xs,
+    marginTop: SPACING.md,
+    height: 44,
+    borderRadius: RADIUS.sm,
     backgroundColor: COLORS.surfaceBrand,
     alignItems: 'center',
     justifyContent: 'center',
@@ -391,73 +454,71 @@ const styles = StyleSheet.create({
   },
   aanvraagBannerText: {
     color: COLORS.brand,
-    fontSize: 16,
-    lineHeight: 16,
+    fontSize: FONT_SIZES.lg,
+    lineHeight: 20,
     fontFamily: FONTS.displayMedium,
   },
   ownerActionStack: {
-    paddingTop: 18,
-    gap: 12,
+    paddingTop: SPACING.md,
+    gap: SPACING.md,
   },
   ownerPrimaryButton: {
     backgroundColor: COLORS.brand,
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: RADIUS.xl,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    gap: 8,
+    gap: SPACING.sm,
   },
   ownerPrimaryButtonText: {
     color: COLORS.surface,
-    fontFamily: FONTS.bodySemiBold,
-    fontSize: 16,
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.lg,
   },
   ownerSecondaryButton: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
     borderColor: COLORS.brand,
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: RADIUS.xl,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    gap: 8,
+    gap: SPACING.sm,
   },
   ownerSecondaryButtonText: {
     color: COLORS.brand,
-    fontFamily: FONTS.bodySemiBold,
-    fontSize: 16,
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.lg,
   },
   ownerDeleteButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 0,
-    paddingVertical: 12,
+    minHeight: 44,
+    paddingVertical: SPACING.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
   },
   ownerDeleteButtonText: {
     color: COLORS.negative,
     fontFamily: FONTS.bodyMedium,
-    fontSize: 15,
+    fontSize: FONT_SIZES.md,
   },
 
   // ── Samenwerking section ─────────────────────────────────────
   samenwerkingSection: {
-    paddingTop: 18,
-    gap: 12,
+    paddingTop: SPACING.md,
+    gap: SPACING.md,
   },
   samenwerkingCard: {
-    backgroundColor: '#F5F1E8',
+    backgroundColor: COLORS.accentSoft,
     borderRadius: RADIUS.md,
-    padding: 16,
-    gap: 14,
+    padding: SPACING.md,
+    gap: SPACING.md,
   },
   samenwerkingPersonRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: SPACING.md,
   },
   samenwerkingAvatar: {
     width: 46,
@@ -467,59 +528,43 @@ const styles = StyleSheet.create({
   },
   samenwerkingPersonText: {
     flex: 1,
-    gap: 3,
+    gap: SPACING.xxs,
   },
   samenwerkingName: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.textPrimary,
   },
   samenwerkingDate: {
     fontFamily: FONTS.body,
-    fontSize: 13,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
   },
   openChatButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: SPACING.sm,
     backgroundColor: COLORS.brand,
     borderRadius: RADIUS.md,
-    paddingVertical: 14,
+    height: 44,
   },
   openChatButtonText: {
     fontFamily: FONTS.displayMedium,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.surface,
   },
   endButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    height: 44,
     borderRadius: RADIUS.md,
     borderWidth: 1.5,
     borderColor: COLORS.negative,
   },
   endButtonText: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 15,
+    fontSize: FONT_SIZES.md,
     color: COLORS.negative,
-  },
-  locationNotice: {
-    marginTop: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: COLORS.surfaceBrand,
-    borderRadius: RADIUS.sm,
-    padding: 10,
-  },
-  locationNoticeText: {
-    flex: 1,
-    fontFamily: FONTS.body,
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
   },
 });

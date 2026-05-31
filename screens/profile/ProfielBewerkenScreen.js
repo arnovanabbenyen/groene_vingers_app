@@ -16,12 +16,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { decode as decodeBase64 } from 'base64-arraybuffer';
-import { CameraIcon, FloppyDiskIcon, LeafIcon, XIcon } from 'phosphor-react-native';
+import { ArrowLeftIcon, CameraIcon, CheckIcon, LeafIcon } from 'phosphor-react-native';
 import LocationAutocompleteField from '../../components/location/LocationAutocompleteField';
+import FormField from '../../components/common/FormField';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 import { supabase } from '../../services/supabase';
 
 const BIO_MAX = 300;
+const AVATAR_SIZE = 72;
+const AVATAR_OVERHANG = 36;
 
 async function uploadProfileImage(bucket, userId, filename, localUri) {
   const base64Encoding = FileSystem.EncodingType?.Base64 ?? 'base64';
@@ -43,7 +46,6 @@ async function uploadProfileImage(bucket, userId, filename, localUri) {
   if (uploadError) throw uploadError;
 
   const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
-  // Append cache-busting param so React Native doesn't show stale image after update
   return `${urlData.publicUrl}?t=${Date.now()}`;
 }
 
@@ -76,12 +78,10 @@ export default function ProfielBewerkenScreen({ onBack, onSaved }) {
   const [email, setEmail] = useState('');
 
   const originalEmailRef = useRef('');
-
   const [avatarUri, setAvatarUri] = useState(null);
   const [coverUri, setCoverUri] = useState(null);
   const [existingAvatarUrl, setExistingAvatarUrl] = useState(null);
   const [existingCoverUrl, setExistingCoverUrl] = useState(null);
-
   const userIdRef = useRef(null);
 
   useEffect(() => {
@@ -150,7 +150,6 @@ export default function ProfielBewerkenScreen({ onBack, onSaved }) {
       if (avatarUri) {
         newAvatarUrl = await uploadProfileImage('profile-pfp', userId, 'avatar', avatarUri);
       }
-
       if (coverUri) {
         newCoverUrl = await uploadProfileImage('profile-covers', userId, 'cover', coverUri);
       }
@@ -211,21 +210,33 @@ export default function ProfielBewerkenScreen({ onBack, onSaved }) {
     <View style={styles.screen}>
       <SafeAreaView edges={['top']} style={styles.headerSafe}>
         <View style={styles.header}>
-          <Pressable onPress={onBack} hitSlop={8} accessibilityRole="button" accessibilityLabel="Annuleren">
-            <XIcon size={22} color={COLORS.textInverse} weight="regular" />
+          <Pressable
+            style={styles.headerBack}
+            onPress={onBack}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Terug"
+            accessibilityHint="Ga terug zonder wijzigingen op te slaan"
+          >
+            <ArrowLeftIcon size={20} color={COLORS.textInverse} weight="regular" accessibilityElementsHidden />
+            <Text style={styles.headerBackText}>Terug</Text>
           </Pressable>
           <Text style={styles.headerTitle}>Profiel bewerken</Text>
-          <View style={{ width: 22 }} />
+          <View style={styles.headerSpacer} />
         </View>
       </SafeAreaView>
 
       {isLoading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={COLORS.brand} />
+          <ActivityIndicator
+            size="large"
+            color={COLORS.brand}
+            accessibilityLabel="Profiel wordt geladen"
+          />
         </View>
       ) : (
         <KeyboardAvoidingView
-          style={{ flex: 1 }}
+          style={styles.flex}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <ScrollView
@@ -239,76 +250,92 @@ export default function ProfielBewerkenScreen({ onBack, onSaved }) {
               style={styles.coverPicker}
               onPress={handlePickCover}
               accessibilityRole="button"
-              accessibilityLabel="Coverfoto wijzigen"
+              accessibilityLabel={coverDisplaySource ? 'Coverfoto wijzigen' : 'Coverfoto toevoegen'}
+              accessibilityHint="Tik om een foto te kiezen uit je fotobibliotheek"
             >
               {coverDisplaySource ? (
-                <Image source={coverDisplaySource} style={styles.coverImg} resizeMode="cover" />
+                <>
+                  <Image
+                    source={coverDisplaySource}
+                    style={styles.coverImg}
+                    resizeMode="cover"
+                    accessibilityElementsHidden
+                  />
+                  <View style={styles.coverBadge} pointerEvents="none">
+                    <CameraIcon size={16} color={COLORS.surface} weight="regular" accessibilityElementsHidden />
+                  </View>
+                </>
               ) : (
-                <View style={styles.coverPlaceholder}>
-                  <LeafIcon size={40} color={COLORS.brand} weight="regular" />
+                <View style={styles.coverEmpty}>
+                  <View style={styles.coverEmptyIconCircle}>
+                    <CameraIcon size={24} color={COLORS.brand} weight="regular" accessibilityElementsHidden />
+                  </View>
+                  <Text style={styles.coverEmptyText}>Coverfoto toevoegen</Text>
                 </View>
               )}
-              <View style={styles.coverOverlay}>
-                <CameraIcon size={24} color={COLORS.surface} weight="regular" />
-                <Text style={styles.coverOverlayText}>Coverfoto wijzigen</Text>
-              </View>
             </Pressable>
 
             {/* Avatar picker */}
-            <Pressable
-              style={styles.avatarPicker}
-              onPress={handlePickAvatar}
-              accessibilityRole="button"
-              accessibilityLabel="Profielfoto wijzigen"
-            >
-              {avatarDisplaySource ? (
-                <Image source={avatarDisplaySource} style={styles.avatarImg} />
-              ) : (
-                <View style={[styles.avatarImg, styles.avatarPlaceholder]}>
-                  <Text style={styles.avatarInitials}>
-                    {[firstName, lastName].filter(Boolean).map((n) => n[0]).join('').toUpperCase() || '?'}
-                  </Text>
+            <View style={styles.avatarRow}>
+              <Pressable
+                style={styles.avatarPicker}
+                onPress={handlePickAvatar}
+                accessibilityRole="button"
+                accessibilityLabel={avatarDisplaySource ? 'Profielfoto wijzigen' : 'Profielfoto toevoegen'}
+                accessibilityHint="Tik om een foto te kiezen uit je fotobibliotheek"
+              >
+                {avatarDisplaySource ? (
+                  <Image
+                    source={avatarDisplaySource}
+                    style={styles.avatarImg}
+                    accessibilityElementsHidden
+                  />
+                ) : (
+                  <View style={[styles.avatarImg, styles.avatarPlaceholder]}>
+                    <Text style={styles.avatarInitials} accessibilityElementsHidden>
+                      {[firstName, lastName].filter(Boolean).map((n) => n[0]).join('').toUpperCase() || '?'}
+                    </Text>
+                  </View>
+                )}
+                <View style={styles.avatarCameraWrap} pointerEvents="none">
+                  <CameraIcon size={12} color={COLORS.surface} weight="regular" accessibilityElementsHidden />
                 </View>
-              )}
-              <View style={styles.avatarCameraWrap}>
-                <CameraIcon size={14} color={COLORS.surface} weight="regular" />
-              </View>
-            </Pressable>
+              </Pressable>
+            </View>
 
-            {/* Form fields */}
+            {/* Form */}
             <View style={styles.form}>
-              <Text style={styles.formSectionTitle} accessibilityRole="header">Profiel</Text>
+              <Text style={styles.sectionTitle} accessibilityRole="header">Profiel</Text>
 
               <View style={styles.fieldRow}>
-                <View style={styles.fieldHalf}>
-                  <Text style={styles.fieldLabel}>Voornaam</Text>
+                <FormField label="Voornaam" style={styles.fieldHalf}>
                   <View style={styles.inputShell}>
                     <TextInput
                       style={styles.input}
                       value={firstName}
                       onChangeText={setFirstName}
                       placeholder="Voornaam"
-                      placeholderTextColor={COLORS.border}
+                      placeholderTextColor={COLORS.textMuted}
                       autoCapitalize="words"
                       returnKeyType="next"
+                      accessibilityLabel="Voornaam"
                     />
                   </View>
-                </View>
-
-                <View style={styles.fieldHalf}>
-                  <Text style={styles.fieldLabel}>Achternaam</Text>
+                </FormField>
+                <FormField label="Achternaam" style={styles.fieldHalf}>
                   <View style={styles.inputShell}>
                     <TextInput
                       style={styles.input}
                       value={lastName}
                       onChangeText={setLastName}
                       placeholder="Achternaam"
-                      placeholderTextColor={COLORS.border}
+                      placeholderTextColor={COLORS.textMuted}
                       autoCapitalize="words"
                       returnKeyType="next"
+                      accessibilityLabel="Achternaam"
                     />
                   </View>
-                </View>
+                </FormField>
               </View>
 
               <LocationAutocompleteField
@@ -319,60 +346,65 @@ export default function ProfielBewerkenScreen({ onBack, onSaved }) {
                 accessibilityLabel="Stad"
               />
 
-              <View style={styles.field}>
-                <View style={styles.bioLabelRow}>
-                  <Text style={styles.fieldLabel}>Bio</Text>
-                  <Text style={styles.bioCounter}>{bio.length}/{BIO_MAX}</Text>
-                </View>
+              <FormField label="Bio" counter={bio.length} counterMax={BIO_MAX}>
                 <View style={[styles.inputShell, styles.bioShell]}>
                   <TextInput
                     style={[styles.input, styles.bioInput]}
                     value={bio}
                     onChangeText={(t) => setBio(t.slice(0, BIO_MAX))}
                     placeholder="Vertel iets over jezelf…"
-                    placeholderTextColor={COLORS.border}
+                    placeholderTextColor={COLORS.textMuted}
                     multiline
                     textAlignVertical="top"
                     maxLength={BIO_MAX}
+                    accessibilityLabel="Bio"
+                    accessibilityHint={`Maximaal ${BIO_MAX} tekens`}
                   />
                 </View>
-              </View>
+              </FormField>
 
-              <Text style={[styles.formSectionTitle, styles.formSectionTitleSpaced]} accessibilityRole="header">Account</Text>
+              <View style={styles.divider} />
 
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>E-mailadres</Text>
+              <Text style={styles.sectionTitle} accessibilityRole="header">Account</Text>
+
+              <FormField
+                label="E-mailadres"
+                hint="Bij een wijziging ontvang je een bevestigingsmail."
+              >
                 <View style={styles.inputShell}>
                   <TextInput
                     style={styles.input}
                     value={email}
                     onChangeText={setEmail}
                     placeholder="naam@voorbeeld.be"
-                    placeholderTextColor={COLORS.border}
+                    placeholderTextColor={COLORS.textMuted}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
-                    returnKeyType="next"
+                    returnKeyType="done"
+                    accessibilityLabel="E-mailadres"
                   />
                 </View>
-                <Text style={styles.fieldHint}>
-                  Bij een wijziging ontvang je een bevestigingsmail.
-                </Text>
-              </View>
+              </FormField>
 
               <Pressable
-                style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+                style={({ pressed }) => [
+                  styles.saveBtn,
+                  isSaving && styles.saveBtnDisabled,
+                  pressed && !isSaving && styles.saveBtnPressed,
+                ]}
                 onPress={handleSave}
                 disabled={isSaving}
                 accessibilityRole="button"
-                accessibilityLabel="Wijzigingen bewaren"
+                accessibilityLabel="Wijzigingen opslaan"
+                accessibilityState={{ disabled: isSaving, busy: isSaving }}
               >
                 {isSaving ? (
                   <ActivityIndicator size="small" color={COLORS.textInverse} />
                 ) : (
                   <>
-                    <FloppyDiskIcon size={20} color={COLORS.textInverse} weight="regular" />
-                    <Text style={styles.saveButtonText}>Wijzigingen bewaren</Text>
+                    <CheckIcon size={20} color={COLORS.textInverse} weight="bold" accessibilityElementsHidden />
+                    <Text style={styles.saveBtnText}>Wijzigingen opslaan</Text>
                   </>
                 )}
               </Pressable>
@@ -387,7 +419,10 @@ export default function ProfielBewerkenScreen({ onBack, onSaved }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.background,
+  },
+  flex: {
+    flex: 1,
   },
   headerSafe: {
     backgroundColor: COLORS.brand,
@@ -398,12 +433,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.screenX,
-    paddingVertical: SPACING.md,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.lg,
+  },
+  headerBack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  headerBackText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textInverse,
   },
   headerTitle: {
     fontFamily: FONTS.displaySemiBold,
     fontSize: FONT_SIZES.xl,
     color: COLORS.textInverse,
+  },
+  headerSpacer: {
+    width: 60,
   },
   loadingWrap: {
     flex: 1,
@@ -414,55 +463,66 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 48,
+    paddingBottom: SPACING.xl,
   },
-  // Cover picker
+  // Cover
   coverPicker: {
     marginHorizontal: SPACING.screenX,
     marginTop: SPACING.xl,
     height: SIZES.profileCoverHeight,
-    borderRadius: RADIUS.sm,
+    borderRadius: RADIUS.md,
     overflow: 'hidden',
-    position: 'relative',
+    backgroundColor: COLORS.surfaceMuted,
   },
   coverImg: {
     width: '100%',
-    height: SIZES.profileCoverHeight,
+    height: '100%',
   },
-  coverPlaceholder: {
-    flex: 1,
-    backgroundColor: COLORS.surfaceMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  coverOverlay: {
+  coverBadge: {
     position: 'absolute',
-    inset: 0,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    bottom: SPACING.sm,
+    right: SPACING.sm,
+    width: 34,
+    height: 34,
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.brand,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
   },
-  coverOverlayText: {
+  coverEmpty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+  },
+  coverEmptyIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.surfaceBrand,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coverEmptyText: {
     fontFamily: FONTS.bodyMedium,
     fontSize: FONT_SIZES.md,
-    color: COLORS.surface,
+    color: COLORS.textSecondary,
   },
-  // Avatar picker
-  avatarPicker: {
-    marginTop: -36,
-    marginLeft: SPACING.screenX,
+  // Avatar
+  avatarRow: {
+    marginHorizontal: SPACING.screenX,
+    marginTop: -AVATAR_OVERHANG,
     marginBottom: SPACING.md,
-    width: 72,
-    height: 72,
+  },
+  avatarPicker: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
     position: 'relative',
   },
   avatarImg: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 3,
-    borderColor: COLORS.surface,
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
     backgroundColor: COLORS.surfaceMuted,
   },
   avatarPlaceholder: {
@@ -480,48 +540,41 @@ const styles = StyleSheet.create({
     right: 2,
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: RADIUS.pill,
     backgroundColor: COLORS.brand,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.surface,
   },
   // Form
   form: {
     paddingHorizontal: SPACING.screenX,
-    gap: 0,
+    gap: SPACING.md,
+  },
+  sectionTitle: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.textSecondary,
   },
   fieldRow: {
     flexDirection: 'row',
     gap: SPACING.md,
-    marginBottom: 14,
   },
   fieldHalf: {
     flex: 1,
   },
-  field: {
-    marginBottom: 14,
-  },
-  fieldLabel: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textPrimary,
-    marginBottom: 8,
-  },
   inputShell: {
-    height: 40,
-    borderRadius: RADIUS.xs,
+    height: 48,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.surface,
-    paddingHorizontal: 12,
+    paddingHorizontal: SPACING.md,
     justifyContent: 'center',
   },
   bioShell: {
     height: 120,
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.sm,
     justifyContent: 'flex-start',
   },
   input: {
@@ -533,46 +586,27 @@ const styles = StyleSheet.create({
   bioInput: {
     flex: 1,
   },
-  bioLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.dividerSoft,
   },
-  bioCounter: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.textSecondary,
-  },
-  formSectionTitle: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.textSecondary,
-    marginBottom: 12,
-  },
-  formSectionTitleSpaced: {
-    marginTop: SPACING.xl,
-  },
-  fieldHint: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.textSecondary,
-    marginTop: 6,
-  },
-  saveButton: {
-    marginTop: SPACING.xl,
+  saveBtn: {
+    marginTop: SPACING.sm,
     backgroundColor: COLORS.brand,
-    borderRadius: RADIUS.xl,
-    paddingVertical: 14,
+    borderRadius: RADIUS.lg,
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACING.sm,
   },
-  saveButtonDisabled: {
+  saveBtnDisabled: {
     opacity: 0.6,
   },
-  saveButtonText: {
+  saveBtnPressed: {
+    opacity: 0.85,
+  },
+  saveBtnText: {
     fontFamily: FONTS.displaySemiBold,
     fontSize: FONT_SIZES.lg,
     color: COLORS.textInverse,

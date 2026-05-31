@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { NotebookIcon } from 'phosphor-react-native';
+import { NotebookIcon, MagnifyingGlassIcon } from 'phosphor-react-native';
 import BottomNav from '../../components/navigation/BottomNav';
 import EmptyState from '../../components/common/EmptyState';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
@@ -42,7 +42,10 @@ export default function LogboekScreen({
           accessibilityLabel="Open de kaart om een perceel te zoeken"
           accessibilityHint="Navigeert naar de kaartweergave"
         >
-          <Text style={styles.ctaLabel}>Zoek een perceel op de kaart</Text>
+          <View style={styles.ctaInner}>
+            <MagnifyingGlassIcon size={18} color={COLORS.textInverse} weight="regular" style={styles.ctaIcon} />
+            <Text style={styles.ctaLabel}>Zoek een perceel op de kaart</Text>
+          </View>
         </Pressable>
       </View>
 
@@ -97,5 +100,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.displaySemiBold,
     fontSize: FONT_SIZES.lg,
     color: COLORS.textInverse,
+  },
+  ctaInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ctaIcon: {
+    marginRight: SPACING.sm,
   },
 });

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Dimensions, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { MapPinIcon, UserCircleIcon, LeafIcon } from 'phosphor-react-native';
-import { COLORS, FONTS, RADIUS, SPACING } from '../theme/tokens';
+import { Dimensions, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { MapPinIcon, RulerIcon, UserCircleIcon, LeafIcon } from 'phosphor-react-native';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
 import FavoriteHeartButton from './FavoriteHeartButton';
 
 const HERO_HEIGHT = 201;
@@ -9,14 +9,18 @@ const HERO_WIDTH = Dimensions.get('window').width - (SPACING.screenX * 2);
 
 function StatCard({ value, label, valueSuffix }) {
   return (
-    <View style={styles.statCard}>
+    <View
+      style={styles.statCard}
+      accessibilityRole="text"
+      accessibilityLabel={`${label}: ${value}${valueSuffix ?? ''}`}
+    >
       <View style={styles.statValueRow}>
-        <Text style={styles.statValue}>
+        <Text style={styles.statValue} accessibilityElementsHidden>
           {value}
           {valueSuffix ? <Text style={styles.statValueSuffix}>{valueSuffix}</Text> : null}
         </Text>
       </View>
-      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={styles.statLabel} accessibilityElementsHidden>{label}</Text>
     </View>
   );
 }
@@ -28,10 +32,8 @@ export default function ParcelOverviewSection({
   location,
   distance,
   ownerName,
-  stats = [
-    { value: '30', valueSuffix: 'm²', label: 'Grootte' },
-    { value: 'Nu vrij', label: 'Beschikbaar' },
-  ],
+  size,
+  stats = [],
   onFavoritePress,
   isFavorited = false,
   showFavoriteButton = false,
@@ -127,13 +129,14 @@ export default function ParcelOverviewSection({
               isFavorited={isFavorited}
               onToggle={onFavoritePress}
               size="large"
+              noBackground
             />
           )}
         </View>
 
         <View style={styles.metaRow}>
           <View style={styles.pill}>
-            <MapPinIcon size={16} color={COLORS.brand} weight="regular" />
+            <MapPinIcon size={14} color={COLORS.brand} weight="regular" />
             <Text style={styles.pillText}>{location}</Text>
           </View>
           {distance ? (
@@ -142,11 +145,20 @@ export default function ParcelOverviewSection({
               <Text style={styles.metaText}>{distance}</Text>
             </>
           ) : null}
+          {size ? (
+            <>
+              <View style={styles.dotSeparator} />
+              <View style={styles.pill}>
+                <RulerIcon size={14} color={COLORS.brand} weight="regular" />
+                <Text style={styles.pillText}>{size}</Text>
+              </View>
+            </>
+          ) : null}
           {ownerName ? (
             <>
               <View style={styles.dotSeparator} />
               <View style={styles.pill}>
-                <UserCircleIcon size={16} color={COLORS.brand} weight="regular" />
+                <UserCircleIcon size={14} color={COLORS.brand} weight="regular" />
                 <Text style={styles.pillText}>{ownerName}</Text>
               </View>
             </>
@@ -154,23 +166,25 @@ export default function ParcelOverviewSection({
         </View>
       </View>
 
-      <View style={styles.statsRow}>
-        {stats.map((stat) => (
-          <StatCard
-            key={stat.label}
-            value={stat.value}
-            label={stat.label}
-            valueSuffix={stat.valueSuffix}
-          />
-        ))}
-      </View>
+      {stats.length > 0 ? (
+        <View style={styles.statsRow}>
+          {stats.map((stat) => (
+            <StatCard
+              key={stat.label}
+              value={stat.value}
+              label={stat.label}
+              valueSuffix={stat.valueSuffix}
+            />
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    gap: 26,
+    gap: SPACING.lg,
   },
   contentBlock: {
     gap: SPACING.md,
@@ -227,98 +241,88 @@ const styles = StyleSheet.create({
   },
   titleRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
   },
   title: {
     flex: 1,
-    paddingRight: 12,
+    paddingRight: SPACING.md,
     color: COLORS.textPrimary,
-    fontSize: 25,
-    lineHeight: 25,
+    fontSize: FONT_SIZES.xxxl,
+    lineHeight: 30,
     fontFamily: FONTS.displaySemiBold,
-    fontWeight: '600',
-  },
-  favoriteButton: {
-    paddingTop: 4,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: SPACING.sm,
     marginTop: -SPACING.xs,
   },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: SPACING.xs,
     borderRadius: RADIUS.pill,
     backgroundColor: COLORS.surface,
   },
   pillText: {
     color: COLORS.brand,
-    fontSize: 12.8,
-    lineHeight: 13,
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 16,
     fontFamily: FONTS.body,
-    fontWeight: '400',
   },
   metaText: {
     color: COLORS.brand,
-    fontSize: 12.8,
-    lineHeight: 13,
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 16,
     fontFamily: FONTS.body,
-    fontWeight: '400',
   },
   dotSeparator: {
-    width: 5,
-    height: 5,
-    borderRadius: 5,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: COLORS.accent,
   },
   statsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
+    gap: SPACING.sm,
   },
   statCard: {
-    width: 120,
-    height: 63,
+    flex: 1,
     borderWidth: 1,
-    borderColor: COLORS.textPrimary,
-    borderRadius: 10,
+    borderColor: COLORS.dividerSoft,
+    borderRadius: RADIUS.md,
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.sm,
   },
   statValueRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: SPACING.xs,
   },
   statValue: {
     color: COLORS.textPrimary,
-    fontSize: 14,
-    lineHeight: 14,
+    fontSize: FONT_SIZES.md,
+    lineHeight: 18,
     fontFamily: FONTS.displayBold,
-    fontWeight: '700',
     textAlign: 'center',
   },
   statValueSuffix: {
     color: COLORS.textPrimary,
-    fontSize: 14,
-    lineHeight: 14,
+    fontSize: FONT_SIZES.md,
+    lineHeight: 18,
     fontFamily: FONTS.displayBold,
-    fontWeight: '700',
   },
   statLabel: {
-    marginTop: 4,
-    color: COLORS.textPrimary,
-    fontSize: 12.8,
-    lineHeight: 13,
+    marginTop: SPACING.xxs,
+    color: COLORS.textSecondary,
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 16,
     fontFamily: FONTS.body,
-    fontWeight: '400',
     textAlign: 'center',
   },
 });

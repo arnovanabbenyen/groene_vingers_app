@@ -29,6 +29,7 @@ import LogboekMonthScreen from './screens/loggen/LogboekMonthScreen';
 import OpvolgingenScreen from './screens/loggen/OpvolgingenScreen';
 import NieuweOpvolgingScreen from './screens/loggen/NieuweOpvolgingScreen';
 import WeeklyGoalScreen from './screens/settings/WeeklyGoalScreen';
+import WachtwoordWijzigenScreen from './screens/settings/WachtwoordWijzigenScreen';
 import { usePendingAanvragen } from './hooks/usePendingAanvragen';
 import { useNotifications } from './hooks/useNotifications';
 import { useActiveSamenwerking } from './hooks/useActiveSamenwerking';
@@ -385,7 +386,7 @@ export default function App() {
           <ParcelDetailScreen
             perceel={selectedSavedPerceel || {}}
             onBack={() => {
-              setCurrentScreen('opgeslagen');
+              setCurrentScreen(opgeslagenSource || 'home');
               setSelectedSavedPerceel(null);
             }}
             showFavoriteButton
@@ -407,8 +408,15 @@ export default function App() {
             onBack={() => setCurrentScreen('instellingen')}
             onUpgradeSuccess={() => {
               setProfielRefreshKey((k) => k + 1);
-              setCurrentScreen('instellingen');
             }}
+            onDiscoverPercelen={() => {
+              homeInitialTabRef.current = 'kaart';
+              setCurrentScreen('home');
+            }}
+          />
+        ) : currentScreen === 'wachtwoord-wijzigen' ? (
+          <WachtwoordWijzigenScreen
+            onBack={() => setCurrentScreen('instellingen')}
           />
         ) : currentScreen === 'instellingen' ? (
           <InstellingenScreen
@@ -421,6 +429,7 @@ export default function App() {
             onOpenNotificaties={() => setCurrentScreen('notificatie-instellingen')}
             onOpenKiesPlan={() => setCurrentScreen('kies-plan')}
             onOpenWeeklyGoal={() => { setWeeklyGoalSource('instellingen'); setCurrentScreen('weekly-goal'); }}
+            onOpenWachtwoordWijzigen={() => setCurrentScreen('wachtwoord-wijzigen')}
             onLogout={handleLogout}
           />
         ) : currentScreen === 'profiel-bewerken' ? (
@@ -442,6 +451,7 @@ export default function App() {
             onOpenSettings={() => setCurrentScreen('instellingen')}
             onOpenSavedScreen={() => { setOpgeslagenSource('profiel'); setCurrentScreen('opgeslagen'); }}
             onPerceelPress={(plot) => {
+              setOpgeslagenSource('profiel');
               setSelectedSavedPerceel(plot);
               setCurrentScreen('opgeslagen-detail');
             }}

@@ -218,7 +218,10 @@ export default function BerichtenOverzichtScreen({ onTabPress, profileImageSourc
             accessibilityLabel="Open de kaart om een perceel te zoeken"
             accessibilityHint="Navigeert naar de kaartweergave"
           >
-            <Text style={styles.ctaLabel}>Zoek een perceel op de kaart</Text>
+            <View style={styles.ctaInner}>
+              <MagnifyingGlassIcon size={18} color={COLORS.textInverse} weight="regular" style={styles.ctaIcon} />
+              <Text style={styles.ctaLabel}>Zoek een perceel op de kaart</Text>
+            </View>
           </Pressable>
         </View>
       )}
@@ -319,6 +322,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.md,
     backgroundColor: COLORS.surface,
+  },
+  ctaInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ctaIcon: {
+    marginRight: SPACING.sm,
   },
   ctaBtn: {
     backgroundColor: COLORS.brand,

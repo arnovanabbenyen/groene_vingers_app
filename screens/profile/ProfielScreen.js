@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ArrowRightIcon,
   GearSixIcon,
@@ -17,10 +17,11 @@ import {
   LeafIcon,
   MapPinIcon,
   PencilSimpleIcon,
+  StarIcon,
 } from 'phosphor-react-native';
+import Header from '../../components/navigation/Header';
 import { useSavedPercelen } from '../../hooks/useSavedPercelen';
-import { COLORS, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
-import { PLOT_CARD } from '../../components/home/PlotCard';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
 import BottomNav from '../../components/navigation/BottomNav';
 import PercelenCarousel from '../../components/perceel/PercelenCarousel';
 import { supabase } from '../../services/supabase';
@@ -28,7 +29,10 @@ import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
 import { useMyAanvragen } from '../../hooks/useMyAanvragen';
 import { useActiveSamenwerking } from '../../hooks/useActiveSamenwerking';
 import { getUserAverageRating } from '../../services/samenwerkingProposal';
-import StarRatingDisplay from '../../components/rating/StarRatingDisplay';
+import { mapPerceelToPlot } from '../../utils/mapPerceelToPlot';
+import EmptyState from '../../components/common/EmptyState';
+import PlotCard, { PLOT_CARD } from '../../components/home/PlotCard';
+import { useFavorites } from '../../hooks/useFavorites';
 
 const AVATAR_SIZE = 75;
 const AVATAR_OVERHANG = 38;
@@ -53,123 +57,6 @@ const STATUS_CONFIG = {
 
 const PERCEEL_STATUS_DELETED = 'deleted';
 
-function AanvraagPerceelCard({ aanvraag }) {
-  const [imageError, setImageError] = useState(false);
-  const statusConfig = STATUS_CONFIG[aanvraag.status] ?? STATUS_CONFIG[AANVRAAG_STATUS.PENDING];
-  const perceel = aanvraag.perceel;
-  const ownerName = aanvraag.owner
-    ? [aanvraag.owner.first_name, aanvraag.owner.last_name].filter(Boolean).join(' ').trim()
-    : 'Eigenaar';
-  const firstPhoto = Array.isArray(perceel?.fotos) ? perceel.fotos[0] : null;
-  const hasImage = firstPhoto != null && !imageError;
-
-  return (
-    <View style={styles.perceelCard} accessible accessibilityRole="text">
-      <View style={styles.perceelCardImageWrap}>
-        {hasImage ? (
-          <Image
-            source={{ uri: firstPhoto }}
-            style={styles.perceelCardImageEl}
-            resizeMode="cover"
-            onError={() => setImageError(true)}
-          />
-        ) : (
-          <View style={styles.perceelCardPlaceholder}>
-            <LeafIcon size={34} color={COLORS.brand} weight="regular" />
-          </View>
-        )}
-        <View style={[styles.perceelStatusChip, { backgroundColor: statusConfig.bg }]}>
-          <Text style={[styles.perceelStatusChipText, { color: statusConfig.color }]}>
-            {statusConfig.label}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.perceelCardBody}>
-        <Text style={styles.perceelCardTitle} numberOfLines={1}>
-          {perceel?.naam || 'Perceel'}
-        </Text>
-        <Text style={styles.perceelCardOwner} numberOfLines={1}>{ownerName}</Text>
-      </View>
-    </View>
-  );
-}
-
-function SamenwerkingCard({ samenwerking }) {
-  const [imageError, setImageError] = useState(false);
-  const perceel = samenwerking.perceel;
-  const sender = samenwerking.sender;
-  const senderName = sender
-    ? [sender.first_name, sender.last_name].filter(Boolean).join(' ').trim()
-    : 'Tuinzoeker';
-  const firstPhoto = Array.isArray(perceel?.fotos) ? perceel.fotos[0] : null;
-  const hasImage = firstPhoto != null && !imageError;
-
-  return (
-    <View style={styles.perceelCard} accessible accessibilityRole="text">
-      <View style={styles.perceelCardImageWrap}>
-        {hasImage ? (
-          <Image
-            source={{ uri: firstPhoto }}
-            style={styles.perceelCardImageEl}
-            resizeMode="cover"
-            onError={() => setImageError(true)}
-          />
-        ) : (
-          <View style={styles.perceelCardPlaceholder}>
-            <LeafIcon size={34} color={COLORS.brand} weight="regular" />
-          </View>
-        )}
-        <View style={[styles.perceelStatusChip, { backgroundColor: COLORS.brand }]}>
-          <Text style={[styles.perceelStatusChipText, { color: COLORS.surface }]}>
-            Samenwerking actief
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.perceelCardBody}>
-        <Text style={styles.perceelCardTitle} numberOfLines={1}>
-          {perceel?.naam || 'Perceel'}
-        </Text>
-        <Text style={styles.perceelCardOwner} numberOfLines={1}>{senderName}</Text>
-      </View>
-    </View>
-  );
-}
-
-function SavedPerceelMiniCard({ perceel, onPress }) {
-  const [imageError, setImageError] = useState(false);
-  const firstPhoto = Array.isArray(perceel?.fotos) ? perceel.fotos[0] : null;
-  const hasImage = firstPhoto != null && !imageError;
-
-  return (
-    <Pressable style={styles.perceelCard} onPress={onPress} accessible accessibilityRole="button">
-      <View style={styles.perceelCardImageWrap}>
-        {hasImage ? (
-          <Image
-            source={{ uri: firstPhoto }}
-            style={styles.perceelCardImageEl}
-            resizeMode="cover"
-            onError={() => setImageError(true)}
-          />
-        ) : (
-          <View style={styles.perceelCardPlaceholder}>
-            <LeafIcon size={34} color={COLORS.brand} weight="regular" />
-          </View>
-        )}
-      </View>
-      <View style={styles.perceelCardBody}>
-        <Text style={styles.perceelCardTitle} numberOfLines={1}>
-          {perceel?.naam || 'Perceel'}
-        </Text>
-        <Text style={styles.perceelCardOwner} numberOfLines={1}>
-          {perceel?.plaats || 'Locatie onbekend'}
-        </Text>
-      </View>
-    </Pressable>
-  );
-}
-
 export default function ProfielScreen({
   role = 'tuinzoeker',
   refreshKey = 0,
@@ -181,20 +68,35 @@ export default function ProfielScreen({
   profileImageSource,
   badgeCounts = {},
   onOpenSamenwerking,
+  profileUserId = null,
+  onBack,
 }) {
-  const insets = useSafeAreaInsets();
   const [profile, setProfile] = useState(null);
   const [percelen, setPercelen] = useState([]);
   const [samenwerkingen, setSamenwerkingen] = useState([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [ratingData, setRatingData] = useState({ average: null, count: 0 });
 
+  const [activeSavedDot, setActiveSavedDot] = useState(0);
+  const [activeAanvraagDot, setActiveAanvraagDot] = useState(0);
+  const [activeSamenwerkingDot, setActiveSamenwerkingDot] = useState(0);
+
   const { samenwerking: activeSamenwerking } = useActiveSamenwerking(
     role === 'tuinzoeker' ? refreshKey : null
   );
-
   const { aanvragen, isLoading: isLoadingAanvragen } = useMyAanvragen(refreshKey);
-  const { percelen: savedPercelen, isLoading: isLoadingSaved } = useSavedPercelen(refreshKey);
+  const { percelen: savedPercelen, isLoading: isLoadingSaved, refresh: refreshSaved } = useSavedPercelen(refreshKey);
+  const { isFavorite, toggleFavorite } = useFavorites();
+
+  async function handleToggleSavedFavorite(perceelId) {
+    try {
+      await toggleFavorite(perceelId);
+    } catch (e) {
+      console.warn('toggleFavorite failed', e);
+    }
+    // refresh the saved list after the DB operation completes
+    refreshSaved?.();
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -204,7 +106,8 @@ export default function ProfielScreen({
 
       try {
         const { data: sessionData } = await supabase.auth.getSession();
-        const userId = sessionData?.session?.user?.id;
+        const sessionUserId = sessionData?.session?.user?.id;
+        const userId = profileUserId || sessionUserId;
         if (!userId) { if (mounted) setIsLoadingProfile(false); return; }
 
         const { data: profileData, error: profileError } = await supabase
@@ -222,17 +125,17 @@ export default function ProfielScreen({
           });
         }
 
-        if (role === 'tuineigenaar') {
-          const { data: percelenData, error: percelenError } = await supabase
-            .from('percelen')
-            .select('id, owner_id, naam, beschrijving, grootte, adres, plaats, fotos, voorzieningen, status, created_at')
-            .eq('owner_id', userId)
-            .neq('status', PERCEEL_STATUS_DELETED)
-            .order('created_at', { ascending: false });
+        const { data: percelenData, error: percelenError } = await supabase
+          .from('percelen')
+          .select('id, owner_id, naam, beschrijving, grootte, adres, plaats, fotos, voorzieningen, status, created_at')
+          .eq('owner_id', userId)
+          .neq('status', PERCEEL_STATUS_DELETED)
+          .order('created_at', { ascending: false });
 
-          if (percelenError) console.warn('Failed to load percelen', percelenError);
-          if (mounted) setPercelen(percelenData || []);
+        if (percelenError) console.warn('Failed to load percelen', percelenError);
+        if (mounted) setPercelen(percelenData || []);
 
+        if (!profileUserId && role === 'tuineigenaar') {
           const perceelIds = (percelenData || []).map((p) => p.id);
           if (perceelIds.length > 0) {
             const { data: samenwerkingenRaw, error: swError } = await supabase
@@ -275,15 +178,14 @@ export default function ProfielScreen({
 
     loadProfile();
     return () => { mounted = false; };
-  }, [role, refreshKey]);
+  }, [profileUserId, role, refreshKey]);
 
   function handleSettingsPress() {
     if (onOpenSettings) { onOpenSettings(); return; }
-    // TODO: implement SettingsScreen
     Alert.alert('Binnenkort beschikbaar', 'Instellingen komen binnenkort.');
   }
 
-const displayName = profile
+  const displayName = profile
     ? [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim() || 'Profiel'
     : '';
 
@@ -292,6 +194,113 @@ const displayName = profile
     : profileImageSource ?? null;
 
   const coverSource = profile?.cover_url ? { uri: profile.cover_url } : null;
+
+  if (profileUserId) {
+    return (
+      <View style={styles.screen}>
+        <Header title={displayName || 'Profiel'} onBack={onBack || (() => {})} />
+
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.coverContainer}>
+            {coverSource ? (
+              <Image
+                source={coverSource}
+                style={styles.cover}
+                resizeMode="cover"
+                accessibilityElementsHidden
+              />
+            ) : (
+              <View style={[styles.cover, styles.coverPlaceholder]}>
+                <LeafIcon size={48} color={COLORS.brand} weight="regular" accessibilityElementsHidden />
+              </View>
+            )}
+
+            <View style={styles.avatarWrap}>
+              {avatarSource ? (
+                <Image
+                  source={typeof avatarSource === 'string' ? { uri: avatarSource } : avatarSource}
+                  style={styles.avatar}
+                  accessibilityLabel={`Profielfoto van ${displayName}`}
+                />
+              ) : (
+                <View
+                  style={[styles.avatar, styles.avatarPlaceholder]}
+                  accessible
+                  accessibilityLabel={`Profielfoto van ${displayName}`}
+                >
+                  <Text style={styles.avatarInitials} accessibilityElementsHidden>
+                    {[profile?.first_name, profile?.last_name]
+                      .filter(Boolean)
+                      .map((n) => n[0])
+                      .join('')
+                      .toUpperCase() || '?'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.identityBlock}>
+            {isLoadingProfile ? (
+              <ActivityIndicator
+                size="small"
+                color={COLORS.brand}
+                style={styles.profileLoader}
+                accessibilityLabel="Profiel wordt geladen"
+              />
+            ) : (
+              <>
+                <View style={styles.nameRow}>
+                  <Text style={styles.displayName} accessibilityRole="header" numberOfLines={1}>
+                    {displayName}
+                  </Text>
+                  <View
+                    style={styles.ratingRow}
+                    accessible
+                    accessibilityLabel={ratingData.average != null
+                      ? `Beoordeling: ${ratingData.average.toFixed(1)} van 5`
+                      : 'Nieuw profiel, nog geen beoordelingen'}
+                  >
+                    <StarIcon size={14} color="#FFB800" weight="fill" accessibilityElementsHidden />
+                    <Text style={styles.ratingText}>
+                      {ratingData.average != null ? ratingData.average.toFixed(1) : 'Nieuw'}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.locationRow}>
+                  <MapPinIcon
+                    size={14}
+                    color={profile?.plaats ? COLORS.textPrimary : COLORS.textSecondary}
+                    weight="regular"
+                    accessibilityElementsHidden
+                  />
+                  <Text style={[styles.locationText, !profile?.plaats && styles.locationTextMuted]}>
+                    {profile?.plaats || 'Stad nog niet ingesteld'}
+                  </Text>
+                </View>
+                {profile?.bio ? (
+                  <Text style={styles.bio}>{profile.bio}</Text>
+                ) : null}
+              </>
+            )}
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Percelen</Text>
+            {isLoadingProfile ? (
+              <ActivityIndicator size="small" color={COLORS.brand} />
+            ) : (
+              <PercelenCarousel percelen={percelen} />
+            )}
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.screen}>
@@ -321,25 +330,38 @@ const displayName = profile
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: SIZES.bottomNavClearance }]}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Cover + overlapping avatar */}
         <View style={styles.coverContainer}>
           {coverSource ? (
-            <Image source={coverSource} style={styles.cover} resizeMode="cover" />
+            <Image
+              source={coverSource}
+              style={styles.cover}
+              resizeMode="cover"
+              accessibilityElementsHidden
+            />
           ) : (
             <View style={[styles.cover, styles.coverPlaceholder]}>
-              <LeafIcon size={48} color={COLORS.brand} weight="regular" />
+              <LeafIcon size={48} color={COLORS.brand} weight="regular" accessibilityElementsHidden />
             </View>
           )}
 
           <View style={styles.avatarWrap}>
             {avatarSource ? (
-              <Image source={typeof avatarSource === 'string' ? { uri: avatarSource } : avatarSource} style={styles.avatar} />
+              <Image
+                source={typeof avatarSource === 'string' ? { uri: avatarSource } : avatarSource}
+                style={styles.avatar}
+                accessibilityLabel={`Profielfoto van ${displayName}`}
+              />
             ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarInitials}>
+              <View
+                style={[styles.avatar, styles.avatarPlaceholder]}
+                accessible
+                accessibilityLabel={`Profielfoto van ${displayName}`}
+              >
+                <Text style={styles.avatarInitials} accessibilityElementsHidden>
                   {[profile?.first_name, profile?.last_name]
                     .filter(Boolean)
                     .map((n) => n[0])
@@ -354,31 +376,42 @@ const displayName = profile
         {/* Identity block */}
         <View style={styles.identityBlock}>
           {isLoadingProfile ? (
-            <ActivityIndicator size="small" color={COLORS.brand} style={{ marginVertical: 12 }} />
+            <ActivityIndicator
+              size="small"
+              color={COLORS.brand}
+              style={styles.profileLoader}
+              accessibilityLabel="Profiel wordt geladen"
+            />
           ) : (
             <>
-              <View style={styles.identityRow}>
-                <View style={styles.identityLeft}>
-                  <Text style={styles.displayName}>{displayName}</Text>
-                  <StarRatingDisplay
-                    average={ratingData.average}
-                    count={ratingData.count}
-                    size={15}
-                    showCount
-                  />
-                  <View style={styles.locationPill}>
-                    <MapPinIcon
-                      size={14}
-                      color={profile?.plaats ? COLORS.textPrimary : COLORS.textSecondary}
-                      weight="regular"
-                    />
-                    <Text style={[styles.locationText, !profile?.plaats && styles.locationTextMuted]}>
-                      {profile?.plaats || 'Stad nog niet ingesteld'}
-                    </Text>
-                  </View>
+              <View style={styles.nameRow}>
+                <Text style={styles.displayName} accessibilityRole="header" numberOfLines={1}>
+                  {displayName}
+                </Text>
+                <View
+                  style={styles.ratingRow}
+                  accessible
+                  accessibilityLabel={ratingData.average != null
+                    ? `Beoordeling: ${ratingData.average.toFixed(1)} van 5`
+                    : 'Nieuw profiel, nog geen beoordelingen'}
+                >
+                  <StarIcon size={14} color="#FFB800" weight="fill" accessibilityElementsHidden />
+                  <Text style={styles.ratingText}>
+                    {ratingData.average != null ? ratingData.average.toFixed(1) : 'Nieuw'}
+                  </Text>
                 </View>
               </View>
-
+              <View style={styles.locationRow}>
+                <MapPinIcon
+                  size={14}
+                  color={profile?.plaats ? COLORS.textPrimary : COLORS.textSecondary}
+                  weight="regular"
+                  accessibilityElementsHidden
+                />
+                <Text style={[styles.locationText, !profile?.plaats && styles.locationTextMuted]}>
+                  {profile?.plaats || 'Stad nog niet ingesteld'}
+                </Text>
+              </View>
               {profile?.bio ? (
                 <Text style={styles.bio}>{profile.bio}</Text>
               ) : null}
@@ -386,26 +419,36 @@ const displayName = profile
           )}
         </View>
 
-        {/* Role-specific sections */}
+        {/* Tuinzoeker sections */}
         {role === 'tuinzoeker' ? (
           <>
             {activeSamenwerking ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Actieve samenwerking</Text>
                 <Pressable
-                  style={styles.activeSamenwerkingCard}
+                  style={({ pressed }) => [
+                    styles.activeSamenwerkingCard,
+                    pressed && styles.activeSamenwerkingCardPressed,
+                  ]}
                   onPress={() => onOpenSamenwerking?.(activeSamenwerking)}
                   accessibilityRole="button"
-                  accessibilityLabel="Bekijk actieve samenwerking"
+                  accessibilityLabel={[
+                    'Actieve samenwerking',
+                    activeSamenwerking.percelen?.naam,
+                    activeSamenwerking.percelen?.plaats,
+                  ].filter(Boolean).join(', ')}
+                  accessibilityHint="Tik om de samenwerking te bekijken"
                 >
                   {activeSamenwerking.percelen?.fotos?.[0] ? (
                     <Image
                       source={{ uri: activeSamenwerking.percelen.fotos[0] }}
                       style={styles.activeSamenwerkingImage}
+                      resizeMode="cover"
+                      accessibilityElementsHidden
                     />
                   ) : (
                     <View style={[styles.activeSamenwerkingImage, styles.activeSamenwerkingPlaceholder]}>
-                      <LeafIcon size={22} color={COLORS.brand} weight="regular" />
+                      <LeafIcon size={24} color={COLORS.brand} weight="regular" accessibilityElementsHidden />
                     </View>
                   )}
                   <View style={styles.activeSamenwerkingInfo}>
@@ -417,7 +460,15 @@ const displayName = profile
                         {activeSamenwerking.percelen.plaats}
                       </Text>
                     ) : null}
-                    <Text style={styles.activeSamenwerkingCta}>Bekijk samenwerking →</Text>
+                    <View style={styles.activeSamenwerkingCtaRow}>
+                      <Text style={styles.activeSamenwerkingCtaText}>Bekijk samenwerking</Text>
+                      <ArrowRightIcon
+                        size={13}
+                        color={COLORS.brand}
+                        weight="regular"
+                        accessibilityElementsHidden
+                      />
+                    </View>
                   </View>
                 </Pressable>
               </View>
@@ -426,109 +477,213 @@ const displayName = profile
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Jouw aanvragen</Text>
               {isLoadingAanvragen ? (
-                <ActivityIndicator size="small" color={COLORS.brand} />
+                <ActivityIndicator
+                  size="small"
+                  color={COLORS.brand}
+                  accessibilityLabel="Aanvragen worden geladen"
+                />
               ) : aanvragen.length === 0 ? (
-                <View style={styles.emptyState} accessible accessibilityRole="text">
-                  <LeafIcon size={40} color={COLORS.brand} weight="regular" />
-                  <Text style={styles.emptyTitle}>Nog geen aanvragen</Text>
-                  <Text style={styles.emptySubtext}>
-                    Aanvragen die je hebt ingediend verschijnen hier.
-                  </Text>
-                </View>
-              ) : (
-                <ScrollView
-                  horizontal
-                  nestedScrollEnabled
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.perceelCardScroller}
-                >
-                  {aanvragen.map((aanvraag) => (
-                    <AanvraagPerceelCard key={aanvraag.id} aanvraag={aanvraag} />
-                  ))}
-                </ScrollView>
-              )}
+                <EmptyState
+                  compact
+                  icon={LeafIcon}
+                  title="Nog geen aanvragen"
+                  body="Aanvragen die je indient verschijnen hier."
+                />
+              ) : (() => {
+                const validAanvragen = aanvragen.filter((a) => a.perceel != null);
+                const clampedAanvraagDot = Math.max(0, Math.min(validAanvragen.length - 1, activeAanvraagDot));
+                return (
+                  <>
+                    <ScrollView
+                      horizontal
+                      nestedScrollEnabled
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.savedScroll}
+                      contentContainerStyle={styles.savedScrollContent}
+                      accessibilityLabel="Jouw aanvragen"
+                      onMomentumScrollEnd={(e) => {
+                        const next = Math.round(e.nativeEvent.contentOffset.x / (PLOT_CARD.cardWidth + PLOT_CARD.carouselGap));
+                        setActiveAanvraagDot(Math.max(0, Math.min(validAanvragen.length - 1, next)));
+                      }}
+                    >
+                      {validAanvragen.map((aanvraag) => {
+                        const statusConfig = STATUS_CONFIG[aanvraag.status] ?? STATUS_CONFIG[AANVRAAG_STATUS.PENDING];
+                        const plot = mapPerceelToPlot(aanvraag.perceel);
+                        return (
+                          <View key={aanvraag.id} style={styles.aanvraagCardWrap}>
+                            <PlotCard
+                              plot={plot}
+                              onPress={() => onPerceelPress?.(plot)}
+                              isFavorited={isFavorite(plot.id)}
+                              onToggleFavorite={() => toggleFavorite(plot.id)}
+                              showFavoriteButton
+                            />
+                            <View style={[styles.aanvraagStatusChip, { backgroundColor: statusConfig.bg }]}>
+                              <Text style={[styles.aanvraagStatusChipText, { color: statusConfig.color }]}>
+                                {statusConfig.label}
+                              </Text>
+                            </View>
+                          </View>
+                        );
+                      })}
+                    </ScrollView>
+                    {validAanvragen.length > 1 && (
+                      <View style={styles.dotRow}>
+                        {validAanvragen.map((a, i) => (
+                          <View
+                            key={`aanvraag-dot-${a.id}-${i}`}
+                            style={[styles.dot, i === clampedAanvraagDot && styles.dotActive]}
+                          />
+                        ))}
+                      </View>
+                    )}
+                  </>
+                );
+              })()}
             </View>
 
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Jouw opgeslagen percelen</Text>
+                <Text style={styles.sectionTitle}>Opgeslagen percelen</Text>
                 {savedPercelen.length > 0 && (
-                  <Pressable style={styles.allesBekijkenBtn} onPress={onOpenSavedScreen} hitSlop={8}>
+                  <Pressable
+                    style={({ pressed }) => [styles.allesBekijkenBtn, pressed && styles.allesBekijkenBtnPressed]}
+                    onPress={onOpenSavedScreen}
+                    accessibilityRole="button"
+                    accessibilityLabel="Alle opgeslagen percelen bekijken"
+                    accessibilityHint="Opent het overzicht van al je opgeslagen percelen"
+                  >
                     <Text style={styles.allesBekijkenText}>Alles bekijken</Text>
-                    <ArrowRightIcon size={14} color={COLORS.brand} weight="regular" />
+                    <ArrowRightIcon
+                      size={13}
+                      color={COLORS.brand}
+                      weight="bold"
+                      accessibilityElementsHidden
+                    />
                   </Pressable>
                 )}
               </View>
               {isLoadingSaved ? (
-                <ActivityIndicator size="small" color={COLORS.brand} />
+                <ActivityIndicator
+                  size="small"
+                  color={COLORS.brand}
+                  accessibilityLabel="Opgeslagen percelen worden geladen"
+                />
               ) : savedPercelen.length === 0 ? (
-                <View style={styles.emptyState} accessible accessibilityRole="text">
-                  <HeartIcon size={40} color={COLORS.brand} weight="regular" />
-                  <Text style={styles.emptyTitle}>Nog geen opgeslagen percelen</Text>
-                  <Text style={styles.emptySubtext}>
-                    Percelen die je opslaat verschijnen hier.
-                  </Text>
-                </View>
-              ) : (
-                <ScrollView
-                  horizontal
-                  nestedScrollEnabled
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.perceelCardScroller}
-                >
-                  {savedPercelen.slice(0, 5).map((perceel) => (
-                    <SavedPerceelMiniCard
-                      key={perceel.id}
-                      perceel={perceel}
-                      onPress={() => onPerceelPress?.({
-                        id: perceel.id,
-                        image: perceel.fotos?.[0] || null,
-                        fotos: perceel.fotos || [],
-                        location: perceel.plaats || 'Locatie niet beschikbaar',
-                        title: perceel.naam,
-                        naam: perceel.naam,
-                        plaats: perceel.plaats,
-                        adres: perceel.adres || null,
-                        beschrijving: perceel.beschrijving || null,
-                        size: perceel.grootte ? `${perceel.grootte}m²` : null,
-                        grootte: perceel.grootte,
-                        chips: perceel.voorzieningen || [],
-                        voorzieningen: perceel.voorzieningen || [],
-                        ownerId: perceel.owner_id,
-                        owner_id: perceel.owner_id,
+                <EmptyState
+                  compact
+                  icon={HeartIcon}
+                  title="Nog niets opgeslagen"
+                  body="Percelen die je opslaat verschijnen hier."
+                />
+              ) : (() => {
+                const slicedSaved = savedPercelen.slice(0, 5);
+                const clampedSavedDot = Math.max(0, Math.min(slicedSaved.length - 1, activeSavedDot));
+                return (
+                  <>
+                    <ScrollView
+                      horizontal
+                      nestedScrollEnabled
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.savedScroll}
+                      contentContainerStyle={styles.savedScrollContent}
+                      accessibilityLabel="Opgeslagen percelen"
+                      onMomentumScrollEnd={(e) => {
+                        const next = Math.round(e.nativeEvent.contentOffset.x / (PLOT_CARD.cardWidth + PLOT_CARD.carouselGap));
+                        setActiveSavedDot(Math.max(0, Math.min(slicedSaved.length - 1, next)));
+                      }}
+                    >
+                        {slicedSaved.map((perceel) => {
+                        const plot = mapPerceelToPlot(perceel);
+                        return (
+                          <PlotCard
+                            key={perceel.id}
+                            plot={plot}
+                            onPress={() => onPerceelPress?.(plot)}
+                            isFavorited={isFavorite(perceel.id)}
+                            onToggleFavorite={() => handleToggleSavedFavorite(perceel.id)}
+                            showFavoriteButton
+                          />
+                        );
                       })}
-                    />
-                  ))}
-                </ScrollView>
-              )}
+                    </ScrollView>
+                    {slicedSaved.length > 1 && (
+                      <View style={styles.dotRow}>
+                        {slicedSaved.map((p, i) => (
+                          <View
+                            key={`saved-dot-${p.id}-${i}`}
+                            style={[styles.dot, i === clampedSavedDot && styles.dotActive]}
+                          />
+                        ))}
+                      </View>
+                    )}
+                  </>
+                );
+              })()}
             </View>
           </>
         ) : (
+          /* Tuineigenaar sections */
           <>
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Samenwerkingen</Text>
               {isLoadingProfile ? (
                 <ActivityIndicator size="small" color={COLORS.brand} />
               ) : samenwerkingen.length === 0 ? (
-                <View style={styles.emptyState} accessible accessibilityRole="text">
-                  <LeafIcon size={40} color={COLORS.brand} weight="regular" />
-                  <Text style={styles.emptyTitle}>Nog geen samenwerkingen</Text>
-                  <Text style={styles.emptySubtext}>
-                    Bevestigde samenwerkingen met tuinzoekers verschijnen hier.
-                  </Text>
-                </View>
-              ) : (
-                <ScrollView
-                  horizontal
-                  nestedScrollEnabled
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.perceelCardScroller}
-                >
-                  {samenwerkingen.map((s) => (
-                    <SamenwerkingCard key={s.id} samenwerking={s} />
-                  ))}
-                </ScrollView>
-              )}
+                <EmptyState
+                  compact
+                  icon={LeafIcon}
+                  title="Nog geen samenwerkingen"
+                  body="Bevestigde samenwerkingen met tuinzoekers verschijnen hier."
+                />
+              ) : (() => {
+                const clampedSwDot = Math.max(0, Math.min(samenwerkingen.length - 1, activeSamenwerkingDot));
+                return (
+                  <>
+                    <ScrollView
+                      horizontal
+                      nestedScrollEnabled
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.savedScroll}
+                      contentContainerStyle={styles.savedScrollContent}
+                      accessibilityLabel="Samenwerkingen"
+                      onMomentumScrollEnd={(e) => {
+                        const next = Math.round(e.nativeEvent.contentOffset.x / (PLOT_CARD.cardWidth + PLOT_CARD.carouselGap));
+                        setActiveSamenwerkingDot(Math.max(0, Math.min(samenwerkingen.length - 1, next)));
+                      }}
+                    >
+                      {samenwerkingen.map((s) => {
+                        const plot = mapPerceelToPlot(s.perceel);
+                        return (
+                          <View key={s.id} style={styles.aanvraagCardWrap}>
+                            <PlotCard
+                              plot={plot}
+                              onPress={() => onPerceelPress?.(plot)}
+                              isFavorited={false}
+                              showFavoriteButton={false}
+                            />
+                            <View style={[styles.aanvraagStatusChip, { backgroundColor: COLORS.brand }]}>
+                              <Text style={[styles.aanvraagStatusChipText, { color: COLORS.surface }]}>
+                                Samenwerking actief
+                              </Text>
+                            </View>
+                          </View>
+                        );
+                      })}
+                    </ScrollView>
+                    {samenwerkingen.length > 1 && (
+                      <View style={styles.dotRow}>
+                        {samenwerkingen.map((s, i) => (
+                          <View
+                            key={`sw-dot-${s.id}-${i}`}
+                            style={[styles.dot, i === clampedSwDot && styles.dotActive]}
+                          />
+                        ))}
+                      </View>
+                    )}
+                  </>
+                );
+              })()}
             </View>
 
             <View style={styles.section}>
@@ -537,7 +692,6 @@ const displayName = profile
             </View>
           </>
         )}
-
       </ScrollView>
 
       <BottomNav
@@ -554,7 +708,7 @@ const displayName = profile
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.background,
   },
   headerSafe: {
     backgroundColor: COLORS.brand,
@@ -565,13 +719,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SPACING.screenX,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.md,
+    paddingVertical: SPACING.md,
     position: 'relative',
   },
   headerTitle: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
+    fontSize: FONT_SIZES.xl,
     color: COLORS.textInverse,
   },
   headerActions: {
@@ -579,25 +732,24 @@ const styles = StyleSheet.create({
     right: SPACING.screenX,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: SPACING.md,
   },
   scroll: {
     flex: 1,
-    backgroundColor: COLORS.surface,
   },
   scrollContent: {
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.xl,
+    paddingBottom: SPACING.xl,
   },
   // Cover + avatar
   coverContainer: {
     position: 'relative',
-    zIndex: 1,
   },
   cover: {
     width: '100%',
     height: SIZES.profileCoverHeight,
-    borderRadius: RADIUS.sm,
+    borderRadius: RADIUS.md,
     backgroundColor: COLORS.surfaceMuted,
   },
   coverPlaceholder: {
@@ -613,8 +765,6 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    borderWidth: 3,
-    borderColor: COLORS.surface,
   },
   avatarPlaceholder: {
     backgroundColor: COLORS.surfaceMuted,
@@ -623,36 +773,47 @@ const styles = StyleSheet.create({
   },
   avatarInitials: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 24,
+    fontSize: FONT_SIZES.xxl,
     color: COLORS.textPrimary,
   },
   // Identity
   identityBlock: {
     paddingTop: AVATAR_OVERHANG + 10,
-    gap: 12,
+    gap: SPACING.xs,
   },
-  identityRow: {
+  profileLoader: {
+    marginVertical: SPACING.md,
+  },
+  nameRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  identityLeft: {
-    flex: 1,
-    gap: 6,
+    gap: SPACING.sm,
   },
   displayName: {
+    flex: 1,
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
+    fontSize: FONT_SIZES.xl,
     color: COLORS.textPrimary,
   },
-  locationPill: {
+  ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
+  ratingText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
   locationText: {
     fontFamily: FONTS.body,
-    fontSize: 12.8,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textPrimary,
   },
   locationTextMuted: {
@@ -660,9 +821,10 @@ const styles = StyleSheet.create({
   },
   bio: {
     fontFamily: FONTS.body,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.textPrimary,
     lineHeight: 24,
+    marginTop: SPACING.xs,
   },
   // Sections
   section: {
@@ -676,94 +838,71 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
+    fontSize: FONT_SIZES.xl,
     color: COLORS.textPrimary,
   },
   allesBekijkenBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: SPACING.xs,
+    backgroundColor: COLORS.surfaceBrand,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 6,
+  },
+  allesBekijkenBtnPressed: {
+    opacity: 0.75,
   },
   allesBekijkenText: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 14,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.brand,
   },
-  // Aanvraag perceel cards (horizontal scroll)
-  perceelCardScroller: {
-    gap: SPACING.md,
+  cardScrollContent: {
+    gap: SPACING.sm,
     paddingBottom: SPACING.xxs,
   },
-  perceelCard: {
-    width: PLOT_CARD.cardWidth,
-    borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.background,
-    padding: PLOT_CARD.cardPadding,
-    gap: PLOT_CARD.cardGap,
-    ...SHADOWS.card,
+  savedScroll: {
+    marginHorizontal: -SPACING.screenX,
   },
-  perceelCardImageWrap: {
-    width: '100%',
-    height: PLOT_CARD.imageHeight,
-    borderRadius: RADIUS.sm,
-    overflow: 'hidden',
+  savedScrollContent: {
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.screenX,
+    paddingBottom: SPACING.xxs,
+  },
+  aanvraagCardWrap: {
     position: 'relative',
   },
-  perceelCardImageEl: {
+  aanvraagStatusChip: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '100%',
-    height: '100%',
-  },
-  perceelCardPlaceholder: {
-    flex: 1,
-    backgroundColor: COLORS.surfaceMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  perceelStatusChip: {
-    position: 'absolute',
-    top: PLOT_CARD.badgeInset,
-    left: PLOT_CARD.badgeInset,
+    top: PLOT_CARD.cardPadding + PLOT_CARD.badgeInset,
+    left: PLOT_CARD.cardPadding + PLOT_CARD.badgeInset,
     borderRadius: RADIUS.pill,
     paddingHorizontal: 10,
     paddingVertical: 5,
     zIndex: 10,
   },
-  perceelStatusChipText: {
+  aanvraagStatusChipText: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 12,
+    fontSize: FONT_SIZES.xs,
     lineHeight: 14,
   },
-  perceelCardBody: {
-    gap: 4,
-  },
-  perceelCardTitle: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-  },
-  perceelCardOwner: {
-    fontFamily: FONTS.body,
-    fontSize: 12.8,
-    color: COLORS.textSecondary,
-  },
-  // Active samenwerking card (tuinzoeker)
+  // Active samenwerking card
   activeSamenwerkingCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
+    gap: SPACING.md,
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
-    padding: SPACING.sm,
+    padding: SPACING.md,
     ...SHADOWS.card,
   },
+  activeSamenwerkingCardPressed: {
+    opacity: 0.88,
+  },
   activeSamenwerkingImage: {
-    width: 60,
-    height: 60,
+    width: 72,
+    height: 72,
     borderRadius: RADIUS.sm,
     backgroundColor: COLORS.surfaceMuted,
   },
@@ -773,43 +912,44 @@ const styles = StyleSheet.create({
   },
   activeSamenwerkingInfo: {
     flex: 1,
-    gap: 3,
+    gap: SPACING.xs,
   },
   activeSamenwerkingNaam: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 15,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.textPrimary,
   },
   activeSamenwerkingPlaats: {
     fontFamily: FONTS.body,
-    fontSize: 12.8,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
   },
-  activeSamenwerkingCta: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: 12.8,
-    color: COLORS.brand,
-    marginTop: 2,
-  },
-  // Empty state
-  emptyState: {
-    paddingVertical: 28,
+  activeSamenwerkingCtaRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: SPACING.xs,
+    marginTop: SPACING.xxs,
+  },
+  activeSamenwerkingCtaText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.brand,
+  },
+  dotRow: {
+    flexDirection: 'row',
     justifyContent: 'center',
-    gap: 8,
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginTop: SPACING.sm,
   },
-  emptyTitle: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-    textAlign: 'center',
+  dot: {
+    width: SIZES.dot,
+    height: SIZES.dot,
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.indicatorMuted,
   },
-  emptySubtext: {
-    fontFamily: FONTS.body,
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    maxWidth: 260,
+  dotActive: {
+    width: 24,
+    backgroundColor: COLORS.brand,
   },
 });

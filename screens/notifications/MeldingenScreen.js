@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ArrowLeftIcon, BellSlashIcon, SealCheckIcon } from 'phosphor-react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BellSlashIcon, SealCheckIcon } from 'phosphor-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Header from '../../components/navigation/Header';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 import { useNotifications } from '../../hooks/useNotifications';
 import EmptyState from '../../components/common/EmptyState';
@@ -155,22 +156,7 @@ export default function MeldingenScreen({
 
   return (
     <View style={styles.screen}>
-      <SafeAreaView edges={['top']} style={styles.headerSafe}>
-        <View style={styles.header}>
-          <Pressable
-            style={styles.backBtn}
-            onPress={onBack}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Terug"
-          >
-            <ArrowLeftIcon size={24} color={COLORS.textInverse} weight="regular" />
-            <Text style={styles.backText}>Terug</Text>
-          </Pressable>
-          <Text style={styles.headerTitle} accessibilityRole="header">Meldingen</Text>
-          <View style={styles.headerSpacer} />
-        </View>
-      </SafeAreaView>
+      <Header title="Meldingen" onBack={onBack} />
 
       {isLoading ? (
         <View style={styles.loadingWrap}>
@@ -246,40 +232,6 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: COLORS.background,
-  },
-  headerSafe: {
-    backgroundColor: COLORS.brand,
-  },
-  header: {
-    backgroundColor: COLORS.brand,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.screenX,
-    paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    zIndex: 2,
-  },
-  backText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.textInverse,
-    includeFontPadding: false,
-  },
-  headerTitle: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.xl,
-    color: COLORS.textInverse,
-  },
-  headerSpacer: {
-    flex: 1,
   },
   loadingWrap: {
     flex: 1,

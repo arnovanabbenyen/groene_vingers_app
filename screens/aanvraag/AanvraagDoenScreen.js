@@ -16,10 +16,8 @@ import {
   LeafIcon,
   MapPinIcon,
   ShovelIcon,
-  StarIcon,
   TreeIcon,
 } from 'phosphor-react-native';
-import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
@@ -29,7 +27,6 @@ import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
 import MOCK_PERCEEL from '../../mocks/perceelMock';
 
 const WEEKDAYS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
-const TYPE_OPTIONS = ['Onderhoud helpen', 'Deel van oogst afstaan', 'Andere dienst'];
 
 function normalizeSize(rawSize) {
   if (!rawSize) return '';
@@ -78,7 +75,6 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
   const currentYear = today.getFullYear();
 
   const [motivation, setMotivation] = useState('');
-  const [type, setType] = useState(TYPE_OPTIONS[0]);
   const [availability, setAvailability] = useState([]);
   const [startDate, setStartDate] = useState(today);
   const [errors, setErrors] = useState({});
@@ -108,9 +104,6 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
     const next = {};
     if (!motivation || motivation.trim().length === 0) {
       next.motivation = 'Vul je motivatie in';
-    }
-    if (!type) {
-      next.type = 'Kies een type samenwerking';
     }
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -172,7 +165,9 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
         perceel_id: perceel?.id,
         sender_id: senderId,
         motivation: motivation.trim(),
-        type_samenwerking: type,
+        type_samenwerking: Array.isArray(perceel?.voorkeur_samenwerking) && perceel.voorkeur_samenwerking.length > 0
+          ? perceel.voorkeur_samenwerking.join(', ')
+          : null,
         availability,
         start_date: formattedDate,
         status: AANVRAAG_STATUS.PENDING,
@@ -226,10 +221,6 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
               <Text style={styles.pillText}>{perceel.location || perceel.plaats || 'Locatie onbekend'}</Text>
             </View>
 
-            <View style={[styles.pill, styles.scorePill]}>
-              <StarIcon size={14} color={COLORS.accent} weight="fill" />
-              <Text style={styles.pillText}>4,5</Text>
-            </View>
           </View>
 
           <View style={styles.summaryTitleRow}>
@@ -269,25 +260,6 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
             />
           </View>
           {errors.motivation ? <FieldError message={errors.motivation} /> : null}
-        </View>
-
-        <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Type samenwerking:</Text>
-          <View
-            style={styles.pickerWrapper}
-            accessibilityLabel="Type samenwerking"
-          >
-            <Picker
-              selectedValue={type}
-              onValueChange={(itemValue) => setType(itemValue)}
-              accessibilityLabel="Type samenwerking"
-            >
-              {TYPE_OPTIONS.map((option) => (
-                <Picker.Item key={option} label={option} value={option} />
-              ))}
-            </Picker>
-          </View>
-          {errors.type ? <FieldError message={errors.type} /> : null}
         </View>
 
         <View style={styles.formSection}>
@@ -424,10 +396,6 @@ const styles = StyleSheet.create({
     left: 8,
     bottom: 8,
   },
-  scorePill: {
-    right: 8,
-    bottom: 8,
-  },
   pillText: {
     color: COLORS.textPrimary,
     fontSize: 12.8,
@@ -516,12 +484,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontFamily: FONTS.body,
     textAlignVertical: 'top',
-  },
-  pickerWrapper: {
-    minHeight: 160,
-    borderRadius: 8,
-    backgroundColor: 'rgba(87,98,56,0.05)',
-    justifyContent: 'center',
   },
   weekdayRow: {
     flexDirection: 'row',

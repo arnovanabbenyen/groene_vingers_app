@@ -16,7 +16,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalendarIcon, CameraIcon, LeafIcon, XCircleIcon } from 'phosphor-react-native';
-import ScreenHeader from '../../components/headers/ScreenHeader';
+import Header from '../../components/navigation/Header';
 import AuthButton from '../../components/buttons/AuthButton';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
 import { supabase } from '../../services/supabase';
@@ -172,7 +172,7 @@ export default function NieuweLogScreen({ onBack, samenwerking, onSaved }) {
       style={styles.screen}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScreenHeader title="Nieuwe log" onBack={onBack} />
+      <Header title="Nieuwe log" onBack={onBack} />
 
       <ScrollView
         style={styles.scroll}

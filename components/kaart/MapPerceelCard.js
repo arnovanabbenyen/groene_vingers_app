@@ -9,7 +9,10 @@ export default function MapPerceelCard({ perceel, onPress, isFavorited = false, 
   const [imageError, setImageError] = useState(false);
   const imageUrl = perceel.fotos?.[0];
   const hasImage = imageUrl && !imageError;
-  const amenities = (perceel.voorzieningen || []).slice(0, 4);
+  const allAmenities = perceel.voorzieningen || [];
+  const hasOverflow = allAmenities.length > 3;
+  const amenities = allAmenities.slice(0, hasOverflow ? 2 : 3);
+  const overflowCount = allAmenities.length - amenities.length;
 
   return (
     <Pressable
@@ -67,11 +70,20 @@ export default function MapPerceelCard({ perceel, onPress, isFavorited = false, 
                 <Fragment key={label}>
                   {i > 0 && <View style={styles.amenityLineDivider} />}
                   <View style={styles.amenityItem}>
-                    <AmenityIcon label={label} />
+                    <AmenityIcon label={label} size={15} />
                     <Text style={styles.amenityText} numberOfLines={1}>{label}</Text>
                   </View>
                 </Fragment>
               ))}
+
+              {overflowCount > 0 && (
+                <>
+                  <View style={styles.amenityLineDivider} />
+                  <View style={styles.amenityItem}>
+                    <Text style={styles.amenityOverflow}>+{overflowCount}</Text>
+                  </View>
+                </>
+              )}
             </View>
           </>
         )}
@@ -186,5 +198,10 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
     flexShrink: 1,
+  },
+  amenityOverflow: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
   },
 });

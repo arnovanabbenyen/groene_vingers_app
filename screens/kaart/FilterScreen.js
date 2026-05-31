@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeftIcon } from 'phosphor-react-native';
+import Header from '../../components/navigation/Header';
 import AmenityIcon from '../../components/kaart/AmenityIcon';
 import { COLORS, FONTS, FONT_SIZES, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
 import { SAMENWERKING_TYPES } from '../../services/samenwerkingTypes';
@@ -162,25 +162,7 @@ export default function FilterScreen({
       onRequestClose={onClose}
     >
       <View style={styles.screen}>
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: Math.max(16, insets.top) }]}>
-          <View style={styles.headerContent}>
-            <Pressable
-              style={styles.backBtn}
-              onPress={onClose}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Terug naar kaart"
-            >
-              <ArrowLeftIcon size={24} color={COLORS.textInverse} weight="regular" />
-              <Text style={styles.backText}>Terug</Text>
-            </Pressable>
-            <View style={styles.titleWrap} pointerEvents="none">
-              <Text style={styles.headerTitle}>Filter</Text>
-            </View>
-            <View style={styles.headerSpacer} />
-          </View>
-        </View>
+        <Header title="Filter" onBack={onClose} contentStyle={styles.headerContentOffset} />
 
         {/* Content */}
         <ScrollView
@@ -392,6 +374,10 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: COLORS.brand,
     minHeight: 129,
+  },
+  headerContentOffset: {
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.lg,
   },
   headerContent: {
     flexDirection: 'row',

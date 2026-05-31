@@ -1,8 +1,8 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
-import { UserCircleIcon } from 'phosphor-react-native';
-import { COLORS, FONTS, RADIUS } from '../theme/tokens';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { StarIcon, UserCircleIcon } from 'phosphor-react-native';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 
-export default function ParcelOwnerCard({ ownerProfile, joinYear }) {
+export default function ParcelOwnerCard({ ownerProfile, joinYear, rating, onPress }) {
   if (!ownerProfile) return null;
 
   const fullName = [ownerProfile.first_name, ownerProfile.last_name]
@@ -10,38 +10,117 @@ export default function ParcelOwnerCard({ ownerProfile, joinYear }) {
     .join(' ')
     .trim() || 'Eigenaar';
 
+  if (onPress) {
+    return (
+      <Pressable
+        style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`Bekijk profiel van ${fullName}`}
+        accessibilityHint="Tik om het profiel van deze tuineigenaar te openen"
+      >
+        <View style={styles.topRow}>
+          {ownerProfile.avatar_url ? (
+            <Image
+              source={{ uri: ownerProfile.avatar_url }}
+              style={styles.avatar}
+              accessibilityElementsHidden
+            />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <UserCircleIcon size={48} color={COLORS.brand} weight="regular" accessibilityElementsHidden />
+            </View>
+          )}
+          <View style={styles.meta}>
+            <Text style={styles.name}>{fullName}</Text>
+            <View
+              style={styles.subRow}
+              accessible
+              accessibilityLabel={rating != null ? `Beoordeling: ${typeof rating === 'number' ? rating.toFixed(1) : rating} van 5` : 'Nieuw profiel, nog geen beoordelingen'}
+            >
+              <View style={styles.ratingPill}>
+                <StarIcon size={14} color="#FFB800" weight="fill" accessibilityElementsHidden />
+                <Text style={styles.ratingText}>
+                  {rating != null ? (typeof rating === 'number' ? rating.toFixed(1) : rating) : 'Nieuw'}
+                </Text>
+              </View>
+              {joinYear ? <View style={styles.dot} /> : null}
+              {joinYear ? (
+                <Text style={styles.since}>
+                  {joinYear >= new Date().getFullYear() ? 'Lid sinds kort' : `Lid sinds ${joinYear}`}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+        </View>
+
+        {ownerProfile.bio ? (
+          <Text style={styles.quote}>{ownerProfile.bio}</Text>
+        ) : null}
+      </Pressable>
+    );
+  }
+
   return (
     <View style={styles.card}>
       <View style={styles.topRow}>
         {ownerProfile.avatar_url ? (
-          <Image source={{ uri: ownerProfile.avatar_url }} style={styles.avatar} />
+          <Image
+            source={{ uri: ownerProfile.avatar_url }}
+            style={styles.avatar}
+            accessibilityElementsHidden
+          />
         ) : (
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <UserCircleIcon size={48} color={COLORS.brand} weight="regular" />
+            <UserCircleIcon size={48} color={COLORS.brand} weight="regular" accessibilityElementsHidden />
           </View>
         )}
         <View style={styles.meta}>
           <Text style={styles.name}>{fullName}</Text>
-          {joinYear ? <Text style={styles.since}>Lid sinds {joinYear}</Text> : null}
+          <View
+            style={styles.subRow}
+            accessible
+            accessibilityLabel={rating != null ? `Beoordeling: ${typeof rating === 'number' ? rating.toFixed(1) : rating} van 5` : 'Nieuw profiel, nog geen beoordelingen'}
+          >
+            <View style={styles.ratingPill}>
+              <StarIcon size={14} color="#FFB800" weight="fill" accessibilityElementsHidden />
+              <Text style={styles.ratingText}>
+                {rating != null ? (typeof rating === 'number' ? rating.toFixed(1) : rating) : 'Nieuw'}
+              </Text>
+            </View>
+            {joinYear ? <View style={styles.dot} /> : null}
+            {joinYear ? (
+              <Text style={styles.since}>
+                {joinYear >= new Date().getFullYear() ? 'Lid sinds kort' : `Lid sinds ${joinYear}`}
+              </Text>
+            ) : null}
+          </View>
         </View>
       </View>
 
-      {ownerProfile.bio ? <Text style={styles.quote}>{ownerProfile.bio}</Text> : null}
+      {ownerProfile.bio ? (
+        <Text style={styles.quote}>{ownerProfile.bio}</Text>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
+    marginTop: SPACING.sm,
     borderRadius: RADIUS.xl,
     backgroundColor: COLORS.background,
-    padding: 16,
-    gap: 16,
+    padding: SPACING.md,
+    gap: SPACING.md,
+    ...SHADOWS.card,
+  },
+  cardPressed: {
+    opacity: 0.9,
   },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: SPACING.sm,
   },
   avatar: {
     width: 64,
@@ -55,27 +134,46 @@ const styles = StyleSheet.create({
   },
   meta: {
     flex: 1,
-    gap: 8,
+    gap: SPACING.xs,
   },
   name: {
     color: COLORS.textPrimary,
-    fontSize: 20,
+    fontSize: FONT_SIZES.xl,
     lineHeight: 22,
     fontFamily: FONTS.displaySemiBold,
-    fontWeight: '900',
+  },
+  subRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  ratingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xxs,
+  },
+  ratingText: {
+    color: COLORS.textSecondary,
+    fontSize: FONT_SIZES.md,
+    lineHeight: 18,
+    fontFamily: FONTS.body,
+  },
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.accent,
   },
   since: {
     color: COLORS.textSecondary,
-    fontSize: 12.8,
-    lineHeight: 13,
+    fontSize: FONT_SIZES.md,
+    lineHeight: 18,
     fontFamily: FONTS.body,
-    fontWeight: '400',
   },
   quote: {
     color: COLORS.textPrimary,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     lineHeight: 24,
     fontFamily: FONTS.body,
-    fontWeight: '400',
   },
 });
