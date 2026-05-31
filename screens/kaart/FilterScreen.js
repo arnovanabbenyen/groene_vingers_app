@@ -162,7 +162,7 @@ export default function FilterScreen({
       onRequestClose={onClose}
     >
       <View style={styles.screen}>
-        <Header title="Filter" onBack={onClose} />
+        <Header title="Filter" onBack={onClose} contentStyle={styles.headerContentOffset} />
 
         {/* Content */}
         <ScrollView
@@ -374,6 +374,10 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: COLORS.brand,
     minHeight: 129,
+  },
+  headerContentOffset: {
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.lg,
   },
   headerContent: {
     flexDirection: 'row',

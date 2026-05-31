@@ -3,10 +3,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeftIcon } from 'phosphor-react-native';
 import { COLORS, FONT_SIZES, FONTS, SPACING } from '../theme/tokens';
 
-export default function Header({ title, onBack, backLabel = 'Terug', rightElement }) {
+export default function Header({ title, onBack, backLabel = 'Terug', rightElement, contentStyle }) {
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
-      <View style={styles.header}>
+      <View style={[styles.header, contentStyle]}>
         <Pressable
           style={styles.back}
           onPress={onBack}
