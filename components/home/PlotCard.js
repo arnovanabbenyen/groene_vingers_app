@@ -1,16 +1,9 @@
 import { Fragment, useState } from 'react';
 import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import {
-  DropIcon,
-  LeafIcon,
-  MapPinIcon,
-  PlantIcon,
-  RecycleIcon,
-  ShovelIcon,
-  TreeIcon,
-} from 'phosphor-react-native';
+import { LeafIcon, MapPinIcon } from 'phosphor-react-native';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 import FavoriteHeartButton from '../parcel/FavoriteHeartButton';
+import AmenityIcon from '../kaart/AmenityIcon';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -21,19 +14,6 @@ export const PLOT_CARD = {
   cardPadding: 8,  // retained for HomeScreen statusChip positioning: top/left = cardPadding + badgeInset
   badgeInset: 8,   // retained for HomeScreen statusChip positioning
 };
-
-const VOORZIENING_ICONS = {
-  Water: DropIcon,
-  Tools: ShovelIcon,
-  Materiaal: ShovelIcon,
-  Zaden: PlantIcon,
-  Compost: RecycleIcon,
-  Bomen: TreeIcon,
-};
-
-function getVoorzieningIcon(name) {
-  return VOORZIENING_ICONS[name] || LeafIcon;
-}
 
 function PlotCardBadges({ location, isFavorited, onToggleFavorite, showFavoriteButton }) {
   return (
@@ -123,18 +103,15 @@ export default function PlotCard({ plot, onPress, isFavorited = false, onToggleF
           <>
             <View style={styles.divider} />
             <View style={styles.voorzieningenRow}>
-              {visibleVoorzieningen.map((v, index) => {
-                const Icon = getVoorzieningIcon(v);
-                return (
-                  <Fragment key={`${plot.id}-${v}-${index}`}>
-                    {index > 0 && <View style={styles.voorzieningDivider} />}
-                    <View style={styles.voorzieningItem}>
-                      <Icon size={15} color={COLORS.textSecondary} weight="regular" />
-                      <Text style={styles.voorzieningLabel} numberOfLines={1}>{v}</Text>
-                    </View>
-                  </Fragment>
-                );
-              })}
+              {visibleVoorzieningen.map((v, index) => (
+                <Fragment key={`${plot.id}-${v}-${index}`}>
+                  {index > 0 && <View style={styles.voorzieningDivider} />}
+                  <View style={styles.voorzieningItem}>
+                    <AmenityIcon label={v} size={15} />
+                    <Text style={styles.voorzieningLabel} numberOfLines={1}>{v}</Text>
+                  </View>
+                </Fragment>
+              ))}
 
               {overflowCount > 0 && (
                 <>
