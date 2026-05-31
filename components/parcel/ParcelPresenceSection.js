@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { DropIcon, PlantIcon, ShovelIcon, RecycleIcon, TreeIcon } from 'phosphor-react-native';
-import { COLORS, FONTS, SPACING } from '../theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, SPACING } from '../theme/tokens';
 
 const ICON_MAP = {
   Water: DropIcon,
@@ -15,11 +15,15 @@ function PresenceItem({ label }) {
   const IconComponent = ICON_MAP[label] || DropIcon;
 
   return (
-    <View style={styles.item}>
+    <View
+      style={styles.item}
+      accessibilityRole="text"
+      accessibilityLabel={label}
+    >
       <View style={styles.iconCircle}>
-        <IconComponent size={22} color={COLORS.textInverse} weight="regular" />
+        <IconComponent size={22} color={COLORS.textInverse} weight="regular" accessibilityElementsHidden />
       </View>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.label} accessibilityElementsHidden>{label}</Text>
     </View>
   );
 }
@@ -47,10 +51,9 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.textPrimary,
-    fontSize: 20,
+    fontSize: FONT_SIZES.xl,
     lineHeight: 22,
     fontFamily: FONTS.displaySemiBold,
-    fontWeight: '900',
   },
   row: {
     flexDirection: 'row',
@@ -71,10 +74,9 @@ const styles = StyleSheet.create({
   },
   label: {
     color: COLORS.textPrimary,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     lineHeight: 16,
     fontFamily: FONTS.bodyMedium,
-    fontWeight: '600',
     textAlign: 'center',
   },
 });

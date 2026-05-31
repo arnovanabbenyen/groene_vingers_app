@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { COLORS, FONTS, SPACING } from '../theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, SPACING } from '../theme/tokens';
 
 function InfoItem({ raw }) {
   const colonIndex = raw.indexOf(':');
@@ -10,7 +10,7 @@ function InfoItem({ raw }) {
     const value = raw.slice(colonIndex + 1).trim();
 
     return (
-      <View style={styles.itemRow}>
+      <View style={styles.itemRow} accessibilityRole="text">
         <View style={styles.dot} />
         <Text style={styles.text}>
           <Text style={styles.title}>{title}</Text>
@@ -21,7 +21,7 @@ function InfoItem({ raw }) {
   }
 
   return (
-    <View style={styles.itemRow}>
+    <View style={styles.itemRow} accessibilityRole="text">
       <View style={styles.dot} />
       <Text style={styles.text}>{raw}</Text>
     </View>
@@ -51,10 +51,9 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: COLORS.textPrimary,
-    fontSize: 20,
+    fontSize: FONT_SIZES.xl,
     lineHeight: 22,
     fontFamily: FONTS.displaySemiBold,
-    fontWeight: '900',
   },
   list: {
     gap: SPACING.sm,
@@ -73,13 +72,11 @@ const styles = StyleSheet.create({
   text: {
     flex: 1,
     color: COLORS.textPrimary,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     lineHeight: 24,
     fontFamily: FONTS.body,
-    fontWeight: '400',
   },
   title: {
     fontFamily: FONTS.bodyMedium,
-    fontWeight: '500',
   },
 });

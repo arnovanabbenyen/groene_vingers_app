@@ -1,71 +1,62 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ArrowLeftIcon, DotsThreeIcon } from 'phosphor-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, FONTS, SPACING } from '../theme/tokens';
+import { ArrowLeftIcon } from 'phosphor-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { COLORS, FONT_SIZES, FONTS, SPACING } from '../theme/tokens';
 
-export default function ParcelDetailHeader({ title = 'Perceel', onBack, onMorePress }) {
-  const insets = useSafeAreaInsets();
-  const topOffset = Math.max(0, insets.top - 16);
-
+export default function ParcelDetailHeader({ title = 'Perceel', onBack }) {
   return (
-    <View style={styles.header}>
-      <Pressable
-        style={[styles.backButton, { top: 55 + topOffset }]}
-        onPress={onBack}
-        hitSlop={8}
-      >
-        <ArrowLeftIcon size={24} color={COLORS.textInverse} weight="regular" />
-        <Text style={styles.backText}>Terug</Text>
-      </Pressable>
-
-      <Text style={[styles.title, { top: 52 + topOffset }]}>{title}</Text>
-
-      {onMorePress ? (
+    <SafeAreaView edges={['top']} style={styles.safe}>
+      <View style={styles.header}>
         <Pressable
-          style={[styles.moreButton, { top: 55 + topOffset }]}
-          onPress={onMorePress}
+          style={styles.back}
+          onPress={onBack}
           hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Terug"
         >
-          <DotsThreeIcon size={24} color={COLORS.textInverse} weight="regular" />
+          <ArrowLeftIcon size={20} color={COLORS.textInverse} weight="regular" accessibilityElementsHidden />
+          <Text style={styles.backText}>Terug</Text>
         </Pressable>
-      ) : null}
-    </View>
+
+        <Text style={styles.title} accessibilityRole="header">{title}</Text>
+
+        <View style={styles.spacer} />
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    height: 160,
+  safe: {
     backgroundColor: COLORS.brand,
-    position: 'relative',
   },
-  backButton: {
-    position: 'absolute',
-    left: SPACING.screenX,
+  header: {
+    backgroundColor: COLORS.brand,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.lg,
+  },
+  back: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
   },
   backText: {
     color: COLORS.textInverse,
-    fontSize: 16,
-    lineHeight: 16,
-    fontFamily: FONTS.displayMedium,
-    fontWeight: '500',
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.md,
+    lineHeight: 20,
   },
   title: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
     color: COLORS.textInverse,
-    fontSize: 20,
-    lineHeight: 20,
     fontFamily: FONTS.displaySemiBold,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontSize: FONT_SIZES.xl,
+    lineHeight: 24,
   },
-  moreButton: {
-    position: 'absolute',
-    right: SPACING.screenX,
+  spacer: {
+    width: 60,
   },
 });
