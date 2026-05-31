@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { ArrowLeftIcon, HeartIcon, MagnifyingGlassIcon, XIcon } from 'phosphor-react-native';
+import EmptyState from '../../components/common/EmptyState';
 import { useSavedPercelen } from '../../hooks/useSavedPercelen';
 import { useFavorites } from '../../hooks/useFavorites';
 import PlotCard from '../../components/home/PlotCard';
@@ -99,17 +100,21 @@ export default function OpgeslagenScreen({ onBack, onPerceelPress }) {
           accessibilityLabel="Laden..."
         />
       ) : isEmpty ? (
-        <View style={styles.emptyState} accessible accessibilityRole="text">
-          <HeartIcon size={48} color={COLORS.brand} weight="regular" accessibilityElementsHidden />
-          <Text style={styles.emptyTitle}>
-            {searchQuery.trim() ? 'Geen resultaten' : 'Nog niets opgeslagen'}
-          </Text>
-          <Text style={styles.emptyBody}>
-            {searchQuery.trim()
-              ? 'Geen opgeslagen percelen gevonden voor je zoekopdracht.'
-              : 'Sla percelen op door op het hartje te tikken.'}
-          </Text>
-        </View>
+        searchQuery.trim() ? (
+          <EmptyState
+            icon={MagnifyingGlassIcon}
+            iconColor={COLORS.textSecondary}
+            iconBgColor={COLORS.surfaceMuted}
+            title="Geen resultaten"
+            body={`Geen opgeslagen percelen gevonden voor "${searchQuery.trim()}".`}
+          />
+        ) : (
+          <EmptyState
+            icon={HeartIcon}
+            title="Nog niets opgeslagen"
+            body="Sla percelen op door op het hartje te tikken."
+          />
+        )
       ) : (
         <ScrollView
           style={styles.scroll}
@@ -192,25 +197,5 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xl,
     alignItems: 'center',
     gap: SPACING.lg,
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: SPACING.screenX,
-    gap: SPACING.md,
-  },
-  emptyTitle: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.xl,
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-  },
-  emptyBody: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
   },
 });
