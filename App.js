@@ -408,7 +408,10 @@ export default function App() {
             onBack={() => setCurrentScreen('instellingen')}
             onUpgradeSuccess={() => {
               setProfielRefreshKey((k) => k + 1);
-              setCurrentScreen('instellingen');
+            }}
+            onDiscoverPercelen={() => {
+              homeInitialTabRef.current = 'kaart';
+              setCurrentScreen('home');
             }}
           />
         ) : currentScreen === 'wachtwoord-wijzigen' ? (

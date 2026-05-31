@@ -10,42 +10,56 @@ export default function EmptyState({
   title,
   body,
   cta,
+  ctaPlacement = 'inline',
   compact = false,
   style,
 }) {
   const resolvedIconSize = iconSize ?? (compact ? 32 : 52);
+  const hasCta = !!cta && !compact;
+  const isBottomCta = hasCta && ctaPlacement === 'bottom';
 
   return (
     <View
-      style={[styles.container, compact && styles.containerCompact, style]}
-      accessible
-      accessibilityRole="text"
+      style={[
+        styles.container,
+        compact && styles.containerCompact,
+        isBottomCta && styles.containerBottomCta,
+        style,
+      ]}
+      accessible={!hasCta}
+      accessibilityRole={!hasCta ? 'text' : undefined}
     >
-      {Icon && (
-        <View style={[
-          styles.iconCircle,
-          compact && styles.iconCircleCompact,
-          { backgroundColor: iconBgColor },
-        ]}>
-          <Icon
-            size={resolvedIconSize}
-            color={iconColor}
-            weight={iconWeight}
-            accessibilityElementsHidden
-          />
-        </View>
-      )}
+      <View style={styles.mainContent}>
+        {Icon && (
+          <View style={[
+            styles.iconCircle,
+            compact && styles.iconCircleCompact,
+            { backgroundColor: iconBgColor },
+          ]}>
+            <Icon
+              size={resolvedIconSize}
+              color={iconColor}
+              weight={iconWeight}
+              accessibilityElementsHidden
+            />
+          </View>
+        )}
 
-      <View style={styles.textBlock}>
-        <Text style={[styles.title, compact && styles.titleCompact]}>{title}</Text>
-        {body ? (
-          <Text style={[styles.body, compact && styles.bodyCompact]}>{body}</Text>
-        ) : null}
+        <View style={styles.textBlock}>
+          <Text style={[styles.title, compact && styles.titleCompact]}>{title}</Text>
+          {body ? (
+            <Text style={[styles.body, compact && styles.bodyCompact]}>{body}</Text>
+          ) : null}
+        </View>
       </View>
 
-      {cta && !compact ? (
+      {hasCta ? (
         <Pressable
-          style={({ pressed }) => [styles.ctaBtn, pressed && styles.ctaBtnPressed]}
+          style={({ pressed }) => [
+            styles.ctaBtn,
+            isBottomCta && styles.ctaBtnBottom,
+            pressed && styles.ctaBtnPressed,
+          ]}
           onPress={cta.onPress}
           accessibilityRole="button"
           accessibilityLabel={cta.accessibilityLabel ?? cta.label}
@@ -66,11 +80,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xl,
     gap: SPACING.lg,
   },
+  containerBottomCta: {
+    justifyContent: 'center',
+  },
   containerCompact: {
     flex: undefined,
     paddingVertical: SPACING.xl,
     paddingHorizontal: SPACING.lg,
     gap: SPACING.md,
+  },
+  mainContent: {
+    alignItems: 'center',
+    gap: SPACING.lg,
   },
   iconCircle: {
     width: 120,
@@ -118,6 +139,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignSelf: 'stretch',
     ...SHADOWS.card,
+  },
+  ctaBtnBottom: {
+    position: 'absolute',
+    left: SPACING.xl,
+    right: SPACING.xl,
+    bottom: SPACING.xl,
   },
   ctaBtnPressed: { opacity: 0.85 },
   ctaLabel: {

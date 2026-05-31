@@ -6,8 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Header from '../../components/navigation/Header';
 import PlanOptionCard from '../../components/plans/PlanOptionCard';
 import ProPlanConfirmScreen from './ProPlanConfirmScreen';
+import ProPlanSuccessScreen from './ProPlanSuccessScreen';
 import { COLORS, FONT_SIZES, FONTS, SPACING } from '../../components/theme/tokens';
-import { createCheckoutSession, pollForProStatus } from '../../services/stripe';
+import { createCheckoutSession } from '../../services/stripe';
 
 const PLAN_OPTIONS = [
   {
@@ -15,7 +16,7 @@ const PLAN_OPTIONS = [
     variant: 'pro',
     title: 'Pro',
     price: '€7,01',
-    priceSuffix: 'Per maand (incl. btw)',
+    priceSuffix: 'Per maand (incl. €1,22 btw)',
     note: null,
     buttonLabel: 'Selecteer Pro',
     buttonVariant: 'solid',
@@ -42,12 +43,24 @@ const PLAN_OPTIONS = [
   },
 ];
 
-export default function PlansScreen({ onBack, onUpgradeSuccess }) {
+export default function PlansScreen({ onBack, onUpgradeSuccess, onDiscoverPercelen }) {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
   const insets = useSafeAreaInsets();
+
+  if (showSuccess) {
+    return (
+      <ProPlanSuccessScreen
+        onDiscoverPercelen={() => {
+          onUpgradeSuccess?.();
+          onDiscoverPercelen?.();
+        }}
+      />
+    );
+  }
 
   if (showConfirm) {
     return (
@@ -83,22 +96,8 @@ export default function PlansScreen({ onBack, onUpgradeSuccess }) {
         throw new Error(paymentError.message);
       }
 
-      setStatusMessage('We verwerken je betaling...');
-      const isPro = await pollForProStatus();
-
-      if (isPro) {
-        Alert.alert(
-          'Welkom bij Pro!',
-          'Je upgrade is voltooid. Je kunt nu aanvragen sturen.',
-          [{ text: 'OK', onPress: () => onUpgradeSuccess?.() }]
-        );
-      } else {
-        Alert.alert(
-          'Betaling ontvangen',
-          'Je betaling is verwerkt. De activatie kan tot een minuut duren — open de app eventueel kort opnieuw.',
-          [{ text: 'OK', onPress: () => onUpgradeSuccess?.() }]
-        );
-      }
+      setShowSuccess(true);
+      setStatusMessage(null);
     } catch (err) {
       console.error('Payment flow error:', err);
       Alert.alert('Er ging iets mis', err.message || 'Probeer het opnieuw.');
