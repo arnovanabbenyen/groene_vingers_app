@@ -1,53 +1,50 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeftIcon, CheckCircleIcon, LockSimpleIcon } from 'phosphor-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LockSimpleIcon } from 'phosphor-react-native';
+import Header from '../../components/navigation/Header';
+import UpgradeCard from '../../components/plans/UpgradeCard';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 
 export default function GeenToegangScreen({ onBack, onUpgrade }) {
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={styles.screen}>
-      <SafeAreaView edges={['top']} style={styles.headerSafe}>
-        <View style={styles.header}>
-          <Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button">
-            <ArrowLeftIcon size={24} color={COLORS.textInverse} weight="regular" />
-            <Text style={styles.backText}>Terug</Text>
-          </Pressable>
-          <Text style={styles.headerTitle}>Aanvraag sturen</Text>
-        </View>
-      </SafeAreaView>
+      <Header title="Aanvraag sturen" onBack={onBack} backLabel="Terug" />
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: Math.max(SPACING.xl, insets.bottom + SPACING.lg) },
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.lockCircle}>
+        <View
+          style={styles.lockCircle}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
           <LockSimpleIcon size={32} color={COLORS.negative} weight="regular" />
         </View>
 
-        <Text style={styles.title}>Geen toegang</Text>
-        <Text style={styles.subtitle}>
-          Upgrade naar het pro plan en ontgrendel alle functies.
+        <Text style={styles.title} accessibilityRole="header">
+          Geen toegang
         </Text>
 
-        <View style={styles.proCard}>
-          <Text style={styles.proHeadline}>
-            Pro – €7,01/maand{' '}
-            <Text style={styles.proNote}>(inclusief €1,22 btw)</Text>
-          </Text>
+        <Text style={styles.subtitle}>
+          Upgrade naar het Pro plan en ontgrendel alle functies.
+        </Text>
 
-          <View style={styles.featureList}>
-            <FeatureRow text="Percelen bekijken & zoeken" />
-            <FeatureRow text="Matchen met tuin eigenaar" />
-            <FeatureRow text="Logboek bijhouden" />
-          </View>
+        <UpgradeCard onPress={onUpgrade} />
 
-          <Pressable style={styles.upgradeButton} onPress={onUpgrade} accessibilityRole="button">
-            <Text style={styles.upgradeButtonText}>Upgrade naar Pro</Text>
-          </Pressable>
-        </View>
-
-        <Pressable style={styles.laterButton} onPress={onBack} accessibilityRole="button">
+        <Pressable
+          style={({ pressed }) => [styles.laterButton, pressed && styles.laterButtonPressed]}
+          onPress={onBack}
+          accessibilityRole="button"
+          accessibilityLabel="Misschien later"
+          accessibilityHint="Sluit dit scherm en ga terug"
+        >
           <Text style={styles.laterButtonText}>Misschien later</Text>
         </Pressable>
       </ScrollView>
@@ -55,140 +52,58 @@ export default function GeenToegangScreen({ onBack, onUpgrade }) {
   );
 }
 
-function FeatureRow({ text }) {
-  return (
-    <View style={styles.featureRow}>
-      <CheckCircleIcon size={16} color={COLORS.accent} weight="fill" />
-      <Text style={styles.featureText}>{text}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.surface,
-  },
-  headerSafe: {
-    backgroundColor: COLORS.brand,
-  },
-  header: {
-    backgroundColor: COLORS.brand,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.screenX,
-    paddingVertical: SPACING.md,
-    position: 'relative',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  backText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.textInverse,
-  },
-  headerTitle: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.xl,
-    color: COLORS.textInverse,
+    backgroundColor: COLORS.background,
   },
   scroll: {
     flex: 1,
   },
   content: {
     paddingHorizontal: SPACING.screenX,
-    paddingBottom: SPACING.xl,
+    paddingTop: SPACING.xl + SPACING.lg,
     alignItems: 'center',
+    gap: SPACING.lg,
   },
   lockCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: '#FCEBEB',
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: COLORS.negativeSoft,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 60,
-    marginBottom: 24,
   },
   title: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 25,
+    fontSize: FONT_SIZES.xxxl,
     color: COLORS.textPrimary,
     textAlign: 'center',
-    marginBottom: 12,
   },
   subtitle: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.lg,
     color: COLORS.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 32,
-  },
-  proCard: {
-    width: '100%',
-    backgroundColor: COLORS.brand,
-    borderRadius: RADIUS.sm,
-    padding: SPACING.md,
-    marginBottom: SPACING.md,
-  },
-  proHeadline: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
-    color: COLORS.accent,
-    marginBottom: SPACING.md,
-  },
-  proNote: {
-    fontFamily: FONTS.body,
-    fontSize: 12.8,
-    color: COLORS.accent,
-  },
-  featureList: {
-    gap: SPACING.md,
-    marginBottom: SPACING.xl,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  featureText: {
-    fontFamily: FONTS.body,
-    fontSize: 12.8,
-    color: COLORS.textInverse,
-  },
-  upgradeButton: {
-    height: 53,
-    borderRadius: RADIUS.xl,
-    backgroundColor: COLORS.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  upgradeButtonText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.textPrimary,
+    lineHeight: 24,
+    maxWidth: 280,
   },
   laterButton: {
     width: '100%',
-    height: 53,
-    borderRadius: RADIUS.xl,
-    borderWidth: 2,
+    height: 44,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1.5,
     borderColor: COLORS.brand,
     backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  laterButtonPressed: {
+    opacity: 0.7,
+  },
   laterButtonText: {
     fontFamily: FONTS.displayMedium,
     fontSize: FONT_SIZES.lg,
-    color: COLORS.textPrimary,
+    color: COLORS.brand,
   },
 });

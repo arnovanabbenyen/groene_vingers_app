@@ -47,9 +47,9 @@ function navReducer(state, action) {
     case 'CLOSE_REQUEST_SUCCESS':
       return { type: 'home', payload: null };
     case 'OPEN_GEEN_TOEGANG':
-      return { type: 'geen-toegang', payload: action.plot };
+      return { type: 'geen-toegang', payload: action.plot, prevState: state };
     case 'CLOSE_GEEN_TOEGANG':
-      return { type: 'home', payload: null };
+      return state.prevState ?? initialNavState;
     case 'RESET':
       return initialNavState;
     default:
