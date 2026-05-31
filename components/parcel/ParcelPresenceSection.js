@@ -37,8 +37,8 @@ export default function ParcelPresenceSection({ voorzieningen = [] }) {
     <View style={styles.container}>
       <Text style={styles.title}>Aanwezig</Text>
       <View style={styles.row}>
-        {voorzieningen.map((label) => (
-          <PresenceItem key={label} label={label} />
+        {voorzieningen.map((label, index) => (
+          <PresenceItem key={`${label}-${index}`} label={label} />
         ))}
       </View>
     </View>

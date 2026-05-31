@@ -168,6 +168,21 @@ export default function ParcelDetailScreen({
         </View>
 
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Type samenwerking</Text>
+          {Array.isArray(perceel.voorkeur_samenwerking) && perceel.voorkeur_samenwerking.length > 0 ? (
+            <View style={styles.chipsRow}>
+              {perceel.voorkeur_samenwerking.map((type, i) => (
+                <View key={`${type}-${i}`} style={styles.chip}>
+                  <Text style={styles.chipText}>{type}</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.description}>Geen voorkeur opgegeven</Text>
+          )}
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Locatie</Text>
           <ParcelLocationMap
             latitude={perceel.approximate_lat}
@@ -360,6 +375,23 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.lg,
     lineHeight: 24,
     fontFamily: FONTS.body,
+  },
+  chipsRow: {
+    marginTop: SPACING.sm,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+  },
+  chip: {
+    backgroundColor: COLORS.surfaceBrand,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+  },
+  chipText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textPrimary,
   },
   locationNotice: {
     marginTop: SPACING.sm,

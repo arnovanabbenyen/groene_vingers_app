@@ -21,7 +21,7 @@ export function useSavedPercelen(refreshKey = 0) {
           perceel:percelen!inner (
             id, naam, beschrijving, plaats, adres, grootte,
             fotos, voorzieningen, approximate_lat, approximate_lng,
-            owner_id, status
+            owner_id, status, voorkeur_samenwerking
           )
         `)
         .eq('user_id', userId)

@@ -19,7 +19,7 @@ export function usePercelen(refreshKey = 0) {
       try {
         const { data, error: fetchError } = await supabase
           .from('percelen')
-          .select('id, naam, grootte, plaats, fotos, voorzieningen, extra_info, owner_id, adres, approximate_lat, approximate_lng')
+          .select('id, naam, grootte, plaats, fotos, voorzieningen, extra_info, owner_id, adres, approximate_lat, approximate_lng, voorkeur_samenwerking')
           .eq('status', 'active');
 
         if (fetchError) throw fetchError;

@@ -143,7 +143,7 @@ export default function TuineigenaarHomeScreen({
 
         const { data: percelenData, error: percelenError } = await supabase
           .from('percelen')
-          .select('id, owner_id, naam, beschrijving, grootte, adres, plaats, lat, lng, approximate_lat, approximate_lng, extra_info, fotos, voorzieningen, created_at, updated_at, status')
+          .select('id, owner_id, naam, beschrijving, grootte, adres, plaats, lat, lng, approximate_lat, approximate_lng, extra_info, fotos, voorzieningen, voorkeur_samenwerking, created_at, updated_at, status')
           .eq('owner_id', userId)
           .order('created_at', { ascending: false });
 

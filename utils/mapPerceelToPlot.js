@@ -18,6 +18,7 @@ export function mapPerceelToPlot(row) {
     lng: row.lng || null,
     approximate_lat: row.approximate_lat || null,
     approximate_lng: row.approximate_lng || null,
+    voorkeur_samenwerking: row.voorkeur_samenwerking || [],
     raw: row,
   };
 }
