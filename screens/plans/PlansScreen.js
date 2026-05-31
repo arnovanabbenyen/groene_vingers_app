@@ -136,7 +136,7 @@ export default function PlansScreen({ onBack, onUpgradeSuccess }) {
             buttonVariant={plan.buttonVariant}
             features={plan.features}
             isLoading={false}
-            onPress={plan.key === 'pro' ? () => setShowConfirm(true) : undefined}
+            onPress={plan.key === 'pro' ? () => setShowConfirm(true) : onBack}
           />
         ))}
 

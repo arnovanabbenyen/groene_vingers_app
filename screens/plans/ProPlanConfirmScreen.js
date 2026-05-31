@@ -1,5 +1,5 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { CheckCircleIcon } from 'phosphor-react-native';
+import { CheckCircleIcon, TreeIcon } from 'phosphor-react-native';
 import Header from '../../components/navigation/Header';
 import AuthButton from '../../components/buttons/AuthButton';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
@@ -27,6 +27,7 @@ export default function ProPlanConfirmScreen({ onBack, onConfirm, isLoading = fa
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
+          <TreeIcon size={30} color={COLORS.brand} weight="regular" />
           <Text style={styles.cardTitle}>Pro plan</Text>
 
           <Text style={styles.safePaymentNote}>
