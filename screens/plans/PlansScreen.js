@@ -5,6 +5,7 @@ import * as Linking from 'expo-linking';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Header from '../../components/navigation/Header';
 import PlanOptionCard from '../../components/plans/PlanOptionCard';
+import ProPlanConfirmScreen from './ProPlanConfirmScreen';
 import { COLORS, FONT_SIZES, FONTS, SPACING } from '../../components/theme/tokens';
 import { createCheckoutSession, pollForProStatus } from '../../services/stripe';
 
@@ -43,9 +44,20 @@ const PLAN_OPTIONS = [
 
 export default function PlansScreen({ onBack, onUpgradeSuccess }) {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
   const insets = useSafeAreaInsets();
+
+  if (showConfirm) {
+    return (
+      <ProPlanConfirmScreen
+        onBack={() => setShowConfirm(false)}
+        onConfirm={handleStartPro}
+        isLoading={isLoading}
+      />
+    );
+  }
 
   async function handleStartPro() {
     setIsLoading(true);
@@ -123,8 +135,8 @@ export default function PlansScreen({ onBack, onUpgradeSuccess }) {
             buttonLabel={plan.buttonLabel}
             buttonVariant={plan.buttonVariant}
             features={plan.features}
-            isLoading={plan.key === 'pro' && isLoading}
-            onPress={plan.key === 'pro' ? handleStartPro : undefined}
+            isLoading={false}
+            onPress={plan.key === 'pro' ? () => setShowConfirm(true) : undefined}
           />
         ))}
 
