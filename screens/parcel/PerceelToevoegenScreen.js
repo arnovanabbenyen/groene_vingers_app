@@ -29,7 +29,7 @@ import AuthButton from '../../components/buttons/AuthButton';
 import AuthTextArea from '../../components/auth/AuthTextArea';
 import AuthTextField from '../../components/auth/AuthTextField';
 import FieldError from '../../components/notifications/FieldError';
-import ScreenHeader from '../../components/headers/ScreenHeader';
+import Header from '../../components/navigation/Header';
 import AmenitySelector from '../../components/parcel/AmenitySelector';
 import ExtraInfoEditor from '../../components/parcel/ExtraInfoEditor';
 import GrootteInput from '../../components/parcel/GrootteInput';
@@ -509,7 +509,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {}, ini
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title={isEditMode ? 'Perceel bewerken' : 'Perceel toevoegen'} onBack={onBack} />
+      <Header title={isEditMode ? 'Perceel bewerken' : 'Perceel toevoegen'} onBack={onBack} />
 
       <ScrollView
         style={styles.scroll}
