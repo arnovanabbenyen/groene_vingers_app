@@ -62,6 +62,9 @@ function toPlotShape(perceel) {
     grootte: perceel.grootte,
     chips: perceel.voorzieningen || [],
     voorzieningen: perceel.voorzieningen || [],
+    voorkeur_samenwerking: perceel.voorkeur_samenwerking || perceel.voorkeur_samenwerking_label || null,
+    approximate_lat: perceel.approximate_lat,
+    approximate_lng: perceel.approximate_lng,
     ownerId: perceel.owner_id,
     owner_id: perceel.owner_id,
   };
