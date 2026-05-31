@@ -2,22 +2,18 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  ArrowLeftIcon,
-  CaretRightIcon,
-  SignOutIcon,
-  StarIcon,
-  TrashSimpleIcon,
-} from 'phosphor-react-native';
-import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
+import { CaretRightIcon, SignOutIcon, StarIcon, TrashSimpleIcon } from 'phosphor-react-native';
+import Header from '../../components/navigation/Header';
+import SettingsRow from '../../components/settings/SettingsRow';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
 import { supabase } from '../../services/supabase';
+import { useActiveSamenwerking } from '../../hooks/useActiveSamenwerking';
 
 export default function InstellingenScreen({
   role = 'tuinzoeker',
@@ -26,6 +22,7 @@ export default function InstellingenScreen({
   onOpenNotificaties,
   onOpenKiesPlan,
   onOpenWeeklyGoal,
+  onOpenWachtwoordWijzigen,
   onLogout,
 }) {
   const [plan, setPlan] = useState('free');
@@ -61,6 +58,7 @@ export default function InstellingenScreen({
     return () => { mounted = false; };
   }, []);
 
+  const { samenwerking: activeSamenwerking } = useActiveSamenwerking(role === 'tuinzoeker' ? 0 : null);
   const showProFeatures = role === 'tuinzoeker' && plan === 'free';
 
   async function handleLogout() {
@@ -73,11 +71,7 @@ export default function InstellingenScreen({
           text: 'Uitloggen',
           style: 'destructive',
           onPress: async () => {
-            try {
-              await supabase?.auth.signOut();
-            } catch (e) {
-              console.warn('signOut error', e);
-            }
+            try { await supabase?.auth.signOut(); } catch (e) { console.warn('signOut error', e); }
             onLogout?.();
           },
         },
@@ -102,11 +96,7 @@ export default function InstellingenScreen({
 
               await supabase
                 .from('profiles')
-                .update({
-                  deleted_at: new Date().toISOString(),
-                  first_name: 'Verwijderd',
-                  last_name: 'Account',
-                })
+                .update({ deleted_at: new Date().toISOString(), first_name: 'Verwijderd', last_name: 'Account' })
                 .eq('id', userId);
 
               await supabase
@@ -128,21 +118,7 @@ export default function InstellingenScreen({
 
   return (
     <View style={styles.screen}>
-      <SafeAreaView edges={['top']} style={styles.headerSafe}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={onBack}
-            style={styles.backButton}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Terug naar profiel"
-          >
-            <ArrowLeftIcon size={24} color={COLORS.textInverse} weight="regular" />
-            <Text style={styles.backText}>Terug</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle} accessibilityRole="header">Instellingen</Text>
-        </View>
-      </SafeAreaView>
+      <Header title="Instellingen" onBack={onBack} />
 
       <ScrollView
         style={styles.scroll}
@@ -150,128 +126,95 @@ export default function InstellingenScreen({
         showsVerticalScrollIndicator={false}
       >
         {isLoading ? (
-          <ActivityIndicator color={COLORS.brand} style={{ marginTop: SPACING.xl }} />
+          <ActivityIndicator color={COLORS.brand} style={styles.loader} accessibilityLabel="Laden" />
         ) : (
           <>
-            {showProFeatures && (
-              <TouchableOpacity
-                style={styles.proBanner}
-                onPress={() => onOpenKiesPlan?.()}
-                accessibilityRole="button"
-                accessibilityLabel="Upgrade naar Pro voor onbeperkte aanvragen"
-              >
-                <StarIcon size={16} color={COLORS.accent} weight="regular" />
-                <Text style={styles.proBannerText}>
-                  Upgrade naar Pro voor onbeperkte aanvragen
-                </Text>
-                <CaretRightIcon size={16} color={COLORS.accent} weight="regular" />
-              </TouchableOpacity>
-            )}
-
-            <Text style={styles.sectionLabel}>Account</Text>
-
-            <TouchableOpacity
-              style={styles.row}
-              onPress={onOpenProfielBewerken}
-              accessibilityRole="button"
-            >
-              <Text style={styles.rowLabel}>Persoonlijke gegevens</Text>
-              <CaretRightIcon size={24} color={COLORS.textPrimary} weight="regular" />
-            </TouchableOpacity>
-            <View style={styles.divider} />
-
+            {/* Pro nudging */}
             {showProFeatures && (
               <>
-                <TouchableOpacity
-                  style={styles.row}
-                  onPress={() => onOpenKiesPlan?.()}
+                <Pressable
+                  style={({ pressed }) => [styles.proBanner, pressed && styles.proBannerPressed]}
+                  onPress={onOpenKiesPlan}
                   accessibilityRole="button"
+                  accessibilityLabel="Upgrade naar Groene Vingers Pro"
+                  accessibilityHint="Tik om de beschikbare plannen te bekijken"
                 >
-                  <View style={styles.rowLabelWrap}>
-                    <Text style={styles.rowLabel}>Abonnement</Text>
-                    <View style={styles.gratisBadge}>
-                      <Text style={styles.gratisBadgeText}>Gratis</Text>
-                    </View>
+                  <StarIcon size={20} color={COLORS.accent} weight="fill" accessibilityElementsHidden />
+                  <View style={styles.proBannerText}>
+                    <Text style={styles.proBannerTitle}>Upgrade naar Pro</Text>
+                    <Text style={styles.proBannerSubtitle}>Onbeperkte aanvragen en meer voordelen.</Text>
                   </View>
-                  <CaretRightIcon size={24} color={COLORS.textPrimary} weight="regular" />
-                </TouchableOpacity>
-                <View style={styles.divider} />
+                  <CaretRightIcon size={16} color={COLORS.accent} weight="regular" accessibilityElementsHidden />
+                </Pressable>
+
+                <View style={styles.sectionCard}>
+                  <SettingsRow
+                    label="Abonnement"
+                    badge="Gratis"
+                    onPress={onOpenKiesPlan}
+                  />
+                </View>
               </>
             )}
 
-            <TouchableOpacity
-              style={styles.row}
-              onPress={() => {
-                // TODO: implement identity verification flow
-                Alert.alert('Binnenkort beschikbaar', 'Account verificatie is binnenkort beschikbaar.');
-              }}
-              accessibilityRole="button"
-            >
-              <Text style={styles.rowLabel}>Account verifiëren</Text>
-              <CaretRightIcon size={24} color={COLORS.textPrimary} weight="regular" />
-            </TouchableOpacity>
-            <View style={styles.divider} />
+            {/* Account */}
+            <Text style={styles.sectionLabel}>Account</Text>
+            <View style={styles.sectionCard}>
+              <SettingsRow label="Persoonlijke gegevens" onPress={onOpenProfielBewerken} />
+              <View style={styles.divider} />
+              <SettingsRow
+                label="Wachtwoord wijzigen"
+                onPress={onOpenWachtwoordWijzigen ?? (() =>
+                  Alert.alert('Binnenkort beschikbaar', 'Wachtwoord wijzigen is binnenkort beschikbaar.')
+                )}
+              />
+              <View style={styles.divider} />
+              <SettingsRow label="Notificaties" onPress={onOpenNotificaties} />
+            </View>
 
-            <TouchableOpacity
-              style={styles.row}
-              onPress={onOpenNotificaties}
-              accessibilityRole="button"
-            >
-              <Text style={styles.rowLabel}>Notificaties</Text>
-              <CaretRightIcon size={24} color={COLORS.textPrimary} weight="regular" />
-            </TouchableOpacity>
-
+            {/* Logboek (tuinzoeker only) */}
             {role === 'tuinzoeker' && (
               <>
-                <Text style={[styles.sectionLabel, styles.sectionLabelMeer]}>Logboek</Text>
-                <TouchableOpacity
-                  style={styles.row}
-                  onPress={() => onOpenWeeklyGoal?.()}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.rowLabel}>Wekelijks doel</Text>
-                  <CaretRightIcon size={24} color={COLORS.textPrimary} weight="regular" />
-                </TouchableOpacity>
-                <View style={styles.divider} />
+                <Text style={styles.sectionLabel}>Logboek</Text>
+                <View style={styles.sectionCard}>
+                  <SettingsRow
+                    label="Wekelijks doel"
+                    onPress={activeSamenwerking ? onOpenWeeklyGoal : undefined}
+                    disabled={!activeSamenwerking}
+                    sublabel={!activeSamenwerking ? 'Beschikbaar zodra je een actieve samenwerking hebt.' : undefined}
+                  />
+                </View>
               </>
             )}
 
-            <Text style={[styles.sectionLabel, styles.sectionLabelMeer]}>Meer</Text>
+            {/* Meer */}
+            <Text style={styles.sectionLabel}>Meer</Text>
+            <View style={styles.sectionCard}>
+              <SettingsRow
+                label="Help & ondersteuning"
+                onPress={() => Alert.alert('Binnenkort beschikbaar', 'Help & ondersteuning is binnenkort beschikbaar.')}
+              />
+            </View>
 
-            <TouchableOpacity
-              style={styles.row}
-              onPress={() => {
-                // TODO: link to FAQ / support portal
-                Alert.alert('Binnenkort beschikbaar', 'Help & ondersteuning is binnenkort beschikbaar.');
-              }}
-              accessibilityRole="button"
-            >
-              <Text style={styles.rowLabel}>Help & ondersteuning</Text>
-              <CaretRightIcon size={24} color={COLORS.textPrimary} weight="regular" />
-            </TouchableOpacity>
-            <View style={styles.divider} />
-
-            <TouchableOpacity
-              style={styles.row}
-              onPress={handleDeleteAccount}
-              accessibilityRole="button"
-              accessibilityLabel="Account verwijderen"
-            >
-              <Text style={styles.rowLabel}>Account verwijderen</Text>
-              <TrashSimpleIcon size={24} color={COLORS.negative} weight="regular" />
-            </TouchableOpacity>
-            <View style={styles.divider} />
-
-            <TouchableOpacity
-              style={styles.row}
-              onPress={handleLogout}
-              accessibilityRole="button"
-              accessibilityLabel="Uitloggen"
-            >
-              <Text style={styles.rowLabel}>Uitloggen</Text>
-              <SignOutIcon size={24} color={COLORS.negative} weight="regular" />
-            </TouchableOpacity>
-            <View style={styles.divider} />
+            {/* Danger zone */}
+            <View style={[styles.sectionCard, styles.sectionCardDanger]}>
+              <SettingsRow
+                label="Account verwijderen"
+                destructive
+                showCaret={false}
+                rightElement={<TrashSimpleIcon size={18} color={COLORS.negative} weight="regular" accessibilityElementsHidden />}
+                onPress={handleDeleteAccount}
+                accessibilityHint="Verwijder je account permanent"
+              />
+              <View style={styles.divider} />
+              <SettingsRow
+                label="Uitloggen"
+                destructive
+                showCaret={false}
+                rightElement={<SignOutIcon size={18} color={COLORS.negative} weight="regular" accessibilityElementsHidden />}
+                onPress={handleLogout}
+              />
+            </View>
           </>
         )}
       </ScrollView>
@@ -282,37 +225,7 @@ export default function InstellingenScreen({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.surface,
-  },
-  headerSafe: {
-    backgroundColor: COLORS.brand,
-  },
-  header: {
-    backgroundColor: COLORS.brand,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.screenX,
-    paddingVertical: SPACING.md,
-    position: 'relative',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  backText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.textInverse,
-  },
-  headerTitle: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.xl,
-    color: COLORS.textInverse,
+    backgroundColor: COLORS.background,
   },
   scroll: {
     flex: 1,
@@ -320,62 +233,62 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.lg,
-    paddingBottom: 48,
+    paddingBottom: SPACING.xl,
+    gap: SPACING.sm,
   },
+  loader: {
+    marginTop: SPACING.xl,
+  },
+  // Pro nudging
   proBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.brand,
-    borderRadius: RADIUS.sm,
-    height: 38,
-    paddingHorizontal: SPACING.screenX,
-    gap: SPACING.sm,
-    marginBottom: SPACING.lg,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    gap: SPACING.md,
+    ...SHADOWS.card,
+  },
+  proBannerPressed: {
+    opacity: 0.88,
   },
   proBannerText: {
     flex: 1,
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
+    gap: 2,
+  },
+  proBannerTitle: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.accent,
   },
-  sectionLabel: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.sm,
-  },
-  sectionLabelMeer: {
-    marginTop: SPACING.lg,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 18,
-  },
-  rowLabel: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.textPrimary,
-  },
-  rowLabelWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  gratisBadge: {
-    backgroundColor: COLORS.brand,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 2,
-  },
-  gratisBadgeText: {
+  proBannerSubtitle: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textInverse,
+    lineHeight: 18,
+  },
+  // Sections
+  sectionLabel: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.md,
+    marginBottom: SPACING.xs,
+    marginLeft: SPACING.xs,
+  },
+  sectionCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    overflow: 'hidden',
+    ...SHADOWS.card,
+  },
+  sectionCardDanger: {
+    marginTop: SPACING.md,
   },
   divider: {
     height: 1,
     backgroundColor: COLORS.dividerSoft,
+    marginHorizontal: SPACING.md,
   },
 });

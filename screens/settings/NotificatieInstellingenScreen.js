@@ -5,12 +5,10 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeftIcon } from 'phosphor-react-native';
-import { COLORS, FONT_SIZES, FONTS, SPACING } from '../../components/theme/tokens';
+import Header from '../../components/navigation/Header';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
 import { supabase } from '../../services/supabase';
 
 const DEFAULT_SETTINGS = { aanvragen: true, messages: true, samenwerkingen: true };
@@ -19,18 +17,17 @@ const ROWS = [
   {
     key: 'aanvragen',
     label: 'Aanvragen',
-    subtext:
-      'Krijg een melding wanneer iemand jouw perceel aanvraagt of jouw aanvraag wordt beoordeeld.',
+    sublabel: 'Krijg een melding wanneer iemand jouw perceel aanvraagt of jouw aanvraag wordt beoordeeld.',
   },
   {
     key: 'messages',
     label: 'Berichten',
-    subtext: 'Krijg een melding wanneer je een nieuw bericht ontvangt in een gesprek.',
+    sublabel: 'Krijg een melding wanneer je een nieuw bericht ontvangt in een gesprek.',
   },
   {
     key: 'samenwerkingen',
     label: 'Samenwerkingen',
-    subtext: 'Krijg een melding bij updates over bevestigde of actieve samenwerkingen.',
+    sublabel: 'Krijg een melding bij updates over bevestigde of actieve samenwerkingen.',
   },
 ];
 
@@ -94,25 +91,11 @@ export default function NotificatieInstellingenScreen({ onBack }) {
 
   return (
     <View style={styles.screen}>
-      <SafeAreaView edges={['top']} style={styles.headerSafe}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={onBack}
-            style={styles.backButton}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Terug naar instellingen"
-          >
-            <ArrowLeftIcon size={24} color={COLORS.textInverse} weight="regular" />
-            <Text style={styles.backText}>Terug</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle} accessibilityRole="header">Notificaties</Text>
-        </View>
-      </SafeAreaView>
+      <Header title="Notificaties" onBack={onBack} />
 
       {isLoading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={COLORS.brand} />
+          <ActivityIndicator size="large" color={COLORS.brand} accessibilityLabel="Laden" />
         </View>
       ) : (
         <ScrollView
@@ -120,26 +103,29 @@ export default function NotificatieInstellingenScreen({ onBack }) {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {ROWS.map((row, index) => (
-            <View key={row.key}>
-              <View style={styles.row}>
-                <View style={styles.rowLeft}>
-                  <Text style={styles.rowLabel}>{row.label}</Text>
-                  <Text style={styles.rowSubtext}>{row.subtext}</Text>
+          <View style={styles.sectionCard}>
+            {ROWS.map((row, index) => (
+              <View key={row.key}>
+                <View style={styles.row}>
+                  <View style={styles.rowLeft}>
+                    <Text style={styles.rowLabel}>{row.label}</Text>
+                    <Text style={styles.rowSublabel}>{row.sublabel}</Text>
+                  </View>
+                  <Switch
+                    value={settings[row.key] ?? true}
+                    onValueChange={(val) => handleToggle(row.key, val)}
+                    trackColor={{ false: COLORS.indicatorMuted, true: COLORS.brand }}
+                    thumbColor={COLORS.surface}
+                    ios_backgroundColor={COLORS.indicatorMuted}
+                    accessibilityLabel={row.label}
+                    accessibilityRole="switch"
+                    accessibilityState={{ checked: settings[row.key] ?? true }}
+                  />
                 </View>
-                <Switch
-                  value={settings[row.key] ?? true}
-                  onValueChange={(val) => handleToggle(row.key, val)}
-                  trackColor={{ false: COLORS.indicatorMuted, true: COLORS.brand }}
-                  thumbColor={COLORS.surface}
-                  ios_backgroundColor={COLORS.indicatorMuted}
-                  accessibilityLabel={row.label}
-                  accessibilityRole="switch"
-                />
+                {index < ROWS.length - 1 && <View style={styles.divider} />}
               </View>
-              {index < ROWS.length - 1 && <View style={styles.divider} />}
-            </View>
-          ))}
+            ))}
+          </View>
         </ScrollView>
       )}
     </View>
@@ -149,37 +135,7 @@ export default function NotificatieInstellingenScreen({ onBack }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.surface,
-  },
-  headerSafe: {
-    backgroundColor: COLORS.brand,
-  },
-  header: {
-    backgroundColor: COLORS.brand,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.screenX,
-    paddingVertical: SPACING.md,
-    position: 'relative',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  backText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.textInverse,
-  },
-  headerTitle: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.xl,
-    color: COLORS.textInverse,
+    backgroundColor: COLORS.background,
   },
   loadingWrap: {
     flex: 1,
@@ -192,25 +148,32 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.lg,
-    paddingBottom: 48,
+    paddingBottom: SPACING.xl,
+  },
+  sectionCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    overflow: 'hidden',
+    ...SHADOWS.card,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.md,
     gap: SPACING.md,
   },
   rowLeft: {
     flex: 1,
-    gap: 4,
+    gap: SPACING.xs,
   },
   rowLabel: {
     fontFamily: FONTS.bodyMedium,
     fontSize: FONT_SIZES.lg,
     color: COLORS.textPrimary,
   },
-  rowSubtext: {
+  rowSublabel: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
@@ -219,5 +182,6 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: COLORS.dividerSoft,
+    marginHorizontal: SPACING.md,
   },
 });

@@ -29,6 +29,7 @@ import LogboekMonthScreen from './screens/loggen/LogboekMonthScreen';
 import OpvolgingenScreen from './screens/loggen/OpvolgingenScreen';
 import NieuweOpvolgingScreen from './screens/loggen/NieuweOpvolgingScreen';
 import WeeklyGoalScreen from './screens/settings/WeeklyGoalScreen';
+import WachtwoordWijzigenScreen from './screens/settings/WachtwoordWijzigenScreen';
 import { usePendingAanvragen } from './hooks/usePendingAanvragen';
 import { useNotifications } from './hooks/useNotifications';
 import { useActiveSamenwerking } from './hooks/useActiveSamenwerking';
@@ -410,6 +411,10 @@ export default function App() {
               setCurrentScreen('instellingen');
             }}
           />
+        ) : currentScreen === 'wachtwoord-wijzigen' ? (
+          <WachtwoordWijzigenScreen
+            onBack={() => setCurrentScreen('instellingen')}
+          />
         ) : currentScreen === 'instellingen' ? (
           <InstellingenScreen
             role={selectedRole}
@@ -421,6 +426,7 @@ export default function App() {
             onOpenNotificaties={() => setCurrentScreen('notificatie-instellingen')}
             onOpenKiesPlan={() => setCurrentScreen('kies-plan')}
             onOpenWeeklyGoal={() => { setWeeklyGoalSource('instellingen'); setCurrentScreen('weekly-goal'); }}
+            onOpenWachtwoordWijzigen={() => setCurrentScreen('wachtwoord-wijzigen')}
             onLogout={handleLogout}
           />
         ) : currentScreen === 'profiel-bewerken' ? (

@@ -7,9 +7,9 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeftIcon, MinusIcon, PlusIcon } from 'phosphor-react-native';
-import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
+import { MinusIcon, PlusIcon } from 'phosphor-react-native';
+import Header from '../../components/navigation/Header';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
 import { supabase } from '../../services/supabase';
 import { updateWeeklyLogGoal } from '../../services/logboek';
 
@@ -70,24 +70,12 @@ export default function WeeklyGoalScreen({ onBack, onSaved }) {
 
   return (
     <View style={styles.screen}>
-      <SafeAreaView edges={['top']} style={styles.headerSafe}>
-        <View style={styles.header}>
-          <Pressable
-            onPress={onBack}
-            style={styles.backButton}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Terug"
-          >
-            <ArrowLeftIcon size={24} color={COLORS.textInverse} weight="regular" />
-            <Text style={styles.backText}>Terug</Text>
-          </Pressable>
-          <Text style={styles.headerTitle} accessibilityRole="header">Wekelijks doel</Text>
-        </View>
-      </SafeAreaView>
+      <Header title="Wekelijks doel" onBack={onBack} />
 
       {isLoading ? (
-        <ActivityIndicator color={COLORS.brand} style={{ marginTop: 40 }} />
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={COLORS.brand} accessibilityLabel="Laden" />
+        </View>
       ) : (
         <View style={styles.body}>
           <Text style={styles.description}>
@@ -101,11 +89,21 @@ export default function WeeklyGoalScreen({ onBack, onSaved }) {
               disabled={goal <= 1}
               accessibilityRole="button"
               accessibilityLabel="Doel verlagen"
+              accessibilityState={{ disabled: goal <= 1 }}
             >
-              <MinusIcon size={22} color={goal <= 1 ? COLORS.textMuted : COLORS.textPrimary} weight="regular" />
+              <MinusIcon
+                size={22}
+                color={goal <= 1 ? COLORS.textMuted : COLORS.textPrimary}
+                weight="regular"
+                accessibilityElementsHidden
+              />
             </Pressable>
 
-            <View style={styles.goalDisplay}>
+            <View
+              style={styles.goalDisplay}
+              accessible
+              accessibilityLabel={`Huidig doel: ${goal} keer per week`}
+            >
               <Text style={styles.goalNumber}>{goal}</Text>
               <Text style={styles.goalUnit}>per week</Text>
             </View>
@@ -116,22 +114,33 @@ export default function WeeklyGoalScreen({ onBack, onSaved }) {
               disabled={goal >= 7}
               accessibilityRole="button"
               accessibilityLabel="Doel verhogen"
+              accessibilityState={{ disabled: goal >= 7 }}
             >
-              <PlusIcon size={22} color={goal >= 7 ? COLORS.textMuted : COLORS.textPrimary} weight="regular" />
+              <PlusIcon
+                size={22}
+                color={goal >= 7 ? COLORS.textMuted : COLORS.textPrimary}
+                weight="regular"
+                accessibilityElementsHidden
+              />
             </Pressable>
           </View>
 
           <Pressable
-            style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+            style={({ pressed }) => [
+              styles.saveBtn,
+              isSaving && styles.saveBtnDisabled,
+              pressed && !isSaving && styles.saveBtnPressed,
+            ]}
             onPress={handleSave}
             disabled={isSaving}
             accessibilityRole="button"
             accessibilityLabel="Doel opslaan"
+            accessibilityState={{ disabled: isSaving, busy: isSaving }}
           >
             {isSaving ? (
               <ActivityIndicator color={COLORS.textInverse} size="small" />
             ) : (
-              <Text style={styles.saveButtonText}>Opslaan</Text>
+              <Text style={styles.saveBtnText}>Opslaan</Text>
             )}
           </Pressable>
         </View>
@@ -145,35 +154,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  headerSafe: {
-    backgroundColor: COLORS.brand,
-  },
-  header: {
-    backgroundColor: COLORS.brand,
-    flexDirection: 'row',
+  loadingWrap: {
+    flex: 1,
     alignItems: 'center',
-    paddingHorizontal: SPACING.screenX,
-    paddingVertical: SPACING.md,
-    position: 'relative',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  backText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.textInverse,
-  },
-  headerTitle: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.xl,
-    color: COLORS.textInverse,
+    justifyContent: 'center',
   },
   body: {
     flex: 1,
@@ -192,8 +176,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.xl,
+    borderRadius: RADIUS.md,
     padding: SPACING.md,
+    ...SHADOWS.card,
   },
   stepperBtn: {
     width: 48,
@@ -221,18 +206,21 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
   },
-  saveButton: {
+  saveBtn: {
     backgroundColor: COLORS.brand,
-    borderRadius: RADIUS.sm,
-    paddingVertical: 14,
+    borderRadius: RADIUS.lg,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  saveButtonDisabled: {
+  saveBtnDisabled: {
     opacity: 0.6,
   },
-  saveButtonText: {
-    fontFamily: FONTS.displayMedium,
+  saveBtnPressed: {
+    opacity: 0.85,
+  },
+  saveBtnText: {
+    fontFamily: FONTS.displaySemiBold,
     fontSize: FONT_SIZES.lg,
     color: COLORS.textInverse,
   },
