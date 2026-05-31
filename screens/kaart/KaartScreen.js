@@ -489,7 +489,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.background,
     borderTopLeftRadius: RADIUS.lg,
     borderTopRightRadius: RADIUS.lg,
     overflow: 'hidden',
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: SPACING.md,
   },
-  listScroll: { flex: 1, backgroundColor: COLORS.background },
+  listScroll: { flex: 1 },
   listContent: { paddingTop: SPACING.md, paddingBottom: SPACING.xl },
   loader: { marginTop: SPACING.lg },
 });

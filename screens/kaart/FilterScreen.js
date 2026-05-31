@@ -12,7 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeftIcon } from 'phosphor-react-native';
 import AmenityIcon from '../../components/kaart/AmenityIcon';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
 import { SAMENWERKING_TYPES } from '../../services/samenwerkingTypes';
 import { countMatchingPercelen, DEFAULT_FILTERS } from '../../services/perceelFilters';
 
@@ -166,15 +166,18 @@ export default function FilterScreen({
         <View style={[styles.header, { paddingTop: Math.max(16, insets.top) }]}>
           <View style={styles.headerContent}>
             <Pressable
-              style={({ pressed }) => [styles.closeBtn, pressed && styles.closeBtnPressed]}
+              style={styles.backBtn}
               onPress={onClose}
               hitSlop={8}
               accessibilityRole="button"
               accessibilityLabel="Terug naar kaart"
             >
-              <ArrowLeftIcon size={20} color={COLORS.textInverse} weight="bold" />
+              <ArrowLeftIcon size={24} color={COLORS.textInverse} weight="regular" />
+              <Text style={styles.backText}>Terug</Text>
             </Pressable>
-            <Text style={styles.headerTitle}>Filter</Text>
+            <View style={styles.titleWrap} pointerEvents="none">
+              <Text style={styles.headerTitle}>Filter</Text>
+            </View>
             <View style={styles.headerSpacer} />
           </View>
         </View>
@@ -232,11 +235,7 @@ export default function FilterScreen({
           {/* Grootte */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Grootte van de tuin:</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.pillRow}
-            >
+            <View style={styles.pillWrap}>
               {GROOTTE_OPTIONS.map(({ label, value }) => {
                 const selected = filters.grootte === value;
                 return (
@@ -258,17 +257,13 @@ export default function FilterScreen({
                   </Pressable>
                 );
               })}
-            </ScrollView>
+            </View>
           </View>
 
           {/* Type samenwerking */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Type samenwerking:</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.pillRow}
-            >
+            <View style={styles.pillWrap}>
               <Pressable
                 style={({ pressed }) => [
                   styles.pill,
@@ -305,7 +300,7 @@ export default function FilterScreen({
                   </Pressable>
                 );
               })}
-            </ScrollView>
+            </View>
           </View>
         </ScrollView>
 
@@ -407,27 +402,37 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   headerSpacer: {
-    width: 44,
+    width: 96,
+    opacity: 0,
   },
-  headerTitle: {
+  titleWrap: {
     position: 'absolute',
     left: 0,
     right: 0,
-    top: 35,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
     fontFamily: FONTS.displaySemiBold,
     fontSize: FONT_SIZES.xl,
     color: COLORS.textInverse,
     textAlign: 'center',
+    includeFontPadding: false,
   },
-  closeBtn: {
-    width: SIZES.iconBtn - 8,
-    height: SIZES.iconBtn - 8,
-    borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.overlayLight,
+  backBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: SPACING.sm,
+    zIndex: 2,
   },
-  closeBtnPressed: { opacity: 0.7 },
+  backText: {
+    color: COLORS.textInverse,
+    fontSize: FONT_SIZES.lg,
+    fontFamily: FONTS.displayMedium,
+    includeFontPadding: false,
+  },
   scroll: {
     flex: 1,
   },
@@ -485,17 +490,19 @@ const styles = StyleSheet.create({
     color: COLORS.brand,
     fontFamily: FONTS.bodyMedium,
   },
-  pillRow: {
+  pillWrap: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: SPACING.sm,
-    paddingVertical: 2,
   },
   pill: {
+    flex: 1,
     borderWidth: 2,
     borderColor: COLORS.brand,
     borderRadius: RADIUS.pill,
     paddingHorizontal: SPACING.md,
     paddingVertical: 8,
+    alignItems: 'center',
   },
   pillSelected: {
     backgroundColor: COLORS.brand,
@@ -506,6 +513,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.lg,
     color: COLORS.brand,
     fontWeight: '600',
+    textAlign: 'center',
   },
   pillLabelSelected: {
     color: COLORS.textInverse,
