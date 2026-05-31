@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { ChatCircleIcon, MagnifyingGlassIcon } from 'phosphor-react-native';
+import EmptyState from '../../components/common/EmptyState';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import BottomNav from '../../components/navigation/BottomNav';
-import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
 import { useConversations } from '../../hooks/useConversations';
 
 function formatRelativeTime(timestamp) {
@@ -104,7 +105,7 @@ function ConversationRow({ conversation, onPress }) {
   );
 }
 
-export default function BerichtenOverzichtScreen({ onTabPress, profileImageSource, badgeCounts = {}, onOpenConversation, role = 'tuinzoeker' }) {
+export default function BerichtenOverzichtScreen({ onTabPress, profileImageSource, badgeCounts = {}, onOpenConversation, role = 'tuinzoeker', onNavigateToKaart }) {
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const { conversations, isLoading } = useConversations();
@@ -136,16 +137,16 @@ export default function BerichtenOverzichtScreen({ onTabPress, profileImageSourc
 
   return (
     <View style={styles.container}>
-      <SafeAreaView edges={['top']} style={[styles.headerSafeArea, { paddingTop: insets.top > 0 ? 0 : SPACING.sm }]}>
+      <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
         <View style={styles.header}>
           <Text style={styles.title} accessibilityRole="header">Berichten</Text>
           <View style={styles.searchBox}>
-            <MagnifyingGlassIcon size={18} color={COLORS.textMuted} weight="regular" />
+            <MagnifyingGlassIcon size={18} color={COLORS.textSecondary} weight="regular" accessibilityElementsHidden />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Zoeken naar een gesprek"
-              placeholderTextColor={COLORS.textMuted}
+              placeholderTextColor={COLORS.textSecondary}
               style={styles.searchInput}
               accessibilityLabel="Zoeken naar een gesprek"
               accessibilityHint="Filter op naam of berichtinhoud"
@@ -175,32 +176,52 @@ export default function BerichtenOverzichtScreen({ onTabPress, profileImageSourc
                 ))}
               </ScrollView>
             </View>
-            <View style={styles.divider} />
+            {conversations.length > 0 && <View style={styles.divider} />}
           </View>
         }
         ListEmptyComponent={
           isLoading ? (
-            <View style={styles.loadingWrap} accessibilityLabel="Berichten worden geladen">
-              <ActivityIndicator size="small" color={COLORS.brand} />
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator
+                size="small"
+                color={COLORS.brand}
+                accessibilityLabel="Berichten worden geladen"
+              />
             </View>
           ) : conversations.length === 0 ? (
-            <View style={styles.emptyState} accessible accessibilityRole="text">
-              <ChatCircleIcon size={40} color={COLORS.brand} weight="regular" />
-              <Text style={styles.emptyTitle}>Nog geen berichten</Text>
-              <Text style={styles.emptySubtext}>Wanneer je een aanvraag accepteert, kun je hier chatten met de aanvrager.</Text>
-            </View>
+            <EmptyState
+              icon={ChatCircleIcon}
+              title="Nog geen berichten"
+              body="Wanneer je een aanvraag accepteert, kun je hier chatten met de aanvrager."
+            />
           ) : (
-            <View style={styles.emptyState} accessible accessibilityRole="text">
-              <ChatCircleIcon size={40} color={COLORS.brand} weight="regular" />
-              <Text style={styles.emptyTitle}>Geen resultaten</Text>
-              <Text style={styles.emptySubtext}>Geen gesprekken gevonden voor je zoekopdracht.</Text>
-            </View>
+            <EmptyState
+              icon={MagnifyingGlassIcon}
+              iconColor={COLORS.textSecondary}
+              iconBgColor={COLORS.surfaceMuted}
+              title="Geen resultaten"
+              body={`Geen gesprekken gevonden voor "${searchQuery}".`}
+            />
           )
         }
         contentContainerStyle={styles.listContent}
         ListFooterComponent={<View style={{ height: SIZES.bottomNavClearance }} />}
         showsVerticalScrollIndicator={false}
       />
+
+      {conversations.length === 0 && !isLoading && role === 'tuinzoeker' && (
+        <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, SPACING.md) + SPACING.md }]}>
+          <Pressable
+            style={({ pressed }) => [styles.ctaBtn, pressed && styles.ctaBtnPressed]}
+            onPress={onNavigateToKaart}
+            accessibilityRole="button"
+            accessibilityLabel="Open de kaart om een perceel te zoeken"
+            accessibilityHint="Navigeert naar de kaartweergave"
+          >
+            <Text style={styles.ctaLabel}>Zoek een perceel op de kaart</Text>
+          </Pressable>
+        </View>
+      )}
 
       <BottomNav
         activeKey="berichten"
@@ -219,29 +240,30 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: COLORS.brand,
     paddingHorizontal: SPACING.screenX,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.md,
+    gap: SPACING.md,
   },
   title: {
-    color: COLORS.surface,
+    color: COLORS.textInverse,
     textAlign: 'center',
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
-    marginBottom: 12,
+    fontSize: FONT_SIZES.xl,
   },
   searchBox: {
-    height: 44,
-    borderRadius: 24,
+    height: SIZES.searchBarHeight,
+    borderRadius: RADIUS.pill,
     backgroundColor: COLORS.surface,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    ...SHADOWS.search,
   },
   searchInput: {
     flex: 1,
     fontFamily: FONTS.body,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textPrimary,
     paddingVertical: 0,
   },
@@ -293,25 +315,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyState: {
-    paddingVertical: 28,
+  actionBar: {
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: SPACING.md,
+    backgroundColor: COLORS.surface,
+  },
+  ctaBtn: {
+    backgroundColor: COLORS.brand,
+    borderRadius: RADIUS.sm,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    ...SHADOWS.card,
   },
-  emptyTitle: {
+  ctaBtnPressed: { opacity: 0.85 },
+  ctaLabel: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-  },
-  emptySubtext: {
-    fontFamily: FONTS.body,
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
-    textAlign: 'center',
-    maxWidth: 280,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.textInverse,
   },
   rowWrap: {
     backgroundColor: COLORS.surface,

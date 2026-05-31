@@ -1,53 +1,49 @@
-// TODO: implement full logbook feature with DB schema
-// (logbook_entries table referencing perceel_id + sender_id),
-// CRUD operations, list view of entries, and per-entry form.
-// For MVP, only the empty state exists.
-
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { NotebookIcon } from 'phosphor-react-native';
-import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 import BottomNav from '../../components/navigation/BottomNav';
+import EmptyState from '../../components/common/EmptyState';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
 
 export default function LogboekScreen({
   onTabPress,
   profileImageSource,
   badgeCounts = {},
-  onNavigateToHome,
+  onNavigateToKaart,
 }) {
   const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.screen}>
+      <StatusBar style="light" />
+
       <SafeAreaView edges={['top']} style={styles.headerSafe}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle} accessibilityRole="header">Logboek</Text>
+          <Text style={styles.headerTitle} accessibilityRole="header">
+            Logboek
+          </Text>
         </View>
       </SafeAreaView>
 
       <View style={styles.body}>
-        {/* Centered empty state */}
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconCircle}>
-            <NotebookIcon size={32} color={COLORS.brand} weight="regular" />
-          </View>
-          <Text style={styles.emptyTitle}>Hier groeit binnenkort iets moois</Text>
-          <Text style={styles.emptySubtext}>
-            Documenteer je eerste perceelbezoek. Je kunt taken, observaties en opvolgingen bijhouden.
-          </Text>
-        </View>
+        <EmptyState
+          icon={NotebookIcon}
+          title="Hier groeit binnenkort iets moois"
+          body="Zodra je een samenwerking hebt met een tuineigenaar, kun je hier je bezoeken, observaties en taken bijhouden."
+        />
+      </View>
 
-        {/* CTA anchored above BottomNav */}
-        <View style={[styles.actionContainer, { paddingBottom: Math.max(insets.bottom, 16) + 24 }]}>
-          <Pressable
-            style={styles.actionButton}
-            onPress={onNavigateToHome}
-            accessibilityRole="button"
-            accessibilityLabel="Zoek een perceel"
-          >
-            <Text style={styles.actionText}>Zoek een perceel</Text>
-          </Pressable>
-        </View>
+      <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, SPACING.md) + SPACING.md }]}>
+        <Pressable
+          style={({ pressed }) => [styles.ctaBtn, pressed && styles.ctaBtnPressed]}
+          onPress={onNavigateToKaart}
+          accessibilityRole="button"
+          accessibilityLabel="Open de kaart om een perceel te zoeken"
+          accessibilityHint="Navigeert naar de kaartweergave"
+        >
+          <Text style={styles.ctaLabel}>Zoek een perceel op de kaart</Text>
+        </Pressable>
       </View>
 
       <BottomNav
@@ -63,68 +59,43 @@ export default function LogboekScreen({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.background,
   },
   headerSafe: {
     backgroundColor: COLORS.brand,
   },
   header: {
     backgroundColor: COLORS.brand,
-    alignItems: 'center',
     paddingHorizontal: SPACING.screenX,
     paddingVertical: SPACING.md,
+    alignItems: 'center',
   },
   headerTitle: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
+    fontSize: FONT_SIZES.xl,
     color: COLORS.textInverse,
+    textAlign: 'center',
   },
   body: {
     flex: 1,
   },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  actionBar: {
     paddingHorizontal: SPACING.screenX,
-    gap: 12,
+    paddingTop: SPACING.md,
+    backgroundColor: COLORS.background,
   },
-  emptyIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.surfaceBrand,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  emptyTitle: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-  },
-  emptySubtext: {
-    fontFamily: FONTS.body,
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    maxWidth: 280,
-  },
-  actionContainer: {
-    paddingHorizontal: SPACING.screenX,
-  },
-  actionButton: {
+  ctaBtn: {
     backgroundColor: COLORS.brand,
     borderRadius: RADIUS.sm,
-    paddingVertical: 14,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+    ...SHADOWS.card,
   },
-  actionText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: 16,
-    color: COLORS.surface,
+  ctaBtnPressed: { opacity: 0.85 },
+  ctaLabel: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.textInverse,
   },
 });

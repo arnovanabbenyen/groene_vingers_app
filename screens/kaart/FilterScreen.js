@@ -10,14 +10,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  DropIcon,
-  PlantIcon,
-  RecycleIcon,
-  ShovelIcon,
-  TreeIcon,
-  XIcon,
-} from 'phosphor-react-native';
+import { ArrowLeftIcon } from 'phosphor-react-native';
+import AmenityIcon from '../../components/kaart/AmenityIcon';
 import { COLORS, FONTS, FONT_SIZES, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
 import { SAMENWERKING_TYPES } from '../../services/samenwerkingTypes';
 import { countMatchingPercelen, DEFAULT_FILTERS } from '../../services/perceelFilters';
@@ -26,13 +20,7 @@ const AFSTAND_MIN = 1;
 const AFSTAND_MAX = 15;
 const AFSTAND_MARKS = [1, 8, 15];
 
-const AMENITY_OPTIONS = [
-  { label: 'Water', Icon: DropIcon },
-  { label: 'Tools', Icon: ShovelIcon },
-  { label: 'Zaden', Icon: PlantIcon },
-  { label: 'Compost', Icon: RecycleIcon },
-  { label: 'Bomen', Icon: TreeIcon },
-];
+const AMENITY_OPTIONS = ['Water', 'Tools', 'Zaden', 'Compost', 'Bomen'];
 
 const GROOTTE_OPTIONS = [
   { label: 'Maakt niet uit', value: 'any' },
@@ -177,11 +165,20 @@ export default function FilterScreen({
         {/* Header */}
         <View style={[styles.header, { paddingTop: Math.max(16, insets.top) }]}>
           <View style={styles.headerContent}>
-            <View style={styles.headerSpacer} />
-            <Text style={styles.headerTitle}>Filter</Text>
-            <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8}>
-              <XIcon size={20} color={COLORS.textInverse} weight="bold" />
+            <Pressable
+              style={styles.backBtn}
+              onPress={onClose}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Terug naar kaart"
+            >
+              <ArrowLeftIcon size={24} color={COLORS.textInverse} weight="regular" />
+              <Text style={styles.backText}>Terug</Text>
             </Pressable>
+            <View style={styles.titleWrap} pointerEvents="none">
+              <Text style={styles.headerTitle}>Filter</Text>
+            </View>
+            <View style={styles.headerSpacer} />
           </View>
         </View>
 
@@ -207,19 +204,20 @@ export default function FilterScreen({
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Aanwezig:</Text>
             <View style={styles.amenityRow}>
-              {AMENITY_OPTIONS.map(({ label, Icon }) => {
+              {AMENITY_OPTIONS.map((label) => {
                 const selected = filters.voorzieningen.includes(label);
                 return (
                   <Pressable
                     key={label}
-                    style={styles.amenityItem}
+                    style={({ pressed }) => [styles.amenityItem, pressed && styles.amenityItemPressed]}
                     onPress={() => toggleVoorzienig(label)}
                     accessibilityRole="button"
                     accessibilityState={{ selected }}
                     accessibilityLabel={label}
                   >
                     <View style={[styles.amenityCircle, selected && styles.amenityCircleSelected]}>
-                      <Icon
+                      <AmenityIcon
+                        label={label}
                         size={22}
                         color={selected ? COLORS.textInverse : COLORS.textSecondary}
                         weight={selected ? 'fill' : 'regular'}
@@ -237,47 +235,47 @@ export default function FilterScreen({
           {/* Grootte */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Grootte van de tuin:</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.pillRow}
-            >
+            <View style={styles.pillWrap}>
               {GROOTTE_OPTIONS.map(({ label, value }) => {
                 const selected = filters.grootte === value;
                 return (
                   <Pressable
                     key={value}
-                    style={[styles.pill, selected && styles.pillSelected]}
+                    style={({ pressed }) => [
+                      styles.pill,
+                      selected && styles.pillSelected,
+                      pressed && styles.pillPressed,
+                    ]}
                     onPress={() => setFilters((f) => ({ ...f, grootte: value }))}
                     accessibilityRole="button"
                     accessibilityState={{ selected }}
                     accessibilityLabel={label}
                   >
-                    <Text style={[styles.pillLabel, selected && styles.pillLabelSelected]}>
+                    <Text style={[styles.pillLabel, selected && styles.pillLabelSelected]} numberOfLines={1}>
                       {label}
                     </Text>
                   </Pressable>
                 );
               })}
-            </ScrollView>
+            </View>
           </View>
 
           {/* Type samenwerking */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Type samenwerking:</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.pillRow}
-            >
+            <View style={styles.pillWrap}>
               <Pressable
-                style={[styles.pill, filters.samenwerking.length === 0 && styles.pillSelected]}
+                style={({ pressed }) => [
+                  styles.pill,
+                  filters.samenwerking.length === 0 && styles.pillSelected,
+                  pressed && styles.pillPressed,
+                ]}
                 onPress={() => setFilters((f) => ({ ...f, samenwerking: [] }))}
                 accessibilityRole="button"
                 accessibilityState={{ selected: filters.samenwerking.length === 0 }}
                 accessibilityLabel="Maakt niet uit"
               >
-                <Text style={[styles.pillLabel, filters.samenwerking.length === 0 && styles.pillLabelSelected]}>
+                <Text style={[styles.pillLabel, filters.samenwerking.length === 0 && styles.pillLabelSelected]} numberOfLines={1}>
                   Maakt niet uit
                 </Text>
               </Pressable>
@@ -286,27 +284,37 @@ export default function FilterScreen({
                 return (
                   <Pressable
                     key={type}
-                    style={[styles.pill, selected && styles.pillSelected]}
+                    style={({ pressed }) => [
+                      styles.pill,
+                      selected && styles.pillSelected,
+                      pressed && styles.pillPressed,
+                    ]}
                     onPress={() => toggleSamenwerking(type)}
                     accessibilityRole="button"
                     accessibilityState={{ selected }}
                     accessibilityLabel={type}
                   >
-                    <Text style={[styles.pillLabel, selected && styles.pillLabelSelected]}>
+                    <Text style={[styles.pillLabel, selected && styles.pillLabelSelected]} numberOfLines={1}>
                       {type}
                     </Text>
                   </Pressable>
                 );
               })}
-            </ScrollView>
+            </View>
           </View>
         </ScrollView>
 
         {/* Apply bar */}
-        <View style={[styles.applyBar, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={[styles.applyBar, { paddingBottom: insets.bottom + SPACING.md }]}>
           <Pressable
-            style={styles.applyBtn}
+            style={({ pressed }) => [styles.applyBtn, pressed && styles.applyBtnPressed]}
             onPress={() => onApply(filters)}
+            accessibilityRole="button"
+            accessibilityLabel={
+              matchCount === 0
+                ? 'Geen resultaten'
+                : `Toon ${matchCount} ${matchCount === 1 ? 'tuin' : 'tuinen'}`
+            }
           >
             <Text style={styles.applyLabel}>
               {matchCount === 0
@@ -314,7 +322,12 @@ export default function FilterScreen({
                 : `Toon ${matchCount} ${matchCount === 1 ? 'tuin' : 'tuinen'}`}
             </Text>
           </Pressable>
-          <Pressable style={styles.resetBtn} onPress={resetFilters}>
+          <Pressable
+            style={({ pressed }) => [styles.resetBtn, pressed && styles.resetBtnPressed]}
+            onPress={resetFilters}
+            accessibilityRole="button"
+            accessibilityLabel="Wis alle filters"
+          >
             <Text style={styles.resetLabel}>Wis filters</Text>
           </Pressable>
         </View>
@@ -389,26 +402,36 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   headerSpacer: {
-    width: 44,
+    width: 96,
+    opacity: 0,
   },
-  headerTitle: {
+  titleWrap: {
     position: 'absolute',
     left: 0,
     right: 0,
-    top: 35,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
     fontFamily: FONTS.displaySemiBold,
     fontSize: FONT_SIZES.xl,
     color: COLORS.textInverse,
     textAlign: 'center',
+    includeFontPadding: false,
   },
-  closeBtn: {
-    marginLeft: 'auto',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+  backBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: SPACING.sm,
+    zIndex: 2,
+  },
+  backText: {
+    color: COLORS.textInverse,
+    fontSize: FONT_SIZES.lg,
+    fontFamily: FONTS.displayMedium,
+    includeFontPadding: false,
   },
   scroll: {
     flex: 1,
@@ -446,6 +469,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.xs,
   },
+  amenityItemPressed: { opacity: 0.7 },
   amenityCircle: {
     width: 50,
     height: 50,
@@ -466,10 +490,10 @@ const styles = StyleSheet.create({
     color: COLORS.brand,
     fontFamily: FONTS.bodyMedium,
   },
-  pillRow: {
+  pillWrap: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: SPACING.sm,
-    paddingVertical: 2,
   },
   pill: {
     borderWidth: 2,
@@ -477,15 +501,18 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
     paddingHorizontal: SPACING.md,
     paddingVertical: 8,
+    alignItems: 'center',
   },
   pillSelected: {
     backgroundColor: COLORS.brand,
   },
+  pillPressed: { opacity: 0.75 },
   pillLabel: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.lg,
     color: COLORS.brand,
     fontWeight: '600',
+    textAlign: 'center',
   },
   pillLabelSelected: {
     color: COLORS.textInverse,
@@ -564,9 +591,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...SHADOWS.card,
   },
+  applyBtnPressed: { opacity: 0.85 },
   applyLabel: {
     fontFamily: FONTS.displaySemiBold,
     fontSize: FONT_SIZES.lg,
     color: COLORS.textInverse,
   },
+  resetBtnPressed: { opacity: 0.7 },
 });

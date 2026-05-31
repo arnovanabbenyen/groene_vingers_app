@@ -3,36 +3,26 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
-  Image,
   PanResponder,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
-import {
-  DropIcon,
-  FunnelIcon,
-  LeafIcon,
-  MagnifyingGlassIcon,
-  MapPinIcon,
-  NavigationArrowIcon,
-  PlantIcon,
-  ShovelIcon,
-  TreeIcon,
-  XIcon,
-} from 'phosphor-react-native';
+import { MapPinIcon, NavigationArrowIcon } from 'phosphor-react-native';
 // TODO: voor productie EAS builds op Android, voeg een Google Maps API key toe aan
 //       app.json onder android.config.googleMaps.apiKey.
 import MapView, { Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import BottomNav from '../../components/navigation/BottomNav';
+import KaartHeader from '../../components/kaart/KaartHeader';
+import MapMarker from '../../components/kaart/MapMarker';
+import MapPerceelCard from '../../components/kaart/MapPerceelCard';
+import PerceelPopupCard from '../../components/kaart/PerceelPopupCard';
 import FilterScreen from './FilterScreen';
-import FavoriteHeartButton from '../../components/parcel/FavoriteHeartButton';
 import { useMapPercelen } from '../../hooks/useMapPercelen';
 import { useFavorites } from '../../hooks/useFavorites';
 import {
@@ -57,13 +47,24 @@ const LEUVEN_REGION = {
   longitudeDelta: 0.05,
 };
 
-function AmenityIcon({ label }) {
-  const n = (label || '').toLowerCase();
-  if (n.includes('water')) return <DropIcon size={13} color={COLORS.textSecondary} weight="regular" />;
-  if (n.includes('shovel') || n.includes('materiaal')) return <ShovelIcon size={13} color={COLORS.textSecondary} weight="regular" />;
-  if (n.includes('plant') || n.includes('zaden')) return <PlantIcon size={13} color={COLORS.textSecondary} weight="regular" />;
-  if (n.includes('boom') || n.includes('tree')) return <TreeIcon size={13} color={COLORS.textSecondary} weight="regular" />;
-  return <LeafIcon size={13} color={COLORS.textSecondary} weight="regular" />;
+function toPlotShape(perceel) {
+  return {
+    id: perceel.id,
+    image: perceel.fotos?.[0] || null,
+    fotos: perceel.fotos || [],
+    location: perceel.plaats || 'Locatie niet beschikbaar',
+    title: perceel.naam,
+    naam: perceel.naam,
+    plaats: perceel.plaats,
+    adres: perceel.adres || null,
+    beschrijving: perceel.beschrijving || null,
+    size: perceel.grootte ? `${perceel.grootte}m²` : null,
+    grootte: perceel.grootte,
+    chips: perceel.voorzieningen || [],
+    voorzieningen: perceel.voorzieningen || [],
+    ownerId: perceel.owner_id,
+    owner_id: perceel.owner_id,
+  };
 }
 
 export default function KaartScreen({
@@ -204,10 +205,6 @@ export default function KaartScreen({
     } catch (_) {}
   }
 
-  const perceelenWithCoords = filteredPercelen.filter(
-    (p) => p.approximate_lat != null && p.approximate_lng != null,
-  );
-
   function handlePinPress(perceel) {
     setSelectedPerceel((prev) => (prev?.id === perceel.id ? null : perceel));
     setTrackingMarkerId(perceel.id);
@@ -225,59 +222,31 @@ export default function KaartScreen({
     }
   }
 
-  function toPlotShape(perceel) {
-    return {
-      id: perceel.id,
-      image: perceel.fotos?.[0] || null,
-      fotos: perceel.fotos || [],
-      location: perceel.plaats || 'Locatie niet beschikbaar',
-      title: perceel.naam,
-      naam: perceel.naam,
-      plaats: perceel.plaats,
-      adres: perceel.adres || null,
-      beschrijving: perceel.beschrijving || null,
-      size: perceel.grootte ? `${perceel.grootte}m²` : null,
-      grootte: perceel.grootte,
-      chips: perceel.voorzieningen || [],
-      voorzieningen: perceel.voorzieningen || [],
-      ownerId: perceel.owner_id,
-      owner_id: perceel.owner_id,
-    };
-  }
+  const perceelenWithCoords = filteredPercelen.filter(
+    (p) => p.approximate_lat != null && p.approximate_lng != null,
+  );
+
+  const resultLabel = isLoading
+    ? 'Laden...'
+    : filteredPercelen.length > 0
+      ? `${filteredPercelen.length} ${filteredPercelen.length === 1 ? 'tuin' : 'tuinen'} gevonden`
+      : searchQuery.length > 0
+        ? `Geen resultaten voor "${searchQuery}"`
+        : 'Geen percelen beschikbaar';
 
   return (
     <View style={styles.screen}>
-      {/* Green header */}
-      <View style={[styles.headerBg, { paddingTop: insets.top }]}>
-        <View style={styles.headerContent}>
-          <View style={styles.searchRow}>
-            <View style={styles.searchPill}>
-              <MagnifyingGlassIcon size={18} color={COLORS.textSecondary} weight="regular" />
-              <TextInput
-                ref={searchInputRef}
-                style={styles.searchInput}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="Zoek percelen op naam of plaats..."
-                placeholderTextColor={COLORS.textSecondary}
-                returnKeyType="search"
-                onSubmitEditing={handleSearchSubmit}
-              />
-              {searchQuery.length > 0 && (
-                <Pressable onPress={() => { setSearchQuery(''); setSuggestions([]); }} hitSlop={8}>
-                  <XIcon size={16} color={COLORS.textSecondary} weight="regular" />
-                </Pressable>
-              )}
-            </View>
-            <Pressable style={styles.filterBtn} hitSlop={8} onPress={() => setFilterVisible(true)}>
-              <FunnelIcon size={20} color={COLORS.textInverse} weight="regular" />
-              {hasActiveFilters(activeFilters) && <View style={styles.filterDot} />}
-            </Pressable>
-          </View>
-        </View>
-      </View>
+      <KaartHeader
+        searchInputRef={searchInputRef}
+        searchQuery={searchQuery}
+        onChangeText={setSearchQuery}
+        onSubmit={handleSearchSubmit}
+        onClear={() => { setSearchQuery(''); setSuggestions([]); }}
+        onFilterPress={() => setFilterVisible(true)}
+        hasActiveFilters={hasActiveFilters(activeFilters)}
+        paddingTop={insets.top}
+      />
 
-      {/* Body: map full-screen + overlays */}
       <View style={styles.body}>
         <MapView
           ref={mapRef}
@@ -302,14 +271,10 @@ export default function KaartScreen({
                 onPress={() => handlePinPress(perceel)}
                 tracksViewChanges={trackingMarkerId === perceel.id}
                 anchor={{ x: 0.5, y: 0.5 }}
+                accessibilityLabel={perceel.naam}
+                accessibilityRole="button"
               >
-                <View style={[styles.pin, isSelected && styles.pinSelected]} pointerEvents="none">
-                  <LeafIcon
-                    size={isSelected ? 20 : 16}
-                    color={COLORS.textInverse}
-                    weight="fill"
-                  />
-                </View>
+                <MapMarker selected={isSelected} />
               </Marker>
             );
           })}
@@ -321,32 +286,43 @@ export default function KaartScreen({
                 longitude: parseFloat(selectedPerceel.approximate_lng),
               }}
               radius={200}
-              strokeColor="rgba(87,98,56,0.45)"
+              strokeColor={COLORS.brandOverlayStroke}
               strokeWidth={1.5}
-              fillColor="rgba(87,98,56,0.12)"
+              fillColor={COLORS.brandOverlay}
             />
           )}
         </MapView>
 
-        {/* Suggesties dropdown */}
+        {/* Locatie-suggesties dropdown */}
         {suggestions.length > 0 && (
-          <View style={styles.suggestionsDropdown}>
+          <View style={styles.suggestionsDropdown} accessibilityRole="list">
             {suggestions.map((s, i) => (
               <Pressable
                 key={s.place_id ?? i}
-                style={[styles.suggestionItem, i < suggestions.length - 1 && styles.suggestionBorder]}
+                style={({ pressed }) => [
+                  styles.suggestionItem,
+                  i < suggestions.length - 1 && styles.suggestionBorder,
+                  pressed && styles.suggestionPressed,
+                ]}
                 onPress={() => handleSuggestionSelect(s)}
+                accessibilityRole="button"
+                accessibilityLabel={s.display_name}
               >
-                <MapPinIcon size={14} color={COLORS.textSecondary} weight="regular" />
+                <MapPinIcon size={14} color={COLORS.textSecondary} weight="regular" accessibilityElementsHidden />
                 <Text style={styles.suggestionText} numberOfLines={1}>{s.display_name}</Text>
               </Pressable>
             ))}
           </View>
         )}
 
-        {/* Popup card — centered in map area */}
+        {/* Perceel popup — gecentreerd over de kaart */}
         {selectedPerceel && (
-          <Pressable style={styles.popupBackdrop} onPress={() => setSelectedPerceel(null)}>
+          <Pressable
+            style={styles.popupBackdrop}
+            onPress={() => setSelectedPerceel(null)}
+            accessibilityRole="button"
+            accessibilityLabel="Sluit perceel kaartje"
+          >
             <Pressable style={styles.popupOverlay} onPress={(e) => e.stopPropagation()}>
               <PerceelPopupCard
                 perceel={selectedPerceel}
@@ -359,33 +335,36 @@ export default function KaartScreen({
           </Pressable>
         )}
 
-        {/* Locatie-knop */}
+        {/* Mijn locatie knop */}
         {userLocation && (
           <Pressable
-            style={styles.locationBtn}
+            style={({ pressed }) => [styles.locationBtn, pressed && styles.locationBtnPressed]}
             onPress={() => mapRef.current?.animateToRegion(
               { ...userLocation, latitudeDelta: 0.05, longitudeDelta: 0.05 },
               500,
             )}
+            accessibilityRole="button"
+            accessibilityLabel="Ga naar mijn locatie"
           >
-            <NavigationArrowIcon size={24} color={COLORS.brand} weight="fill" />
+            <NavigationArrowIcon size={22} color={COLORS.brand} weight="fill" />
           </Pressable>
         )}
 
         {/* Snap bottom sheet */}
         <Animated.View style={[styles.sheet, { height: sheetHeight }]}>
-          <View style={styles.dragHandleWrap} {...panResponder.panHandlers}>
+          <View
+            style={styles.dragHandleWrap}
+            {...panResponder.panHandlers}
+            accessibilityRole="adjustable"
+            accessibilityLabel="Resultatenlijst, sleep omhoog om te openen"
+          >
             <View style={styles.dragHandle} />
           </View>
-          <Text style={styles.countText}>
-            {isLoading
-              ? 'Laden...'
-              : filteredPercelen.length > 0
-                ? `Meer dan ${filteredPercelen.length} ${filteredPercelen.length === 1 ? 'tuin' : 'tuinen'}`
-                : searchQuery.length > 0
-                  ? `Geen resultaten voor "${searchQuery}"`
-                  : 'Geen percelen beschikbaar'}
+
+          <Text style={styles.countText} accessibilityLiveRegion="polite">
+            {resultLabel}
           </Text>
+
           <ScrollView
             style={styles.listScroll}
             contentContainerStyle={styles.listContent}
@@ -393,7 +372,12 @@ export default function KaartScreen({
             nestedScrollEnabled
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color={COLORS.brand} style={styles.loader} />
+              <ActivityIndicator
+                size="small"
+                color={COLORS.brand}
+                style={styles.loader}
+                accessibilityLabel="Percelen worden geladen"
+              />
             ) : (
               filteredPercelen.map((perceel) => (
                 <MapPerceelCard
@@ -431,238 +415,22 @@ export default function KaartScreen({
   );
 }
 
-/* Sub-components */
-
-function MapPerceelCard({ perceel, onPress, isFavorited = false, onToggleFavorite }) {
-  const [imageError, setImageError] = useState(false);
-  const imageUrl = perceel.fotos?.[0];
-  const hasImage = imageUrl && !imageError;
-  const amenities = (perceel.voorzieningen || []).slice(0, 4);
-
-  return (
-    <Pressable style={card.container} onPress={onPress}>
-      <View style={card.imageWrap}>
-        {hasImage ? (
-          <Image
-            source={{ uri: imageUrl }}
-            style={card.image}
-            onError={() => setImageError(true)}
-          />
-        ) : (
-          <View style={[card.image, card.imagePlaceholder]}>
-            <LeafIcon size={32} color={COLORS.brand} weight="regular" />
-          </View>
-        )}
-        <View style={card.badgeRow}>
-          <View style={card.locationPill}>
-            <MapPinIcon size={13} color={COLORS.textPrimary} weight="regular" />
-            <Text style={card.pillText} numberOfLines={1}>
-              {perceel.plaats || 'Locatie niet beschikbaar'}
-            </Text>
-          </View>
-        </View>
-        <View style={card.heartBtn}>
-          <FavoriteHeartButton isFavorited={isFavorited} onToggle={onToggleFavorite} size="small" />
-        </View>
-      </View>
-
-      <View style={card.body}>
-        <View style={card.titleRow}>
-          <Text style={card.title} numberOfLines={1}>
-            {perceel.naam}
-          </Text>
-          {perceel.grootte != null && (
-            <Text style={card.size}>{perceel.grootte}m²</Text>
-          )}
-        </View>
-
-        {perceel.beschrijving ? (
-          <Text style={card.description} numberOfLines={3}>
-            {perceel.beschrijving}
-          </Text>
-        ) : null}
-
-        {amenities.length > 0 && (
-          <View style={card.amenityRow}>
-            {amenities.map((label, i) => (
-              <View key={label} style={card.amenityItem}>
-                {i > 0 && <View style={card.amenityDivider} />}
-                <AmenityIcon label={label} />
-                <Text style={card.amenityText}>{label}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
-    </Pressable>
-  );
-}
-
-function PerceelPopupCard({ perceel, onClose, onOpen, isFavorited = false, onToggleFavorite }) {
-  const [imageError, setImageError] = useState(false);
-  const imageUrl = perceel.fotos?.[0];
-  const hasImage = imageUrl && !imageError;
-  const amenities = (perceel.voorzieningen || []).slice(0, 3);
-
-  return (
-    <Pressable style={popup.card} onPress={onOpen}>
-      {/* Image */}
-      <View style={popup.imageWrap}>
-        {hasImage ? (
-          <Image
-            source={{ uri: imageUrl }}
-            style={popup.image}
-            onError={() => setImageError(true)}
-          />
-        ) : (
-          <View style={[popup.image, popup.imagePlaceholder]}>
-            <LeafIcon size={32} color={COLORS.brand} weight="regular" />
-          </View>
-        )}
-        {/* Location pill */}
-        <View style={popup.locationPill}>
-          <MapPinIcon size={13} color={COLORS.textPrimary} weight="regular" />
-          <Text style={popup.locationText} numberOfLines={1}>{perceel.plaats}</Text>
-        </View>
-        {/* Close button */}
-        <Pressable style={popup.closeBtn} onPress={onClose} hitSlop={8}>
-          <XIcon size={11} color={COLORS.textPrimary} weight="bold" />
-        </Pressable>
-        {/* Favorite button */}
-        <View style={popup.heartBtn}>
-          <FavoriteHeartButton isFavorited={isFavorited} onToggle={onToggleFavorite} size="small" />
-        </View>
-      </View>
-
-      {/* Content */}
-      <View style={popup.content}>
-        {/* Title + size */}
-        <View style={popup.titleRow}>
-          <Text style={popup.title} numberOfLines={1}>{perceel.naam}</Text>
-          {perceel.grootte != null && (
-            <Text style={popup.size}>{perceel.grootte}m²</Text>
-          )}
-        </View>
-
-        {/* Description */}
-        {perceel.beschrijving ? (
-          <Text style={popup.description} numberOfLines={4}>{perceel.beschrijving}</Text>
-        ) : null}
-
-        {/* Amenities */}
-        {amenities.length > 0 && (
-          <View style={popup.amenityRow}>
-            {amenities.map((label, i) => (
-              <View key={label} style={popup.amenityCell}>
-                {i > 0 && <View style={popup.amenityDivider} />}
-                <View style={popup.amenityItem}>
-                  <AmenityIcon label={label} />
-                  <Text style={popup.amenityText}>{label}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
-    </Pressable>
-  );
-}
-
-/* Styles */
-
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.surface },
-
-  // Header
-  headerBg: { backgroundColor: COLORS.brand },
-  headerContent: {
-    paddingHorizontal: SPACING.screenX,
-    paddingTop: 12,
-    paddingBottom: 16,
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  searchPill: {
+  screen: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: SPACING.md,
-    height: SIZES.searchBarHeight,
-    gap: SPACING.sm,
-    ...SHADOWS.search,
-  },
-  searchInput: {
-    flex: 1,
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textPrimary,
-    paddingVertical: 0,
-  },
-  filterBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterDot: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.accent,
   },
 
-  // Body
   body: { flex: 1 },
 
-  // Pins
-  pin: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SHADOWS.card,
-  },
-  pinSelected: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.brandMid,
-  },
-
-  // Locatie-knop
-  locationBtn: {
-    position: 'absolute',
-    bottom: COLLAPSED_HEIGHT + 16,
-    right: SPACING.screenX,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SHADOWS.card,
-  },
-
-  // Suggestions dropdown
+  // Locatie-suggesties dropdown
   suggestionsDropdown: {
     position: 'absolute',
-    top: 4,
+    top: 0,
     left: SPACING.screenX,
     right: SPACING.screenX,
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.sm,
+    borderRadius: RADIUS.md,
     overflow: 'hidden',
     zIndex: 50,
     ...SHADOWS.card,
@@ -672,12 +440,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.sm,
     paddingHorizontal: SPACING.md,
-    paddingVertical: 12,
+    paddingVertical: 13,
   },
   suggestionBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: COLORS.dividerSoft,
   },
+  suggestionPressed: { backgroundColor: COLORS.background },
   suggestionText: {
     flex: 1,
     fontFamily: FONTS.body,
@@ -685,7 +454,7 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
 
-  // Popup — centered in map area
+  // Popup backdrop
   popupBackdrop: {
     position: 'absolute',
     top: 0,
@@ -699,263 +468,52 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 
+  // Mijn locatie knop
+  locationBtn: {
+    position: 'absolute',
+    bottom: COLLAPSED_HEIGHT + SPACING.md,
+    right: SPACING.screenX,
+    width: SIZES.iconBtn,
+    height: SIZES.iconBtn,
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.card,
+  },
+  locationBtnPressed: { opacity: 0.75 },
+
   // Snap bottom sheet
   sheet: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 8,
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: RADIUS.lg,
+    borderTopRightRadius: RADIUS.lg,
     overflow: 'hidden',
+    ...SHADOWS.sheet,
   },
   dragHandleWrap: {
     alignItems: 'center',
     paddingTop: 10,
-    paddingBottom: 8,
+    paddingBottom: SPACING.sm,
   },
   dragHandle: {
-    width: 69,
-    height: 5,
+    width: 40,
+    height: 4,
     borderRadius: RADIUS.pill,
-    backgroundColor: '#D9D9D9',
+    backgroundColor: COLORS.indicatorMuted,
   },
   countText: {
     fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textSecondary,
     textAlign: 'center',
     marginBottom: SPACING.md,
   },
   listScroll: { flex: 1 },
-  listContent: { paddingBottom: SPACING.xl },
+  listContent: { paddingTop: SPACING.md, paddingBottom: SPACING.xl },
   loader: { marginTop: SPACING.lg },
-});
-
-const card = StyleSheet.create({
-  container: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.sm,
-    marginHorizontal: SPACING.screenX,
-    marginBottom: SPACING.md,
-    overflow: 'hidden',
-    ...SHADOWS.card,
-  },
-  imageWrap: {
-    width: '100%',
-    height: 201,
-    backgroundColor: COLORS.surfaceMuted,
-    position: 'relative',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  imagePlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeRow: {
-    position: 'absolute',
-    bottom: 8,
-    left: 8,
-    right: 8,
-    flexDirection: 'row',
-  },
-  locationPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    maxWidth: '70%',
-  },
-  pillText: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textPrimary,
-  },
-  body: {
-    padding: SPACING.md,
-    gap: SPACING.sm,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
-  },
-  title: {
-    flex: 1,
-    fontFamily: FONTS.displayMedium,
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.textPrimary,
-  },
-  size: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-  },
-  description: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
-  },
-  amenityRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    paddingTop: SPACING.sm,
-    gap: SPACING.xs,
-  },
-  amenityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  amenityDivider: {
-    width: 1,
-    height: 14,
-    backgroundColor: COLORS.border,
-    marginRight: 4,
-  },
-  amenityText: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.textSecondary,
-  },
-  heartBtn: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-});
-
-const popup = StyleSheet.create({
-  card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.sm,
-    overflow: 'hidden',
-    gap: SPACING.md,
-    padding: SPACING.md,
-    ...SHADOWS.card,
-  },
-  imageWrap: {
-    height: 201,
-    borderRadius: RADIUS.sm,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  imagePlaceholder: {
-    backgroundColor: COLORS.surfaceMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  locationPill: {
-    position: 'absolute',
-    bottom: 8,
-    left: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    maxWidth: '65%',
-  },
-  locationText: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textPrimary,
-  },
-  closeBtn: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heartBtn: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-  },
-  content: {
-    gap: SPACING.sm,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
-  },
-  title: {
-    flex: 1,
-    fontFamily: FONTS.displayMedium,
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.textPrimary,
-  },
-  size: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textPrimary,
-  },
-  description: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textPrimary,
-    textAlign: 'justify',
-    lineHeight: 22,
-  },
-  amenityRow: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    paddingTop: 4,
-  },
-  amenityCell: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  amenityDivider: {
-    width: 1,
-    alignSelf: 'stretch',
-    backgroundColor: COLORS.border,
-    marginRight: 4,
-  },
-  amenityItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  amenityText: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textPrimary,
-  },
 });

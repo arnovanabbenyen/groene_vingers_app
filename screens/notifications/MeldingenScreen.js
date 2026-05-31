@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
+import { useEffect } from 'react';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ArrowLeftIcon, BellSlashIcon, SealCheckIcon } from 'phosphor-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 import { useNotifications } from '../../hooks/useNotifications';
+import EmptyState from '../../components/common/EmptyState';
 
 const AANVRAAG_TYPES = [
   'aanvraag_received',
@@ -69,13 +70,16 @@ function NotificationAvatar({ notification }) {
       <Image
         source={{ uri: notification.actor.avatar_url }}
         style={styles.avatarImage}
+        accessibilityElementsHidden
       />
     );
   }
 
   return (
     <View style={styles.initialsCircle}>
-      <Text style={styles.initialsText}>{getInitials(notification.actor)}</Text>
+      <Text style={styles.initialsText} accessibilityElementsHidden>
+        {getInitials(notification.actor)}
+      </Text>
     </View>
   );
 }
@@ -90,6 +94,7 @@ function NotificationRow({ notification, onPress, showDivider }) {
         style={[styles.row, isUnread && styles.rowUnread]}
         accessibilityRole="button"
         accessibilityLabel={`${notification.title}, ${formatRelative(notification.created_at)}${isUnread ? ', ongelezen' : ''}`}
+        accessibilityState={{ selected: isUnread }}
       >
         <NotificationAvatar notification={notification} />
 
@@ -98,7 +103,13 @@ function NotificationRow({ notification, onPress, showDivider }) {
             <Text style={[styles.rowTitle, isUnread && styles.rowTitleUnread]} numberOfLines={2}>
               {notification.title}
             </Text>
-            {isUnread && <View style={styles.unreadDot} />}
+            {isUnread && (
+              <View
+                style={styles.unreadDot}
+                accessibilityLabel="Ongelezen"
+                accessibilityRole="image"
+              />
+            )}
           </View>
           {notification.body ? (
             <Text style={styles.rowBody} numberOfLines={1}>{notification.body}</Text>
@@ -112,9 +123,7 @@ function NotificationRow({ notification, onPress, showDivider }) {
 }
 
 export default function MeldingenScreen({
-  role = 'tuinzoeker',
   onBack,
-  onNavigateToHome,
   onNavigateToAanvraag,
   onNavigateToConversation,
   onNavigateToBeeindigd,
@@ -124,6 +133,7 @@ export default function MeldingenScreen({
 
   useEffect(() => {
     markAllAsRead();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handlePress(notification) {
@@ -144,9 +154,9 @@ export default function MeldingenScreen({
   const groups = groupNotificationsByTime(notifications);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.screen}>
       <SafeAreaView edges={['top']} style={styles.headerSafe}>
-        <View style={[styles.header, { paddingTop: insets.top > 0 ? 0 : SPACING.sm }]}>
+        <View style={styles.header}>
           <Pressable
             style={styles.backBtn}
             onPress={onBack}
@@ -157,44 +167,35 @@ export default function MeldingenScreen({
             <ArrowLeftIcon size={24} color={COLORS.textInverse} weight="regular" />
             <Text style={styles.backText}>Terug</Text>
           </Pressable>
-          <Text style={styles.headerTitle}>Meldingen</Text>
-          <View style={styles.headerRight} />
+          <Text style={styles.headerTitle} accessibilityRole="header">Meldingen</Text>
+          <View style={styles.headerSpacer} />
         </View>
       </SafeAreaView>
 
       {isLoading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="small" color={COLORS.brand} />
+          <ActivityIndicator
+            size="small"
+            color={COLORS.brand}
+            accessibilityLabel="Meldingen worden geladen"
+          />
         </View>
       ) : isEmpty ? (
         <View style={styles.emptyOuter}>
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconCircle}>
-              <BellSlashIcon size={32} color={COLORS.brand} weight="regular" />
-            </View>
-            <Text style={styles.emptyTitle}>Hier is het nog stil</Text>
-            <Text style={styles.emptySubtext}>
-              Nieuwe meldingen verschijnen hier zodra er iets verandert.
-            </Text>
-          </View>
-
-          {role === 'tuinzoeker' ? (
-            <View style={[styles.emptyActionContainer, { paddingBottom: Math.max(insets.bottom, 16) + 24 }]}>
-              <Pressable
-                onPress={onNavigateToHome}
-                style={styles.emptyActionButton}
-                accessibilityRole="button"
-                accessibilityLabel="Zoek een perceel"
-              >
-                <Text style={styles.emptyActionText}>Zoek een perceel</Text>
-              </Pressable>
-            </View>
-          ) : null}
+          <EmptyState
+            icon={BellSlashIcon}
+            title="Hier is het nog stil"
+            body="Nieuwe meldingen verschijnen hier zodra er iets verandert."
+          />
         </View>
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 24 }}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: Math.max(insets.bottom, SPACING.md) + SPACING.xl },
+          ]}
+          accessibilityRole="list"
         >
           {groups.vandaag.length > 0 && (
             <>
@@ -242,9 +243,9 @@ export default function MeldingenScreen({
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.background,
   },
   headerSafe: {
     backgroundColor: COLORS.brand,
@@ -253,104 +254,67 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.brand,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: SPACING.screenX,
-    paddingBottom: SPACING.md,
-    paddingTop: SPACING.md,
+    paddingVertical: SPACING.md,
   },
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
-    minWidth: 70,
+    zIndex: 2,
   },
   backText: {
     fontFamily: FONTS.displayMedium,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.textInverse,
+    includeFontPadding: false,
   },
   headerTitle: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
-    color: COLORS.textInverse,
+    position: 'absolute',
+    left: 0,
+    right: 0,
     textAlign: 'center',
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.xl,
+    color: COLORS.textInverse,
   },
-  headerRight: {
-    minWidth: 70,
+  headerSpacer: {
+    flex: 1,
   },
   loadingWrap: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   // ── Empty state ──────────────────────────────────────────────
   emptyOuter: {
     flex: 1,
   },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: SPACING.screenX,
-    gap: 12,
+
+  // ── Section headers ───────────────────────────────────────────
+  listContent: {
+    paddingTop: SPACING.sm,
   },
-  emptyIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.surfaceBrand,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  emptyTitle: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-  },
-  emptySubtext: {
-    fontFamily: FONTS.body,
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    maxWidth: 280,
-  },
-  emptyActionContainer: {
-    paddingHorizontal: SPACING.screenX,
-  },
-  emptyActionButton: {
-    backgroundColor: COLORS.brand,
-    borderRadius: RADIUS.xl,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  emptyActionText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: 16,
-    color: COLORS.surface,
-  },
-  // ── Section header ────────────────────────────────────────────
   sectionHeader: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
+    fontSize: FONT_SIZES.xl,
     color: COLORS.textPrimary,
     paddingHorizontal: SPACING.screenX,
-    paddingTop: 20,
-    paddingBottom: 8,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.sm,
   },
+
   // ── Notification row ──────────────────────────────────────────
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginHorizontal: SPACING.screenX,
     paddingHorizontal: SPACING.sm,
-    paddingVertical: 14,
-    gap: 15,
+    paddingVertical: SPACING.md,
+    gap: SPACING.md,
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.xl,
-    overflow: 'hidden',
+    borderRadius: RADIUS.md,
   },
   rowUnread: {
     backgroundColor: 'rgba(255, 217, 94, 0.15)',
@@ -359,50 +323,53 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: COLORS.dividerSoft,
     marginHorizontal: SPACING.screenX,
-    marginVertical: 12,
+    marginVertical: SPACING.sm,
   },
   avatarImage: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.surfaceMuted,
+    flexShrink: 0,
   },
   initialsCircle: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   initialsText: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 15,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textPrimary,
   },
   iconCircle: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.surfaceBrand,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   rowContent: {
     flex: 1,
-    gap: 2,
+    gap: SPACING.xxs,
     minWidth: 0,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: SPACING.sm,
   },
   rowTitle: {
     flex: 1,
     fontFamily: FONTS.body,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.textPrimary,
     lineHeight: 22,
   },
@@ -411,20 +378,19 @@ const styles = StyleSheet.create({
   },
   rowBody: {
     fontFamily: FONTS.body,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textSecondary,
     lineHeight: 20,
   },
   rowTime: {
     fontFamily: FONTS.body,
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textMuted,
   },
   unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: SPACING.sm,
+    height: SPACING.sm,
+    borderRadius: RADIUS.pill,
     backgroundColor: COLORS.accent,
     marginTop: 7,
     flexShrink: 0,

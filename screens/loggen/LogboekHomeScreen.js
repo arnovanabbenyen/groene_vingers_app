@@ -151,6 +151,7 @@ export default function LogboekHomeScreen({
           setSelectedConversation(conv);
           onOpenConversation?.(conv);
         }}
+        onNavigateToKaart={() => handleTabPress({ key: 'kaart' })}
       />
     );
   }
