@@ -72,6 +72,11 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
 
   const userPlan = plan || 'free';
 
+  function handleTabPress(item) {
+    if (item.key === 'profiel') { onOpenProfiel?.(); return; }
+    setActiveTab(item.key);
+  }
+
   function handleRequestWithGate(plot) {
     if (userPlan === 'pro') {
       navDispatch({ type: 'OPEN_REQUEST', plot });
@@ -177,7 +182,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
   if (activeTab === 'kaart') {
     return (
       <KaartScreen
-        onTabPress={(item) => { setAutoFocusKaartSearch(false); setActiveTab(item.key); }}
+        onTabPress={(item) => { setAutoFocusKaartSearch(false); handleTabPress(item); }}
         profileImageSource={avatarSource}
         badgeCounts={badgeCounts}
         onOpenPerceel={(plot) => navDispatch({ type: 'OPEN_PLOT', plot })}
@@ -189,7 +194,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
   if (activeTab === 'loggen') {
     return (
       <LogboekScreen
-        onTabPress={(item) => setActiveTab(item.key)}
+        onTabPress={handleTabPress}
         profileImageSource={avatarSource}
         badgeCounts={badgeCounts}
         onNavigateToKaart={() => setActiveTab('kaart')}
@@ -200,7 +205,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
   if (activeTab === 'berichten') {
     return (
       <BerichtenOverzichtScreen
-        onTabPress={(item) => setActiveTab(item.key)}
+        onTabPress={handleTabPress}
         profileImageSource={avatarSource}
         badgeCounts={badgeCounts}
         onOpenConversation={(conversation) => {
@@ -346,10 +351,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
 
         <BottomNav
           activeKey={activeTab}
-          onTabPress={(item) => {
-            if (item.key === 'profiel') { onOpenProfiel?.(); return; }
-            setActiveTab(item.key);
-          }}
+          onTabPress={handleTabPress}
           profileImageSource={avatarSource}
           badgeCounts={badgeCounts}
           style={styles.bottomNav}
