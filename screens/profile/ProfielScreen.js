@@ -82,8 +82,18 @@ export default function ProfielScreen({
     role === 'tuinzoeker' ? refreshKey : null
   );
   const { aanvragen, isLoading: isLoadingAanvragen } = useMyAanvragen(refreshKey);
-  const { percelen: savedPercelen, isLoading: isLoadingSaved } = useSavedPercelen(refreshKey);
+  const { percelen: savedPercelen, isLoading: isLoadingSaved, refresh: refreshSaved } = useSavedPercelen(refreshKey);
   const { isFavorite, toggleFavorite } = useFavorites();
+
+  async function handleToggleSavedFavorite(perceelId) {
+    try {
+      await toggleFavorite(perceelId);
+    } catch (e) {
+      console.warn('toggleFavorite failed', e);
+    }
+    // refresh the saved list after the DB operation completes
+    refreshSaved?.();
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -472,7 +482,7 @@ export default function ProfielScreen({
                         setActiveSavedDot(Math.max(0, Math.min(slicedSaved.length - 1, next)));
                       }}
                     >
-                      {slicedSaved.map((perceel) => {
+                        {slicedSaved.map((perceel) => {
                         const plot = mapPerceelToPlot(perceel);
                         return (
                           <PlotCard
@@ -480,7 +490,7 @@ export default function ProfielScreen({
                             plot={plot}
                             onPress={() => onPerceelPress?.(plot)}
                             isFavorited={isFavorite(perceel.id)}
-                            onToggleFavorite={() => toggleFavorite(perceel.id)}
+                            onToggleFavorite={() => handleToggleSavedFavorite(perceel.id)}
                             showFavoriteButton
                           />
                         );
