@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useStripe } from '@stripe/stripe-react-native';
 import * as Linking from 'expo-linking';
-import ScreenHeader from '../../components/headers/ScreenHeader';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Header from '../../components/navigation/Header';
 import PlanOptionCard from '../../components/plans/PlanOptionCard';
-import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, SPACING } from '../../components/theme/tokens';
 import { createCheckoutSession, pollForProStatus } from '../../services/stripe';
 
 const PLAN_OPTIONS = [
@@ -13,13 +14,13 @@ const PLAN_OPTIONS = [
     variant: 'pro',
     title: 'Pro',
     price: '€7,01',
-    priceSuffix: '/ Per maand (inclusief €1,22 btw)',
+    priceSuffix: 'Per maand (incl. btw)',
     note: null,
     buttonLabel: 'Start Pro nu',
     buttonVariant: 'solid',
     features: [
       { label: 'Percelen bekijken & zoeken', included: true },
-      { label: 'Matchen met tuin eigenaar', included: true },
+      { label: 'Matchen met tuineigenaar', included: true },
       { label: 'Logboek bijhouden', included: true },
     ],
   },
@@ -28,13 +29,13 @@ const PLAN_OPTIONS = [
     variant: 'free',
     title: 'Gratis',
     price: '€0',
-    priceSuffix: '/ Per maand',
-    note: 'Altijd gratis, geen kredietkaart',
-    buttonLabel: 'Huidige plan',
+    priceSuffix: 'Per maand',
+    note: 'Altijd gratis, geen kredietkaart nodig',
+    buttonLabel: 'Huidig plan',
     buttonVariant: 'outline',
     features: [
       { label: 'Percelen bekijken', included: true },
-      { label: 'Matchen met tuin eigenaar', included: false },
+      { label: 'Matchen met tuineigenaar', included: false },
       { label: 'Logboek bijhouden', included: false },
     ],
   },
@@ -44,6 +45,7 @@ export default function PlansScreen({ onBack, onUpgradeSuccess }) {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
+  const insets = useSafeAreaInsets();
 
   async function handleStartPro() {
     setIsLoading(true);
@@ -96,13 +98,20 @@ export default function PlansScreen({ onBack, onUpgradeSuccess }) {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title="Kies jouw plan" onBack={onBack} />
+      <Header title="Kies jouw plan" onBack={onBack} />
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(SPACING.xl, insets.bottom + SPACING.lg) },
+        ]}
         showsVerticalScrollIndicator={false}
       >
+        <Text style={styles.subtitle}>
+          Kies een plan dat bij jou past en begin vandaag met tuinieren.
+        </Text>
+
         {PLAN_OPTIONS.map((plan) => (
           <PlanOptionCard
             key={plan.key}
@@ -111,12 +120,11 @@ export default function PlansScreen({ onBack, onUpgradeSuccess }) {
             price={plan.price}
             priceSuffix={plan.priceSuffix}
             note={plan.note}
-            buttonLabel={
-              plan.key === 'pro' && isLoading ? 'Even geduld...' : plan.buttonLabel
-            }
+            buttonLabel={plan.buttonLabel}
             buttonVariant={plan.buttonVariant}
             features={plan.features}
-            onPress={plan.key === 'pro' ? (isLoading ? undefined : handleStartPro) : undefined}
+            isLoading={plan.key === 'pro' && isLoading}
+            onPress={plan.key === 'pro' ? handleStartPro : undefined}
           />
         ))}
 
@@ -134,27 +142,31 @@ export default function PlansScreen({ onBack, onUpgradeSuccess }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.background,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: SPACING.screenX,
-    paddingTop: 32,
-    paddingBottom: SPACING.xl,
+    paddingTop: SPACING.xl,
     gap: SPACING.lg,
+  },
+  subtitle: {
+    color: COLORS.textSecondary,
+    fontSize: FONT_SIZES.md,
+    lineHeight: 22,
+    fontFamily: FONTS.body,
   },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACING.sm,
-    marginTop: SPACING.sm,
   },
   statusText: {
     fontFamily: FONTS.body,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textSecondary,
   },
 });
