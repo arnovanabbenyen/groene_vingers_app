@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { MapPinIcon } from 'phosphor-react-native';
-import { COLORS, FONTS, RADIUS } from '../theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
 import { useLocationSearch } from '../../hooks/useLocationSearch';
 
 const ERROR_BG = '#FBEAEA';
@@ -26,6 +26,7 @@ const LocationAutocompleteField = forwardRef(function LocationAutocompleteField(
   returnKeyType = 'next',
   accessibilityLabel,
   accessibilityHint,
+  style,
 }, ref) {
   const inputRef = useRef(null);
   const [query, setQuery] = useState(value || '');
@@ -35,7 +36,6 @@ const LocationAutocompleteField = forwardRef(function LocationAutocompleteField(
 
   useImperativeHandle(ref, () => ({ focus: () => inputRef.current?.focus() }));
 
-  // Sync when external value arrives asynchronously (e.g. profile loading from Supabase)
   useEffect(() => {
     if (!isInitializedRef.current && value) {
       isInitializedRef.current = true;
@@ -75,11 +75,11 @@ const LocationAutocompleteField = forwardRef(function LocationAutocompleteField(
   }
 
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, style]}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
 
       <View style={[styles.inputShell, error && styles.inputShellError]}>
-        <MapPinIcon size={18} color={COLORS.border} weight="regular" />
+        <MapPinIcon size={18} color={COLORS.border} weight="regular" accessibilityElementsHidden />
         <TextInput
           ref={inputRef}
           value={query}
@@ -87,7 +87,7 @@ const LocationAutocompleteField = forwardRef(function LocationAutocompleteField(
           onFocus={() => setFocused(true)}
           onBlur={handleBlur}
           placeholder={placeholder}
-          placeholderTextColor={COLORS.border}
+          placeholderTextColor={COLORS.textMuted}
           style={styles.input}
           autoCapitalize="words"
           autoCorrect={false}
@@ -122,7 +122,7 @@ const LocationAutocompleteField = forwardRef(function LocationAutocompleteField(
                 accessibilityRole="button"
                 accessibilityLabel={`Selecteer ${suggestion.plaats}`}
               >
-                <MapPinIcon size={14} color={COLORS.textSecondary} weight="regular" />
+                <MapPinIcon size={14} color={COLORS.textSecondary} weight="regular" accessibilityElementsHidden />
                 <Text style={styles.dropdownPlaats}>{suggestion.plaats}</Text>
               </Pressable>
             ))
@@ -137,25 +137,24 @@ export default LocationAutocompleteField;
 
 const styles = StyleSheet.create({
   wrap: {
-    marginBottom: 14,
     zIndex: 1,
   },
   label: {
-    fontFamily: FONTS.body,
-    fontSize: 12.8,
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textPrimary,
-    marginBottom: 8,
+    marginBottom: SPACING.xs,
   },
   inputShell: {
-    height: 40,
-    borderRadius: RADIUS.xs,
+    height: 48,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.surface,
-    paddingHorizontal: 12,
+    paddingHorizontal: SPACING.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: SPACING.sm,
   },
   inputShellError: {
     borderColor: COLORS.negative,
@@ -164,16 +163,16 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontFamily: FONTS.body,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textPrimary,
     paddingVertical: 0,
   },
   dropdown: {
-    marginTop: 4,
+    marginTop: SPACING.xs,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: RADIUS.xs,
+    borderRadius: RADIUS.sm,
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -183,9 +182,9 @@ const styles = StyleSheet.create({
   dropdownRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    gap: SPACING.sm,
+    paddingVertical: SPACING.sm + 2,
+    paddingHorizontal: SPACING.md,
   },
   dropdownRowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -196,12 +195,12 @@ const styles = StyleSheet.create({
   },
   dropdownPlaats: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textPrimary,
   },
   dropdownMuted: {
     fontFamily: FONTS.body,
-    fontSize: 13,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
     fontStyle: 'italic',
   },

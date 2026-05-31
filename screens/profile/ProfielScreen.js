@@ -644,8 +644,6 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    borderWidth: 3,
-    borderColor: COLORS.surface,
   },
   avatarPlaceholder: {
     backgroundColor: COLORS.surfaceMuted,
