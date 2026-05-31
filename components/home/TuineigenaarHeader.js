@@ -1,8 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { BellIcon, MapPinIcon } from 'phosphor-react-native';
-import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
 export default function TuineigenaarHeader({
   location = 'Locatie',
@@ -10,17 +9,9 @@ export default function TuineigenaarHeader({
   onOpenNotifications,
   unreadNotificationsCount = 0,
 }) {
-  const insets = useSafeAreaInsets();
-  const topPadding = Math.max(46, insets.top + 18);
-
   return (
-    <View style={styles.headerWrap}>
-      <LinearGradient
-        colors={[COLORS.brand, COLORS.brandMid, COLORS.brand]}
-        start={{ x: 0, y: 0.5 }}
-        end={{ x: 1, y: 0.5 }}
-        style={[styles.headerGradient, { paddingTop: topPadding }]}
-      >
+    <SafeAreaView edges={['top']} style={styles.safe}>
+      <View style={styles.header}>
         <View style={styles.topRow}>
           <View>
             <View style={styles.locationRow}>
@@ -51,21 +42,20 @@ export default function TuineigenaarHeader({
             ) : null}
           </Pressable>
         </View>
-      </LinearGradient>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerWrap: {
-    height: SIZES.headerHeight,
-    overflow: 'hidden',
+  safe: {
     backgroundColor: COLORS.brand,
-    ...SHADOWS.header,
   },
-  headerGradient: {
-    flex: 1,
+  header: {
+    backgroundColor: COLORS.brand,
     paddingHorizontal: SPACING.screenX,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.lg,
   },
   topRow: {
     flexDirection: 'row',
@@ -85,7 +75,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   greeting: {
-    marginTop: SPACING.sm,
+    marginTop: 6,
     color: COLORS.textInverse,
     fontSize: FONT_SIZES.xxxl,
     lineHeight: 25,
