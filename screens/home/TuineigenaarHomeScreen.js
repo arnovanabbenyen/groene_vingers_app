@@ -1,16 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  BellIcon,
-  HandshakeIcon,
-  EnvelopeOpenIcon,
-  CalendarIcon,
-  LeafIcon,
-  MapPinIcon,
-  PlusCircleIcon,
-} from 'phosphor-react-native';
-import { COLORS, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
+import { HandshakeIcon, EnvelopeOpenIcon, CalendarIcon, LeafIcon, PlusCircleIcon } from 'phosphor-react-native';
+import { COLORS, SIZES, SPACING } from '../../components/theme/tokens';
 import BottomNav from '../../components/navigation/BottomNav';
 import PercelenCarousel from '../../components/perceel/PercelenCarousel';
 import { supabase } from '../../services/supabase';
@@ -25,6 +16,9 @@ import ConversationDetailScreen from '../berichten/ConversationDetailScreen';
 import { createConversationForAanvraag } from '../../services/conversations';
 import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
 import SamenwerkingCard from '../../components/home/SamenwerkingCard';
+import TuineigenaarHeader from '../../components/home/TuineigenaarHeader';
+import DashboardSection from '../../components/common/DashboardSection';
+import DashboardEmptyState from '../../components/home/DashboardEmptyState';
 
 const PROFILE_IMAGE = require('../../images/tuineigenaar_pfp.png');
 const PERCEEL_STATUS = {
@@ -32,44 +26,6 @@ const PERCEEL_STATUS = {
   HIDDEN: 'hidden',
   DELETED: 'deleted',
 };
-
-function EmptyRequestsState() {
-  return (
-    <View style={styles.emptyState} accessible accessibilityRole="text">
-      <EnvelopeOpenIcon size={40} color={COLORS.brand} weight="regular" />
-      <Text style={styles.emptyTitle}>Nog geen aanvragen ontvangen</Text>
-      <Text style={styles.emptySubtext}>Wanneer iemand interesse heeft in jouw perceel zie je het hier.</Text>
-    </View>
-  );
-}
-
-function ActiveSamenwerkingenEmpty() {
-  return (
-    <View style={styles.emptyFeatureCard} accessible accessibilityRole="text">
-      <HandshakeIcon size={40} color={COLORS.brand} weight="regular" />
-      <Text style={styles.emptyFeatureTitle}>Nog geen actieve samenwerkingen</Text>
-      <Text style={styles.emptyFeatureSubtext}>
-        Zodra een aanvraag als samenwerking is bevestigd, verschijnt die hier.
-      </Text>
-      {/* TODO: render actual active samenwerkingen cards when aanvragen with status=AANVRAAG_STATUS.CONFIRMED exist. For now, show empty state only. */}
-    </View>
-  );
-}
-
-function PlanningEmpty() {
-  return (
-    <View style={styles.emptyFeatureCard} accessible accessibilityRole="text">
-      <CalendarIcon size={40} color={COLORS.brand} weight="regular" />
-      <Text style={styles.emptyFeatureTitle}>Nog geen planning</Text>
-      <Text style={styles.emptyFeatureSubtext}>
-        Hier zie je wanneer je tuinzoekers langskomen. Eerst een samenwerking accepteren.
-      </Text>
-      {/* TODO: implement planning section with calendar grid showing names of tuinzoekers per day (matching Figma design "Arno", "Dries" rows). Comes after the active samenwerkingen feature. */}
-    </View>
-  );
-}
-
-
 
 export default function TuineigenaarHomeScreen({
   onLogout,
@@ -103,8 +59,14 @@ export default function TuineigenaarHomeScreen({
   const { aanvragen, isLoading: isLoadingAanvragen, setAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
 
   function handleTabPress(item) {
-    if (item.key === 'perceel') { setActiveTab('perceel'); return; }
-    if (item.key === 'profiel') { onOpenProfiel?.(); return; }
+    if (item.key === 'perceel') {
+      setActiveTab('perceel');
+      return;
+    }
+    if (item.key === 'profiel') {
+      onOpenProfiel?.();
+      return;
+    }
     setActiveTab(item.key);
   }
 
@@ -116,14 +78,10 @@ export default function TuineigenaarHomeScreen({
 
       try {
         const { data: userData, error: userError } = await supabase.auth.getUser();
-        if (userError) {
-          throw userError;
-        }
+        if (userError) throw userError;
 
         const userId = userData?.user?.id;
-        if (!userId) {
-          return;
-        }
+        if (!userId) return;
 
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
@@ -153,7 +111,6 @@ export default function TuineigenaarHomeScreen({
 
         if (mounted) setPercelen(percelenData || []);
 
-        // Load confirmed samenwerkingen for this owner's parcels
         const perceelIds = (percelenData || []).map((p) => p.id);
         if (perceelIds.length > 0) {
           const { data: confirmedAanvragen } = await supabase
@@ -196,8 +153,6 @@ export default function TuineigenaarHomeScreen({
         }
       } catch (e) {
         console.warn('loadDashboardData error', e);
-      } finally {
-        // aanvragen load through the shared hook
       }
     }
 
@@ -301,8 +256,6 @@ export default function TuineigenaarHomeScreen({
     setActiveTab('start');
 
     Alert.alert('Perceel verwijderd', 'Het perceel is uit de app gehaald.');
-
-    // TODO: implement "Undo" functionality — for now, deletion is a soft-delete (status='deleted'), so the data can theoretically be restored via a future admin feature.
   }
 
   function handleDeletePerceel() {
@@ -455,41 +408,21 @@ export default function TuineigenaarHomeScreen({
 
   return (
     <View style={styles.container}>
-      <SafeAreaView edges={['top']} style={styles.headerSafe}>
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View style={styles.locationRow}>
-            <MapPinIcon size={16} color={COLORS.surface} weight="regular" />
-            {/* TODO: replace hardcoded location once the location feature ships. */}
-            <Text style={styles.locationText}>Kessel-Lo</Text>
-          </View>
-          <Pressable
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Meldingen"
-            onPress={onOpenNotifications}
-            style={styles.bellWrap}
-          >
-            <BellIcon size={24} color={COLORS.surface} weight="regular" />
-            {unreadNotificationsCount > 0 ? (
-              <View style={styles.bellBadge}>
-                <Text style={styles.bellBadgeText}>
-                  {unreadNotificationsCount > 9 ? '9+' : String(unreadNotificationsCount)}
-                </Text>
-              </View>
-            ) : null}
-          </Pressable>
-        </View>
-
-        <Text style={styles.greeting}>Hallo, {profile?.first_name || 'Arno'}</Text>
-      </View>
-      </SafeAreaView>
+      <TuineigenaarHeader
+        location="Kessel-Lo"
+        firstName={profile?.first_name || 'Arno'}
+        onOpenNotifications={onOpenNotifications}
+        unreadNotificationsCount={unreadNotificationsCount}
+      />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle} accessibilityRole="header">Actieve samenwerkingen</Text>
+        <DashboardSection title="Actieve samenwerkingen">
           {samenwerkingen.length === 0 ? (
-            <ActiveSamenwerkingenEmpty />
+            <DashboardEmptyState
+              icon={HandshakeIcon}
+              title="Nog geen actieve samenwerkingen"
+              body="Zodra een aanvraag als samenwerking is bevestigd, verschijnt die hier."
+            />
           ) : (
             <View style={styles.samenwerkingList}>
               {samenwerkingen.map((samenwerking) => (
@@ -501,22 +434,27 @@ export default function TuineigenaarHomeScreen({
               ))}
             </View>
           )}
-        </View>
+        </DashboardSection>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle} accessibilityRole="header">Jouw planning</Text>
-          <PlanningEmpty />
-        </View>
+        <DashboardSection title="Jouw planning">
+          <DashboardEmptyState
+            icon={CalendarIcon}
+            title="Nog geen planning"
+            body="Hier zie je wanneer je tuinzoekers langskomen. Eerst een samenwerking accepteren."
+          />
+        </DashboardSection>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle} accessibilityRole="header">Nieuwe aanvragen</Text>
-
+        <DashboardSection title="Nieuwe aanvragen">
           {isLoadingAanvragen ? (
             <View style={styles.loadingWrap} accessibilityLabel="Aanvragen worden geladen">
               <ActivityIndicator size="small" color={COLORS.brand} />
             </View>
           ) : aanvragen.length === 0 ? (
-            <EmptyRequestsState />
+            <DashboardEmptyState
+              icon={EnvelopeOpenIcon}
+              title="Nog geen aanvragen ontvangen"
+              body="Wanneer iemand interesse heeft in jouw perceel zie je het hier."
+            />
           ) : (
             aanvragen.map((aanvraag) => (
               <AanvraagCard
@@ -527,11 +465,11 @@ export default function TuineigenaarHomeScreen({
               />
             ))
           )}
-        </View>
+        </DashboardSection>
 
-        <View style={styles.section}>
-          <View style={styles.percelenHeaderRow}>
-            <Text style={styles.sectionTitle} accessibilityRole="header">Jouw percelen</Text>
+        <DashboardSection
+          title="Jouw percelen"
+          action={(
             <Pressable
               onPress={() => setActiveTab('perceel')}
               accessibilityRole="button"
@@ -539,16 +477,16 @@ export default function TuineigenaarHomeScreen({
               accessibilityHint="Open het scherm om een nieuw perceel toe te voegen"
               hitSlop={8}
             >
-              <PlusCircleIcon size={32} color={COLORS.brand} weight="regular" />
+              <PlusCircleIcon size={32} color={COLORS.brand} weight="regular" accessibilityElementsHidden />
             </Pressable>
-          </View>
-
+          )}
+        >
           <PercelenCarousel
             percelen={(percelen || []).filter((perceel) => perceel.status !== PERCEEL_STATUS.DELETED)}
             onAddPress={() => setActiveTab('perceel')}
             onPerceelPress={handlePerceelPress}
           />
-        </View>
+        </DashboardSection>
 
         <View style={{ height: SIZES.bottomNavClearance }} />
       </ScrollView>
@@ -569,130 +507,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.surface,
   },
-  headerSafe: {
-    backgroundColor: COLORS.brand,
-  },
-  header: {
-    backgroundColor: COLORS.brand,
-    paddingTop: SPACING.md,
-    paddingHorizontal: SPACING.screenX,
-    paddingBottom: SPACING.lg,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  locationText: {
-    fontFamily: FONTS.body,
-    fontSize: 14,
-    color: COLORS.surface,
-  },
-  greeting: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 25,
-    color: COLORS.surface,
-  },
   content: {
     flex: 1,
     paddingHorizontal: SPACING.screenX,
     backgroundColor: COLORS.surface,
-  },
-  section: {
-    marginTop: SPACING.lg,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.lg,
+    gap: SPACING.lg,
   },
   samenwerkingList: {
     gap: SPACING.md,
-  },
-  sectionTitle: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.md,
-  },
-  percelenHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: SPACING.sm,
   },
   loadingWrap: {
     minHeight: 110,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  emptyState: {
-    paddingVertical: SPACING.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.sm,
-  },
-  emptyTitle: {
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  emptySubtext: {
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.body,
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-    maxWidth: 280,
-  },
-  emptyFeatureCard: {
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: 'rgba(54, 57, 43, 0.08)',
-    backgroundColor: COLORS.surface,
-    padding: SPACING.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.sm,
-    ...SHADOWS.card,
-  },
-  emptyFeatureTitle: {
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  emptyFeatureSubtext: {
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.body,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-    maxWidth: 280,
-  },
-  bellWrap: {
-    position: 'relative',
-  },
-  bellBadge: {
-    position: 'absolute',
-    top: -5,
-    right: -6,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: COLORS.negative,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-    borderWidth: 1.5,
-    borderColor: COLORS.brand,
-  },
-  bellBadgeText: {
-    color: COLORS.surface,
-    fontSize: 9,
-    fontFamily: FONTS.bodyMedium,
-    lineHeight: 11,
   },
 });
