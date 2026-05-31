@@ -10,6 +10,9 @@ export const COLORS = {
   brandMid: '#606C3D',
   brandSoft: 'rgba(87,98,56,0.2)',
   brandSoft2: 'rgba(251,246,234,0.2)',
+  brandOverlay: 'rgba(87,98,56,0.12)',
+  brandOverlayStroke: 'rgba(87,98,56,0.45)',
+  overlayLight: 'rgba(255,255,255,0.18)',
   accent: '#FFD95E',
   textPrimary: '#36392B',
   textSecondary: '#56594D',
@@ -41,6 +44,9 @@ export const SIZES = {
   dot: 8,
   bottomNavClearance: 110,
   profileCoverHeight: 201,
+  iconBtn: 44,
+  mapPin: 40,
+  mapPinSelected: 48,
 };
 
 export const FONT_SIZES = {
@@ -66,6 +72,7 @@ export const RADIUS = {
   xs: 4,
   sm: 6,
   md: 10,
+  lg: 16,
   xl: 12,
   pill: 999,
 };
@@ -98,5 +105,12 @@ export const SHADOWS = {
     shadowOpacity: 0.25,
     shadowRadius: 24.5,
     elevation: 14,
+  },
+  sheet: {
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
   },
 };

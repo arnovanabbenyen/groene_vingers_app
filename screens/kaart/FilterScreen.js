@@ -10,15 +10,9 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  DropIcon,
-  PlantIcon,
-  RecycleIcon,
-  ShovelIcon,
-  TreeIcon,
-  XIcon,
-} from 'phosphor-react-native';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
+import { XIcon } from 'phosphor-react-native';
+import AmenityIcon from '../../components/kaart/AmenityIcon';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
 import { SAMENWERKING_TYPES } from '../../services/samenwerkingTypes';
 import { countMatchingPercelen, DEFAULT_FILTERS } from '../../services/perceelFilters';
 
@@ -26,13 +20,7 @@ const AFSTAND_MIN = 1;
 const AFSTAND_MAX = 15;
 const AFSTAND_MARKS = [1, 8, 15];
 
-const AMENITY_OPTIONS = [
-  { label: 'Water', Icon: DropIcon },
-  { label: 'Tools', Icon: ShovelIcon },
-  { label: 'Zaden', Icon: PlantIcon },
-  { label: 'Compost', Icon: RecycleIcon },
-  { label: 'Bomen', Icon: TreeIcon },
-];
+const AMENITY_OPTIONS = ['Water', 'Tools', 'Zaden', 'Compost', 'Bomen'];
 
 const GROOTTE_OPTIONS = [
   { label: 'Maakt niet uit', value: 'any' },
@@ -179,7 +167,13 @@ export default function FilterScreen({
           <View style={styles.headerContent}>
             <View style={styles.headerSpacer} />
             <Text style={styles.headerTitle}>Filter</Text>
-            <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8}>
+            <Pressable
+              style={({ pressed }) => [styles.closeBtn, pressed && styles.closeBtnPressed]}
+              onPress={onClose}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Filter scherm sluiten"
+            >
               <XIcon size={20} color={COLORS.textInverse} weight="bold" />
             </Pressable>
           </View>
@@ -207,19 +201,20 @@ export default function FilterScreen({
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Aanwezig:</Text>
             <View style={styles.amenityRow}>
-              {AMENITY_OPTIONS.map(({ label, Icon }) => {
+              {AMENITY_OPTIONS.map((label) => {
                 const selected = filters.voorzieningen.includes(label);
                 return (
                   <Pressable
                     key={label}
-                    style={styles.amenityItem}
+                    style={({ pressed }) => [styles.amenityItem, pressed && styles.amenityItemPressed]}
                     onPress={() => toggleVoorzienig(label)}
                     accessibilityRole="button"
                     accessibilityState={{ selected }}
                     accessibilityLabel={label}
                   >
                     <View style={[styles.amenityCircle, selected && styles.amenityCircleSelected]}>
-                      <Icon
+                      <AmenityIcon
+                        label={label}
                         size={22}
                         color={selected ? COLORS.textInverse : COLORS.textSecondary}
                         weight={selected ? 'fill' : 'regular'}
@@ -247,7 +242,11 @@ export default function FilterScreen({
                 return (
                   <Pressable
                     key={value}
-                    style={[styles.pill, selected && styles.pillSelected]}
+                    style={({ pressed }) => [
+                      styles.pill,
+                      selected && styles.pillSelected,
+                      pressed && styles.pillPressed,
+                    ]}
                     onPress={() => setFilters((f) => ({ ...f, grootte: value }))}
                     accessibilityRole="button"
                     accessibilityState={{ selected }}
@@ -271,7 +270,11 @@ export default function FilterScreen({
               contentContainerStyle={styles.pillRow}
             >
               <Pressable
-                style={[styles.pill, filters.samenwerking.length === 0 && styles.pillSelected]}
+                style={({ pressed }) => [
+                  styles.pill,
+                  filters.samenwerking.length === 0 && styles.pillSelected,
+                  pressed && styles.pillPressed,
+                ]}
                 onPress={() => setFilters((f) => ({ ...f, samenwerking: [] }))}
                 accessibilityRole="button"
                 accessibilityState={{ selected: filters.samenwerking.length === 0 }}
@@ -286,7 +289,11 @@ export default function FilterScreen({
                 return (
                   <Pressable
                     key={type}
-                    style={[styles.pill, selected && styles.pillSelected]}
+                    style={({ pressed }) => [
+                      styles.pill,
+                      selected && styles.pillSelected,
+                      pressed && styles.pillPressed,
+                    ]}
                     onPress={() => toggleSamenwerking(type)}
                     accessibilityRole="button"
                     accessibilityState={{ selected }}
@@ -303,10 +310,16 @@ export default function FilterScreen({
         </ScrollView>
 
         {/* Apply bar */}
-        <View style={[styles.applyBar, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={[styles.applyBar, { paddingBottom: insets.bottom + SPACING.md }]}>
           <Pressable
-            style={styles.applyBtn}
+            style={({ pressed }) => [styles.applyBtn, pressed && styles.applyBtnPressed]}
             onPress={() => onApply(filters)}
+            accessibilityRole="button"
+            accessibilityLabel={
+              matchCount === 0
+                ? 'Geen resultaten'
+                : `Toon ${matchCount} ${matchCount === 1 ? 'tuin' : 'tuinen'}`
+            }
           >
             <Text style={styles.applyLabel}>
               {matchCount === 0
@@ -314,7 +327,12 @@ export default function FilterScreen({
                 : `Toon ${matchCount} ${matchCount === 1 ? 'tuin' : 'tuinen'}`}
             </Text>
           </Pressable>
-          <Pressable style={styles.resetBtn} onPress={resetFilters}>
+          <Pressable
+            style={({ pressed }) => [styles.resetBtn, pressed && styles.resetBtnPressed]}
+            onPress={resetFilters}
+            accessibilityRole="button"
+            accessibilityLabel="Wis alle filters"
+          >
             <Text style={styles.resetLabel}>Wis filters</Text>
           </Pressable>
         </View>
@@ -403,13 +421,14 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     marginLeft: 'auto',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    width: SIZES.iconBtn - 8,
+    height: SIZES.iconBtn - 8,
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.overlayLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  closeBtnPressed: { opacity: 0.7 },
   scroll: {
     flex: 1,
   },
@@ -446,6 +465,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.xs,
   },
+  amenityItemPressed: { opacity: 0.7 },
   amenityCircle: {
     width: 50,
     height: 50,
@@ -481,6 +501,7 @@ const styles = StyleSheet.create({
   pillSelected: {
     backgroundColor: COLORS.brand,
   },
+  pillPressed: { opacity: 0.75 },
   pillLabel: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.lg,
@@ -564,9 +585,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...SHADOWS.card,
   },
+  applyBtnPressed: { opacity: 0.85 },
   applyLabel: {
     fontFamily: FONTS.displaySemiBold,
     fontSize: FONT_SIZES.lg,
     color: COLORS.textInverse,
   },
+  resetBtnPressed: { opacity: 0.7 },
 });
