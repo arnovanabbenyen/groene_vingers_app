@@ -8,9 +8,9 @@ import AmenityIcon from '../kaart/AmenityIcon';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export const PLOT_CARD = {
-  cardWidth: SCREEN_WIDTH - SPACING.screenX * 2 - 28,
+  cardWidth: SCREEN_WIDTH - SPACING.screenX * 2,
   imageHeight: 185,
-  carouselGap: SPACING.md,
+  carouselGap: SPACING.sm,
   cardPadding: 8,  // retained for HomeScreen statusChip positioning: top/left = cardPadding + badgeInset
   badgeInset: 8,   // retained for HomeScreen statusChip positioning
 };

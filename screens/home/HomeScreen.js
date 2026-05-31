@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
     marginHorizontal: -SPACING.screenX,
   },
   plotsScroller: {
-    gap: SPACING.md,
+    gap: SPACING.sm,
     paddingBottom: SPACING.xxs,
     paddingHorizontal: SPACING.screenX,
   },

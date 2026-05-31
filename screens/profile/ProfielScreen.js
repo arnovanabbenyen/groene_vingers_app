@@ -755,7 +755,7 @@ const styles = StyleSheet.create({
     marginHorizontal: -SPACING.screenX,
   },
   savedScrollContent: {
-    gap: SPACING.md,
+    gap: SPACING.sm,
     paddingHorizontal: SPACING.screenX,
     paddingBottom: SPACING.xxs,
   },
