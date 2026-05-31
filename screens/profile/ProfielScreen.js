@@ -619,7 +619,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.xl,
-    paddingBottom: SIZES.bottomNavClearance,
+    paddingBottom: SPACING.xl,
   },
   // Cover + avatar
   coverContainer: {
