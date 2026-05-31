@@ -178,7 +178,7 @@ export default function ParcelDetailScreen({
               <Text style={[styles.description, { marginTop: SPACING.sm }]}>{perceel.adres}</Text>
             ) : (
               <View style={styles.locationNotice}>
-                <MapPinIcon size={14} color={COLORS.textSecondary} weight="regular" accessibilityElementsHidden />
+                <MapPinIcon size={14} color={COLORS.textPrimary} weight="regular" accessibilityElementsHidden />
                 <Text style={styles.locationNoticeText}>
                   Exacte locatie zichtbaar na bevestigde samenwerking
                 </Text>
@@ -368,14 +368,15 @@ const styles = StyleSheet.create({
     gap: SPACING.xs,
     backgroundColor: COLORS.surfaceBrand,
     borderRadius: RADIUS.sm,
-    padding: SPACING.sm,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
   },
   locationNoticeText: {
     flex: 1,
     fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textPrimary,
+    lineHeight: 18,
   },
   buttonPressed: {
     opacity: 0.8,
