@@ -192,7 +192,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
         onTabPress={(item) => setActiveTab(item.key)}
         profileImageSource={avatarSource}
         badgeCounts={badgeCounts}
-        onNavigateToHome={() => setActiveTab('start')}
+        onNavigateToKaart={() => setActiveTab('kaart')}
       />
     );
   }
