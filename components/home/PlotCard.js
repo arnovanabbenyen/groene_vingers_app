@@ -15,7 +15,9 @@ export const PLOT_CARD = {
   badgeInset: 8,   // retained for HomeScreen statusChip positioning
 };
 
-function PlotCardBadges({ location, isFavorited, onToggleFavorite, showFavoriteButton }) {
+function PlotCardBadges({ location, isFavorited, onToggleFavorite, showFavoriteButton, statusLabel, statusTone = 'active' }) {
+  const hasStatusBadge = !!statusLabel;
+
   return (
     <>
       <View style={styles.locationBadge}>
@@ -25,19 +27,34 @@ function PlotCardBadges({ location, isFavorited, onToggleFavorite, showFavoriteB
         </Text>
       </View>
 
-      {showFavoriteButton && (
+      {hasStatusBadge ? (
+        <View style={[styles.statusWrap, statusTone === 'hidden' && styles.statusWrapHidden]}>
+          <Text style={[styles.statusText, statusTone === 'hidden' && styles.statusTextHidden]}>
+            {statusLabel}
+          </Text>
+        </View>
+      ) : showFavoriteButton ? (
         <View style={styles.heartWrap}>
           <FavoriteHeartButton
             isFavorited={isFavorited}
             onToggle={onToggleFavorite}
           />
         </View>
-      )}
+      ) : null}
     </>
   );
 }
 
-export default function PlotCard({ plot, onPress, isFavorited = false, onToggleFavorite, showFavoriteButton = true }) {
+export default function PlotCard({
+  plot,
+  onPress,
+  isFavorited = false,
+  onToggleFavorite,
+  showFavoriteButton = true,
+  statusLabel,
+  statusTone = 'active',
+  cardWidth = PLOT_CARD.cardWidth,
+}) {
   const [imageError, setImageError] = useState(false);
   const imageSource = typeof plot.image === 'string' ? { uri: plot.image } : plot.image;
   const hasImage = plot.image != null && plot.image !== '';
@@ -52,7 +69,7 @@ export default function PlotCard({ plot, onPress, isFavorited = false, onToggleF
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      style={({ pressed }) => [styles.card, { width: cardWidth }, pressed && styles.cardPressed]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={cardLabel}
@@ -88,6 +105,8 @@ export default function PlotCard({ plot, onPress, isFavorited = false, onToggleF
           isFavorited={isFavorited}
           onToggleFavorite={onToggleFavorite}
           showFavoriteButton={showFavoriteButton}
+          statusLabel={statusLabel}
+          statusTone={statusTone}
         />
       </View>
 
@@ -190,6 +209,32 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: SPACING.md,
     right: SPACING.md,
+  },
+  statusWrap: {
+    position: 'absolute',
+    top: SPACING.md,
+    right: SPACING.md,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statusWrapHidden: {
+    backgroundColor: COLORS.negativeSoft,
+  },
+  statusText: {
+    color: COLORS.brand,
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.xs,
+    textTransform: 'lowercase',
+  },
+  statusTextHidden: {
+    color: COLORS.negative,
   },
   body: {
     backgroundColor: COLORS.surface,

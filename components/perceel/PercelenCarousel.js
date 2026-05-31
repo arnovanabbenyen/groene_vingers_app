@@ -1,13 +1,9 @@
 import { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import {
-  HouseIcon,
-  LeafIcon,
-  MapPinIcon,
-  StarIcon,
-} from 'phosphor-react-native';
+import { HouseIcon, LeafIcon, MapPinIcon, StarIcon } from 'phosphor-react-native';
 import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 import { normalizeSize } from '../aanvraag/AanvraagCard';
+import PlotCard, { PLOT_CARD } from '../home/PlotCard';
 
 function PerceelAmenityIcon({ label }) {
   const normalized = String(label || '').toLowerCase();
@@ -104,6 +100,18 @@ export function PercelenEmpty({ onAddPress }) {
   );
 }
 
+function getStatusLabel(status) {
+  if (status === 'hidden') return 'verborgen';
+  if (status === 'deleted') return 'verwijderd';
+  return 'actief';
+}
+
+function getStatusTone(status) {
+  if (status === 'hidden') return 'hidden';
+  if (status === 'deleted') return 'hidden';
+  return 'active';
+}
+
 export default function PercelenCarousel({ percelen, onAddPress, onPerceelPress }) {
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -115,17 +123,32 @@ export default function PercelenCarousel({ percelen, onAddPress, onPerceelPress 
     <View>
       <ScrollView
         horizontal
-        pagingEnabled
         showsHorizontalScrollIndicator={false}
+        style={styles.percelenScrollView}
         onMomentumScrollEnd={(event) => {
-          const slideWidth = event.nativeEvent.layoutMeasurement.width;
-          const offset = event.nativeEvent.contentOffset.x;
-          setActiveIndex(Math.round(offset / slideWidth));
+          const nextDot = Math.round(
+            event.nativeEvent.contentOffset.x / (PLOT_CARD.cardWidth + PLOT_CARD.carouselGap),
+          );
+          setActiveIndex(Math.max(0, Math.min(percelen.length - 1, nextDot)));
         }}
         contentContainerStyle={styles.percelenScroller}
       >
         {percelen.map((perceel) => (
-          <PerceelCarouselCard key={perceel.id} perceel={perceel} onPress={onPerceelPress} />
+          <PlotCard
+            key={perceel.id}
+            plot={{
+              id: perceel.id,
+              image: Array.isArray(perceel?.fotos) ? perceel.fotos[0] : null,
+              title: perceel?.naam || 'Perceel',
+              location: perceel?.plaats || 'Locatie nog niet beschikbaar',
+              size: normalizeSize(perceel?.grootte),
+              voorzieningen: Array.isArray(perceel?.voorzieningen) ? perceel.voorzieningen.filter(Boolean) : [],
+            }}
+            onPress={() => onPerceelPress?.(perceel)}
+            showFavoriteButton={false}
+            statusLabel={getStatusLabel(perceel?.status)}
+            statusTone={getStatusTone(perceel?.status)}
+          />
         ))}
       </ScrollView>
 
@@ -144,17 +167,19 @@ export default function PercelenCarousel({ percelen, onAddPress, onPerceelPress 
 }
 
 const styles = StyleSheet.create({
+  percelenScrollView: {
+    marginHorizontal: -SPACING.screenX,
+  },
   percelenScroller: {
-    gap: SPACING.md,
-    paddingRight: SPACING.screenX,
-    paddingBottom: SPACING.xs,
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.screenX,
+    paddingBottom: SPACING.xxs,
   },
   perceelCard: {
     width: 266,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.surface,
     borderRadius: RADIUS.sm,
-    padding: 8,
-    gap: 10,
+    overflow: 'hidden',
     ...SHADOWS.card,
   },
   perceelImageWrap: {
@@ -231,6 +256,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: SPACING.sm,
+    paddingHorizontal: 8,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.sm,
   },
   perceelTitle: {
     flex: 1,
@@ -247,6 +275,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     paddingTop: 4,
+    paddingHorizontal: 8,
+    paddingBottom: 8,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
@@ -265,47 +295,27 @@ const styles = StyleSheet.create({
   },
   perceelMetaDivider: {
     width: 1,
-    height: 18,
+    height: 16,
     backgroundColor: COLORS.border,
-    marginLeft: 10,
-  },
-  percelenDotsRow: {
-    marginTop: SPACING.sm,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-  },
-  percelenDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.indicatorMuted,
-  },
-  percelenDotActive: {
-    width: 14,
-    backgroundColor: COLORS.brand,
   },
   percelenEmptyCard: {
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: 'rgba(54, 57, 43, 0.08)',
     backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.sm,
     padding: SPACING.lg,
-    alignItems: 'center',
     gap: SPACING.sm,
+    alignItems: 'center',
     ...SHADOWS.card,
   },
   emptyFeatureTitle: {
     color: COLORS.textPrimary,
-    fontFamily: FONTS.displaySemiBold,
+    fontFamily: FONTS.displayMedium,
     fontSize: 16,
     textAlign: 'center',
   },
   emptyFeatureSubtext: {
     color: COLORS.textSecondary,
     fontFamily: FONTS.body,
-    fontSize: 14,
+    fontSize: 12.8,
     lineHeight: 20,
     textAlign: 'center',
     maxWidth: 280,
@@ -323,5 +333,22 @@ const styles = StyleSheet.create({
     color: COLORS.surface,
     fontFamily: FONTS.displayMedium,
     fontSize: 16,
+  },
+  percelenDotsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginTop: -4,
+  },
+  percelenDot: {
+    width: SPACING.sm,
+    height: SPACING.sm,
+    borderRadius: 999,
+    backgroundColor: COLORS.indicatorMuted,
+  },
+  percelenDotActive: {
+    backgroundColor: COLORS.brand,
+    width: 24,
   },
 });
