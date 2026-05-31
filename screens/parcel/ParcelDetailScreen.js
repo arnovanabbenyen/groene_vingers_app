@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { ChatCircleIcon, EyeIcon, EyeSlashIcon, MapPinIcon, PencilSimpleIcon } from 'phosphor-react-native';
-import ParcelDetailHeader from '../../components/parcel/ParcelDetailHeader';
+import Header from '../../components/navigation/Header';
 import ParcelOverviewSection from '../../components/parcel/ParcelOverviewSection';
 import ParcelPresenceSection from '../../components/parcel/ParcelPresenceSection';
 import ParcelInfoList from '../../components/parcel/ParcelInfoList';
@@ -13,6 +13,7 @@ import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/the
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const HERO_IMAGE = require('../../images/overdekt_perceel_met_serre.png');
+
 const PERCEEL_STATUS = {
   ACTIVE: 'active',
   HIDDEN: 'hidden',
@@ -132,7 +133,7 @@ export default function ParcelDetailScreen({
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
-      <ParcelDetailHeader title="Perceel" onBack={onBack} />
+      <Header title="Perceel" onBack={onBack} />
 
       <ScrollView
         style={styles.scroll}
@@ -170,10 +171,10 @@ export default function ParcelDetailScreen({
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Type samenwerking</Text>
           {Array.isArray(perceel.voorkeur_samenwerking) && perceel.voorkeur_samenwerking.length > 0 ? (
-            <View style={styles.chipsRow}>
+            <View style={styles.pillsRow}>
               {perceel.voorkeur_samenwerking.map((type, i) => (
-                <View key={`${type}-${i}`} style={styles.chip}>
-                  <Text style={styles.chipText}>{type}</Text>
+                <View key={`${type}-${i}`} style={styles.pill}>
+                  <Text style={styles.pillText}>{type}</Text>
                 </View>
               ))}
             </View>
@@ -184,13 +185,9 @@ export default function ParcelDetailScreen({
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Locatie</Text>
-          <ParcelLocationMap
-            latitude={perceel.approximate_lat}
-            longitude={perceel.approximate_lng}
-          />
           {!isOwner && (
             hasConfirmedSamenwerking && perceel.adres ? (
-              <Text style={[styles.description, { marginTop: SPACING.sm }]}>{perceel.adres}</Text>
+              <Text style={[styles.description, { marginBottom: SPACING.sm }]}>{perceel.adres}</Text>
             ) : (
               <View style={styles.locationNotice}>
                 <MapPinIcon size={14} color={COLORS.textPrimary} weight="regular" accessibilityElementsHidden />
@@ -200,6 +197,10 @@ export default function ParcelDetailScreen({
               </View>
             )
           )}
+          <ParcelLocationMap
+            latitude={perceel.approximate_lat}
+            longitude={perceel.approximate_lng}
+          />
         </View>
 
         <View style={styles.section}>
@@ -211,6 +212,7 @@ export default function ParcelDetailScreen({
         </View>
 
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Over de eigenaar</Text>
           <ParcelOwnerCard
             ownerProfile={ownerProfile}
             joinYear={ownerJoinYear}
@@ -337,10 +339,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.xl,
-    paddingBottom: SPACING.md,
+    paddingBottom: SPACING.xl,
   },
   divider: {
-    marginTop: SPACING.lg,
+    marginTop: SPACING.xl,
+    marginBottom: SPACING.sm,
     height: 1,
     backgroundColor: COLORS.border,
   },
@@ -361,7 +364,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
   },
   section: {
-    marginTop: SPACING.md,
+    marginTop: SPACING.lg,
   },
   sectionTitle: {
     color: COLORS.textPrimary,
@@ -376,21 +379,21 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontFamily: FONTS.body,
   },
-  chipsRow: {
+  pillsRow: {
     marginTop: SPACING.sm,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: SPACING.sm,
   },
-  chip: {
+  pill: {
     backgroundColor: COLORS.surfaceBrand,
     borderRadius: RADIUS.pill,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
   },
-  chipText: {
+  pillText: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textPrimary,
   },
   locationNotice: {

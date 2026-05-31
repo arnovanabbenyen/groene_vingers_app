@@ -1,6 +1,6 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { StarIcon, UserCircleIcon } from 'phosphor-react-native';
-import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 
 export default function ParcelOwnerCard({ ownerProfile, joinYear, rating }) {
   if (!ownerProfile) return null;
@@ -38,7 +38,11 @@ export default function ParcelOwnerCard({ ownerProfile, joinYear, rating }) {
               </Text>
             </View>
             {joinYear ? <View style={styles.dot} /> : null}
-            {joinYear ? <Text style={styles.since}>Lid sinds {joinYear}</Text> : null}
+            {joinYear ? (
+              <Text style={styles.since}>
+                {joinYear >= new Date().getFullYear() ? 'Lid sinds kort' : `Lid sinds ${joinYear}`}
+              </Text>
+            ) : null}
           </View>
         </View>
       </View>
@@ -52,10 +56,12 @@ export default function ParcelOwnerCard({ ownerProfile, joinYear, rating }) {
 
 const styles = StyleSheet.create({
   card: {
+    marginTop: SPACING.sm,
     borderRadius: RADIUS.xl,
     backgroundColor: COLORS.background,
     padding: SPACING.md,
     gap: SPACING.md,
+    ...SHADOWS.card,
   },
   topRow: {
     flexDirection: 'row',
@@ -94,9 +100,9 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     color: COLORS.textSecondary,
-    fontSize: FONT_SIZES.sm,
-    lineHeight: 16,
-    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.md,
+    lineHeight: 18,
+    fontFamily: FONTS.body,
   },
   dot: {
     width: 4,
@@ -106,8 +112,8 @@ const styles = StyleSheet.create({
   },
   since: {
     color: COLORS.textSecondary,
-    fontSize: FONT_SIZES.sm,
-    lineHeight: 16,
+    fontSize: FONT_SIZES.md,
+    lineHeight: 18,
     fontFamily: FONTS.body,
   },
   quote: {

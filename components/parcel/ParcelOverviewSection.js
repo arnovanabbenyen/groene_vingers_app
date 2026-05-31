@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Dimensions, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { FrameCornersIcon, MapPinIcon, UserCircleIcon, LeafIcon } from 'phosphor-react-native';
+import { MapPinIcon, RulerIcon, UserCircleIcon, LeafIcon } from 'phosphor-react-native';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
 import FavoriteHeartButton from './FavoriteHeartButton';
 
@@ -149,7 +149,7 @@ export default function ParcelOverviewSection({
             <>
               <View style={styles.dotSeparator} />
               <View style={styles.pill}>
-                <FrameCornersIcon size={14} color={COLORS.brand} weight="regular" />
+                <RulerIcon size={14} color={COLORS.brand} weight="regular" />
                 <Text style={styles.pillText}>{size}</Text>
               </View>
             </>
