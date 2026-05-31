@@ -24,7 +24,8 @@ export default function DashboardSection({
 
 const styles = StyleSheet.create({
   section: {
-    gap: SPACING.md,
+    gap: SPACING.sm,
+    marginBottom: SPACING.sm,
   },
   headerRow: {
     flexDirection: 'row',
@@ -43,6 +44,6 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   content: {
-    gap: SPACING.md,
+    gap: SPACING.xs,
   },
 });

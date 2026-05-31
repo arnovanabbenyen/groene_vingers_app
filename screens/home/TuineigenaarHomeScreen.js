@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { HandshakeIcon, EnvelopeOpenIcon, CalendarIcon, LeafIcon, PlusCircleIcon } from 'phosphor-react-native';
-import { COLORS, SIZES, SPACING } from '../../components/theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 import BottomNav from '../../components/navigation/BottomNav';
 import PercelenCarousel from '../../components/perceel/PercelenCarousel';
 import { supabase } from '../../services/supabase';
@@ -415,7 +415,11 @@ export default function TuineigenaarHomeScreen({
         unreadNotificationsCount={unreadNotificationsCount}
       />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <DashboardSection title="Actieve samenwerkingen">
           {samenwerkingen.length === 0 ? (
             <DashboardEmptyState
@@ -473,11 +477,12 @@ export default function TuineigenaarHomeScreen({
             <Pressable
               onPress={() => setActiveTab('perceel')}
               accessibilityRole="button"
-              accessibilityLabel="Perceel toevoegen"
+              accessibilityLabel="Nieuw perceel"
               accessibilityHint="Open het scherm om een nieuw perceel toe te voegen"
-              hitSlop={8}
+              style={styles.addPerceelButton}
             >
-              <PlusCircleIcon size={32} color={COLORS.brand} weight="regular" accessibilityElementsHidden />
+              <PlusCircleIcon size={18} color={COLORS.surface} weight="regular" accessibilityElementsHidden />
+              <Text style={styles.addPerceelButtonText}>Nieuw perceel</Text>
             </Pressable>
           )}
         >
@@ -488,7 +493,6 @@ export default function TuineigenaarHomeScreen({
           />
         </DashboardSection>
 
-        <View style={{ height: SIZES.bottomNavClearance }} />
       </ScrollView>
 
       <BottomNav
@@ -507,16 +511,34 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.surface,
   },
-  content: {
+  scroll: {
     flex: 1,
+    backgroundColor: COLORS.surface,
+  },
+  content: {
     paddingHorizontal: SPACING.screenX,
     backgroundColor: COLORS.surface,
     paddingTop: SPACING.lg,
-    paddingBottom: SPACING.lg,
-    gap: SPACING.lg,
+    paddingBottom: SPACING.sm,
+    gap: SPACING.xl,
+    flexGrow: 1,
   },
   samenwerkingList: {
     gap: SPACING.md,
+  },
+  addPerceelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 10,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.brand,
+  },
+  addPerceelButtonText: {
+    color: COLORS.surface,
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.md,
   },
   loadingWrap: {
     minHeight: 110,
