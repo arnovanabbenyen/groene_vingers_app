@@ -43,11 +43,11 @@ export default function PerceelPopupCard({ perceel, onClose, onOpen, isFavorited
           <Pressable
             style={({ pressed }) => [styles.closeBtn, pressed && styles.closeBtnPressed]}
             onPress={onClose}
-            hitSlop={12}
+            hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel="Sluit perceel kaartje"
           >
-            <XIcon size={12} color={COLORS.textPrimary} weight="bold" />
+            <XIcon size={16} color={COLORS.textPrimary} weight="bold" />
           </Pressable>
         </View>
       </View>
@@ -134,12 +134,17 @@ const styles = StyleSheet.create({
     gap: SPACING.xs,
   },
   closeBtn: {
-    width: 28,
-    height: 28,
+    width: 34,
+    height: 34,
     borderRadius: RADIUS.pill,
     backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
   },
   closeBtnPressed: { opacity: 0.7 },
   content: {
@@ -159,9 +164,9 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   size: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
   },
   description: {
     fontFamily: FONTS.body,

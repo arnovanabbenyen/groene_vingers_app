@@ -149,9 +149,9 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   size: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
   },
   description: {
     fontFamily: FONTS.body,
