@@ -29,6 +29,10 @@ export default function ProPlanConfirmScreen({ onBack, onConfirm, isLoading = fa
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Pro plan</Text>
 
+          <Text style={styles.safePaymentNote}>
+            Je betaalt veilig via Stripe. Je betalingsgegevens worden niet opgeslagen in Groene Vingers.
+          </Text>
+
           <Text style={styles.sectionLabel}>Belangrijke functies</Text>
 
           <View style={styles.featuresList}>
@@ -61,7 +65,7 @@ export default function ProPlanConfirmScreen({ onBack, onConfirm, isLoading = fa
           </View>
 
           <AuthButton
-            label="Abonneren"
+            label="Verder naar betalen"
             onPress={onConfirm}
             loading={isLoading}
             disabled={isLoading}
@@ -69,7 +73,7 @@ export default function ProPlanConfirmScreen({ onBack, onConfirm, isLoading = fa
         </View>
 
         <Text style={styles.disclaimer}>
-          Wordt verlengd maandelijks totdat je opzegt. Er wordt €7,01/maand (incl. btw) bij je in rekening gebracht.
+          Abonnement wordt automatisch maandelijks verlengd totdat je opzegt. Er wordt €7,01/maand (incl. btw) betaald via Stripe.
         </Text>
       </ScrollView>
     </View>
@@ -103,6 +107,13 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xxxl,
     lineHeight: 30,
     color: COLORS.textPrimary,
+    marginBottom: SPACING.md,
+  },
+  safePaymentNote: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 18,
+    color: COLORS.textSecondary,
     marginBottom: SPACING.md,
   },
   sectionLabel: {

@@ -17,7 +17,7 @@ const PLAN_OPTIONS = [
     price: '€7,01',
     priceSuffix: 'Per maand (incl. btw)',
     note: null,
-    buttonLabel: 'Start Pro nu',
+    buttonLabel: 'Selecteer Pro',
     buttonVariant: 'solid',
     features: [
       { label: 'Percelen bekijken & zoeken', included: true },
