@@ -7,6 +7,7 @@ import ParcelOverviewSection from '../../components/parcel/ParcelOverviewSection
 import ParcelPresenceSection from '../../components/parcel/ParcelPresenceSection';
 import ParcelInfoList from '../../components/parcel/ParcelInfoList';
 import ParcelOwnerCard from '../../components/parcel/ParcelOwnerCard';
+import ParcelLocationMap from '../../components/parcel/ParcelLocationMap';
 import { supabase } from '../../services/supabase';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -166,10 +167,14 @@ export default function ParcelDetailScreen({
           <Text style={styles.description}>{description}</Text>
         </View>
 
-        {!isOwner && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Locatie</Text>
-            {hasConfirmedSamenwerking && perceel.adres ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Locatie</Text>
+          <ParcelLocationMap
+            latitude={perceel.approximate_lat}
+            longitude={perceel.approximate_lng}
+          />
+          {!isOwner && (
+            hasConfirmedSamenwerking && perceel.adres ? (
               <Text style={[styles.description, { marginTop: SPACING.sm }]}>{perceel.adres}</Text>
             ) : (
               <View style={styles.locationNotice}>
@@ -178,9 +183,9 @@ export default function ParcelDetailScreen({
                   Exacte locatie zichtbaar na bevestigde samenwerking
                 </Text>
               </View>
-            )}
-          </View>
-        )}
+            )
+          )}
+        </View>
 
         <View style={styles.section}>
           <ParcelPresenceSection voorzieningen={perceel.voorzieningen || []} />
