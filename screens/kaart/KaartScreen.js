@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: SPACING.md,
   },
-  listScroll: { flex: 1 },
-  listContent: { paddingBottom: SPACING.xl },
+  listScroll: { flex: 1, backgroundColor: COLORS.background },
+  listContent: { paddingTop: SPACING.md, paddingBottom: SPACING.xl },
   loader: { marginTop: SPACING.lg },
 });

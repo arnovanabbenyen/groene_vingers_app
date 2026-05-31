@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { XIcon } from 'phosphor-react-native';
+import { ArrowLeftIcon } from 'phosphor-react-native';
 import AmenityIcon from '../../components/kaart/AmenityIcon';
 import { COLORS, FONTS, FONT_SIZES, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
 import { SAMENWERKING_TYPES } from '../../services/samenwerkingTypes';
@@ -165,17 +165,17 @@ export default function FilterScreen({
         {/* Header */}
         <View style={[styles.header, { paddingTop: Math.max(16, insets.top) }]}>
           <View style={styles.headerContent}>
-            <View style={styles.headerSpacer} />
-            <Text style={styles.headerTitle}>Filter</Text>
             <Pressable
               style={({ pressed }) => [styles.closeBtn, pressed && styles.closeBtnPressed]}
               onPress={onClose}
               hitSlop={8}
               accessibilityRole="button"
-              accessibilityLabel="Filter scherm sluiten"
+              accessibilityLabel="Terug naar kaart"
             >
-              <XIcon size={20} color={COLORS.textInverse} weight="bold" />
+              <ArrowLeftIcon size={20} color={COLORS.textInverse} weight="bold" />
             </Pressable>
+            <Text style={styles.headerTitle}>Filter</Text>
+            <View style={styles.headerSpacer} />
           </View>
         </View>
 
@@ -420,7 +420,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   closeBtn: {
-    marginLeft: 'auto',
     width: SIZES.iconBtn - 8,
     height: SIZES.iconBtn - 8,
     borderRadius: RADIUS.pill,

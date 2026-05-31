@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LeafIcon, MapPinIcon, XIcon } from 'phosphor-react-native';
 import FavoriteHeartButton from '../parcel/FavoriteHeartButton';
@@ -38,18 +38,17 @@ export default function PerceelPopupCard({ perceel, onClose, onOpen, isFavorited
           <Text style={styles.locationText} numberOfLines={1}>{perceel.plaats}</Text>
         </View>
 
-        <Pressable
-          style={({ pressed }) => [styles.closeBtn, pressed && styles.closeBtnPressed]}
-          onPress={onClose}
-          hitSlop={12}
-          accessibilityRole="button"
-          accessibilityLabel="Sluit perceel kaartje"
-        >
-          <XIcon size={12} color={COLORS.textPrimary} weight="bold" />
-        </Pressable>
-
-        <View style={styles.heartBtn}>
+        <View style={styles.topActions}>
           <FavoriteHeartButton isFavorited={isFavorited} onToggle={onToggleFavorite} size="small" />
+          <Pressable
+            style={({ pressed }) => [styles.closeBtn, pressed && styles.closeBtnPressed]}
+            onPress={onClose}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Sluit perceel kaartje"
+          >
+            <XIcon size={12} color={COLORS.textPrimary} weight="bold" />
+          </Pressable>
         </View>
       </View>
 
@@ -66,17 +65,20 @@ export default function PerceelPopupCard({ perceel, onClose, onOpen, isFavorited
         ) : null}
 
         {amenities.length > 0 && (
-          <View style={styles.amenityRow}>
-            {amenities.map((label, i) => (
-              <View key={label} style={styles.amenityCell}>
-                {i > 0 && <View style={styles.amenityDivider} />}
-                <View style={styles.amenityItem}>
-                  <AmenityIcon label={label} />
-                  <Text style={styles.amenityText}>{label}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
+          <>
+            <View style={styles.divider} />
+            <View style={styles.amenityRow}>
+              {amenities.map((label, i) => (
+                <Fragment key={label}>
+                  {i > 0 && <View style={styles.amenityLineDivider} />}
+                  <View style={styles.amenityItem}>
+                    <AmenityIcon label={label} />
+                    <Text style={styles.amenityText} numberOfLines={1}>{label}</Text>
+                  </View>
+                </Fragment>
+              ))}
+            </View>
+          </>
         )}
       </View>
     </Pressable>
@@ -123,10 +125,15 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.textPrimary,
   },
-  closeBtn: {
+  topActions: {
     position: 'absolute',
     top: SPACING.sm,
     right: SPACING.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  closeBtn: {
     width: 28,
     height: 28,
     borderRadius: RADIUS.pill,
@@ -135,11 +142,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   closeBtnPressed: { opacity: 0.7 },
-  heartBtn: {
-    position: 'absolute',
-    top: SPACING.sm,
-    left: SPACING.sm,
-  },
   content: {
     padding: SPACING.md,
     gap: SPACING.sm,
@@ -167,22 +169,20 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     lineHeight: 22,
   },
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.dividerSoft,
+  },
   amenityRow: {
     flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.dividerSoft,
-    paddingTop: SPACING.sm,
-  },
-  amenityCell: {
-    flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.xs,
   },
-  amenityDivider: {
+  amenityLineDivider: {
     width: 1,
-    alignSelf: 'stretch',
-    backgroundColor: COLORS.dividerSoft,
-    marginRight: SPACING.xs,
+    height: 14,
+    backgroundColor: COLORS.border,
   },
   amenityItem: {
     flex: 1,
@@ -195,5 +195,6 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
+    flexShrink: 1,
   },
 });

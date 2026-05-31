@@ -99,7 +99,6 @@ const styles = StyleSheet.create({
     width: SIZES.iconBtn,
     height: SIZES.iconBtn,
     borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.overlayLight,
     alignItems: 'center',
     justifyContent: 'center',
   },

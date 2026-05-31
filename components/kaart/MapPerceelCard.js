@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LeafIcon, MapPinIcon } from 'phosphor-react-native';
 import FavoriteHeartButton from '../parcel/FavoriteHeartButton';
@@ -60,15 +60,20 @@ export default function MapPerceelCard({ perceel, onPress, isFavorited = false, 
         ) : null}
 
         {amenities.length > 0 && (
-          <View style={styles.amenityRow}>
-            {amenities.map((label, i) => (
-              <View key={label} style={styles.amenityItem}>
-                {i > 0 && <View style={styles.amenityDivider} />}
-                <AmenityIcon label={label} />
-                <Text style={styles.amenityText}>{label}</Text>
-              </View>
-            ))}
-          </View>
+          <>
+            <View style={styles.divider} />
+            <View style={styles.amenityRow}>
+              {amenities.map((label, i) => (
+                <Fragment key={label}>
+                  {i > 0 && <View style={styles.amenityLineDivider} />}
+                  <View style={styles.amenityItem}>
+                    <AmenityIcon label={label} />
+                    <Text style={styles.amenityText} numberOfLines={1}>{label}</Text>
+                  </View>
+                </Fragment>
+              ))}
+            </View>
+          </>
         )}
       </View>
     </Pressable>
@@ -154,29 +159,32 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     lineHeight: 20,
   },
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.dividerSoft,
+  },
   amenityRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.dividerSoft,
     paddingTop: SPACING.sm,
-    gap: SPACING.xs,
+    paddingBottom: SPACING.xs,
   },
-  amenityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-  },
-  amenityDivider: {
+  amenityLineDivider: {
     width: 1,
     height: 14,
-    backgroundColor: COLORS.dividerSoft,
-    marginRight: SPACING.xs,
+    backgroundColor: COLORS.border,
+  },
+  amenityItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xs,
   },
   amenityText: {
     fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.xs,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
+    flexShrink: 1,
   },
 });
