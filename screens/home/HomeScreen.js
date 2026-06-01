@@ -22,6 +22,9 @@ import LogboekScreen from '../loggen/LogboekScreen';
 import KaartScreen from '../kaart/KaartScreen';
 import { MagnifyingGlassIcon } from 'phosphor-react-native';
 import EmptyState from '../../components/common/EmptyState';
+import { showConfirm } from '../../components/common/ConfirmDialog';
+import { showToast } from '../../components/common/Toast';
+import { supabase } from '../../services/supabase';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 import { PLOT_CARD } from '../../components/home/PlotCard';
 
@@ -85,6 +88,29 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
     } else {
       navDispatch({ type: 'OPEN_GEEN_TOEGANG', plot });
     }
+  }
+
+  function handleCancelAanvraag(aanvraagId) {
+    showConfirm({
+      title: 'Aanvraag annuleren',
+      message: 'Weet je zeker dat je deze aanvraag wilt annuleren?',
+      confirmLabel: 'Annuleer aanvraag',
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase
+            .from('aanvragen')
+            .update({ status: 'cancelled' })
+            .eq('id', aanvraagId);
+          if (error) throw error;
+          setDataRefreshKey((k) => k + 1);
+          navDispatch({ type: 'CLOSE_PLOT' });
+          showToast('Aanvraag geannuleerd', 'success');
+        } catch (e) {
+          console.warn('cancel aanvraag failed', e);
+          showToast('Kon de aanvraag niet annuleren. Probeer opnieuw.', 'error');
+        }
+      },
+    });
   }
 
   const filteredPlots = useMemo(() => {
@@ -160,6 +186,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
         isFavorited={isFavorite(navState.payload?.id)}
         onToggleFavorite={() => toggleFavorite(navState.payload?.id)}
         showFavoriteButton
+        onCancelAanvraag={handleCancelAanvraag}
       />
     );
   }

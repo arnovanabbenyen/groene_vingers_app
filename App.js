@@ -81,6 +81,7 @@ export default function App() {
   const [weeklyGoalSource, setWeeklyGoalSource] = useState('instellingen');
   const [opvolgingRefreshKey, setOpvolgingRefreshKey] = useState(0);
   const [selectedProfielPerceel, setSelectedProfielPerceel] = useState(null);
+  const [selectedProfielAanvraag, setSelectedProfielAanvraag] = useState(null);
   const homeInitialTabRef = useRef('start');
   const pendingPhotosRef = useRef(null);
   const { aanvragen: pendingAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
@@ -439,6 +440,29 @@ export default function App() {
               setSelectedSavedPerceel(null);
             }}
             showFavoriteButton
+            onCancelAanvraag={(aanvraagId) => {
+              showConfirm({
+                title: 'Aanvraag annuleren',
+                message: 'Weet je zeker dat je deze aanvraag wilt annuleren?',
+                confirmLabel: 'Annuleer aanvraag',
+                onConfirm: async () => {
+                  try {
+                    const { error } = await supabase
+                      .from('aanvragen')
+                      .update({ status: 'cancelled' })
+                      .eq('id', aanvraagId);
+                    if (error) throw error;
+                    setProfielRefreshKey((k) => k + 1);
+                    setSelectedSavedPerceel(null);
+                    setCurrentScreen(opgeslagenSource || 'home');
+                    showToast('Aanvraag geannuleerd', 'success');
+                  } catch (e) {
+                    console.warn('cancel aanvraag failed', e);
+                    showToast('Kon de aanvraag niet annuleren. Probeer opnieuw.', 'error');
+                  }
+                },
+              });
+            }}
           />
         ) : currentScreen === 'opgeslagen' ? (
           <OpgeslagenScreen
@@ -503,6 +527,10 @@ export default function App() {
               setOpgeslagenSource('profiel');
               setSelectedSavedPerceel(plot);
               setCurrentScreen('opgeslagen-detail');
+            }}
+            onAanvraagPerceelPress={(aanvraag) => {
+              setSelectedProfielAanvraag(aanvraag);
+              setCurrentScreen('profiel-aanvraag-detail');
             }}
             onOwnPerceelPress={(perceel) => {
               setSelectedProfielPerceel(perceel);
@@ -660,6 +688,37 @@ export default function App() {
             onEdit={() => setCurrentScreen('profiel-perceel-edit')}
             onToggleVisibility={handleToggleProfielPerceel}
             onDelete={handleDeleteProfielPerceel}
+          />
+        ) : currentScreen === 'profiel-aanvraag-detail' && selectedProfielAanvraag ? (
+          <ParcelDetailScreen
+            perceel={selectedProfielAanvraag.perceel || {}}
+            onBack={() => {
+              setCurrentScreen('profiel');
+              setSelectedProfielAanvraag(null);
+            }}
+            onCancelAanvraag={(aanvraagId) => {
+              showConfirm({
+                title: 'Aanvraag annuleren',
+                message: 'Weet je zeker dat je deze aanvraag wilt annuleren?',
+                confirmLabel: 'Annuleer aanvraag',
+                onConfirm: async () => {
+                  try {
+                    const { error } = await supabase
+                      .from('aanvragen')
+                      .update({ status: 'cancelled' })
+                      .eq('id', aanvraagId);
+                    if (error) throw error;
+                    setProfielRefreshKey((k) => k + 1);
+                    setSelectedProfielAanvraag(null);
+                    setCurrentScreen('profiel');
+                    showToast('Aanvraag geannuleerd', 'success');
+                  } catch (e) {
+                    console.warn('cancel aanvraag failed', e);
+                    showToast('Kon de aanvraag niet annuleren. Probeer opnieuw.', 'error');
+                  }
+                },
+              });
+            }}
           />
         ) : selectedRole === 'tuineigenaar' ? (
           <TuineigenaarHomeScreen

@@ -39,9 +39,9 @@ const AVATAR_OVERHANG = 38;
 
 const STATUS_CONFIG = {
   [AANVRAAG_STATUS.PENDING]: {
-    label: 'In afwachting',
-    bg: COLORS.surfaceMuted,
-    color: COLORS.textSecondary,
+    label: 'In behandeling',
+    bg: 'rgba(255,217,94,0.92)',
+    color: COLORS.textPrimary,
   },
   [AANVRAAG_STATUS.ACCEPTED]: {
     label: 'In gesprek',
@@ -71,6 +71,7 @@ export default function ProfielScreen({
   onOpenSamenwerking,
   profileUserId = null,
   onBack,
+  onAanvraagPerceelPress,
 }) {
   const [profile, setProfile] = useState(null);
   const [percelen, setPercelen] = useState([]);
@@ -514,7 +515,7 @@ export default function ProfielScreen({
                           <View key={aanvraag.id} style={styles.aanvraagCardWrap}>
                             <PlotCard
                               plot={plot}
-                              onPress={() => onPerceelPress?.(plot)}
+                              onPress={() => onAanvraagPerceelPress?.(aanvraag)}
                               isFavorited={isFavorite(plot.id)}
                               onToggleFavorite={() => toggleFavorite(plot.id)}
                               showFavoriteButton

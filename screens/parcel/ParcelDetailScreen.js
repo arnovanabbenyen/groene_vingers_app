@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { ChatCircleIcon, EyeIcon, EyeSlashIcon, MapPinIcon, PencilSimpleIcon } from 'phosphor-react-native';
+import { ChatCircleIcon, ClockClockwiseIcon, EyeIcon, EyeSlashIcon, MapPinIcon, PencilSimpleIcon } from 'phosphor-react-native';
 import Header from '../../components/navigation/Header';
 import ParcelOverviewSection from '../../components/parcel/ParcelOverviewSection';
 import ParcelPresenceSection from '../../components/parcel/ParcelPresenceSection';
@@ -51,6 +51,7 @@ export default function ParcelDetailScreen({
   samenwerking = null,
   onOpenConversation,
   onEndSamenwerking,
+  onCancelAanvraag,
 }) {
   const insets = useSafeAreaInsets();
   const [ownerProfile, setOwnerProfile] = useState(null);
@@ -155,6 +156,15 @@ export default function ParcelDetailScreen({
           <View style={styles.hiddenBanner}>
             <EyeSlashIcon size={16} color={COLORS.textMuted} weight="regular" accessibilityElementsHidden />
             <Text style={styles.hiddenBannerText}>Dit perceel is verborgen voor tuinzoekers.</Text>
+          </View>
+        ) : null}
+
+        {!isOwner && existingAanvraag ? (
+          <View style={styles.aanvraagStatusBanner}>
+            <ClockClockwiseIcon size={16} color={COLORS.textMuted} weight="regular" accessibilityElementsHidden />
+            <Text style={styles.hiddenBannerText}>
+              {AANVRAAG_STATUS_LABEL[existingAanvraag.status] ?? 'Aanvraag ingediend'}
+            </Text>
           </View>
         ) : null}
 
@@ -284,11 +294,21 @@ export default function ParcelDetailScreen({
           </View>
         ) : !isOwner ? (
           existingAanvraag ? (
-            <View style={styles.aanvraagBanner}>
-              <Text style={styles.aanvraagBannerText}>
-                {AANVRAAG_STATUS_LABEL[existingAanvraag.status] ?? 'Aanvraag ingediend'}
-              </Text>
-            </View>
+            onCancelAanvraag &&
+            (existingAanvraag.status === 'pending' || existingAanvraag.status === 'accepted') ? (
+              <View style={[styles.aanvraagSection, { paddingBottom: insets.bottom + SPACING.md }]}>
+                <Pressable
+                  style={({ pressed }) => [styles.cancelAanvraagButton, pressed && styles.buttonPressed]}
+                  onPress={() => onCancelAanvraag(existingAanvraag.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Aanvraag annuleren"
+                >
+                  <Text style={styles.cancelAanvraagButtonText}>Annuleer aanvraag</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View style={{ paddingBottom: insets.bottom + SPACING.xl }} />
+            )
           ) : (
             <Pressable
               style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
@@ -351,7 +371,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.screenX,
-    paddingBottom: SPACING.xl,
+    paddingBottom: 0,
   },
   divider: {
     marginTop: SPACING.xl,
@@ -430,6 +450,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     marginTop: SPACING.md,
+    marginBottom: SPACING.xl,
     height: 44,
     borderRadius: RADIUS.sm,
     backgroundColor: COLORS.brand,
@@ -442,21 +463,30 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: FONTS.displayMedium,
   },
-  aanvraagBanner: {
-    marginTop: SPACING.md,
-    height: 44,
-    borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.surfaceBrand,
+  aanvraagStatusBanner: {
+    backgroundColor: COLORS.accentSoft,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    marginBottom: SPACING.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  aanvraagSection: {
+    paddingTop: SPACING.md,
+    gap: SPACING.xs,
+  },
+  cancelAanvraagButton: {
+    minHeight: 44,
+    paddingVertical: SPACING.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.brand,
   },
-  aanvraagBannerText: {
-    color: COLORS.brand,
-    fontSize: FONT_SIZES.lg,
-    lineHeight: 20,
-    fontFamily: FONTS.displayMedium,
+  cancelAanvraagButtonText: {
+    color: COLORS.negative,
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.md,
   },
   ownerActionStack: {
     paddingTop: SPACING.md,
