@@ -43,6 +43,10 @@ function navReducer(state, action) {
       return { type: 'plot', payload: action.plot };
     case 'CLOSE_PLOT':
       return { type: 'home', payload: null };
+    case 'OPEN_SAMENWERKING':
+      return { type: 'samenwerking', payload: action.aanvraag };
+    case 'CLOSE_SAMENWERKING':
+      return { type: 'home', payload: null };
     case 'OPEN_REQUEST':
       return { type: 'request', payload: action.plot };
     case 'REQUEST_SUCCESS':
@@ -62,12 +66,13 @@ function navReducer(state, action) {
   }
 }
 
-export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConversation, selectedConversation: appSelectedConversation = null, onCloseConversation, onConfirmSamenwerking, unreadNotificationsCount = 0, onOpenNotifications, onOpenProfiel, onOpenSaved }) {
+export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConversation, selectedConversation: appSelectedConversation = null, onCloseConversation, onConfirmSamenwerking, unreadNotificationsCount = 0, onOpenNotifications, onOpenProfiel, onOpenSaved, onEndSamenwerking }) {
   const [activeTab, setActiveTab] = useState(() => getInitialTab?.() ?? 'start');
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [conversationProfileId, setConversationProfileId] = useState(null);
   const [activeDot, setActiveDot] = useState(0);
   const [activeDotAanvragen, setActiveDotAanvragen] = useState(0);
+  const [activeDotSamenwerking, setActiveDotSamenwerking] = useState(0);
   const [dataRefreshKey, setDataRefreshKey] = useState(0);
   const [autoFocusKaartSearch, setAutoFocusKaartSearch] = useState(false);
   const [navState, navDispatch] = useReducer(navReducer, initialNavState);
@@ -115,13 +120,17 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
     });
   }
 
+  const pendingAanvragen = useMemo(() => aanvragen.filter((a) => a.status !== 'confirmed'), [aanvragen]);
+  const confirmedSamenwerkingen = useMemo(() => aanvragen.filter((a) => a.status === 'confirmed'), [aanvragen]);
+
   const filteredPlots = useMemo(() => {
     const aangevraagdeIds = new Set(aanvragen.map((a) => a.perceel_id));
     return (percelen || []).filter((p) => !aangevraagdeIds.has(p.id));
   }, [percelen, aanvragen]);
 
   const visibleDotIndex = Math.max(0, Math.min(filteredPlots.length - 1, activeDot));
-  const visibleDotAanvraagIndex = Math.max(0, Math.min(aanvragen.length - 1, activeDotAanvragen));
+  const visibleDotAanvraagIndex = Math.max(0, Math.min(pendingAanvragen.length - 1, activeDotAanvragen));
+  const visibleDotSamenwerkingIndex = Math.max(0, Math.min(confirmedSamenwerkingen.length - 1, activeDotSamenwerking));
 
   if (navState.type === 'request') {
     const perceelToRequest = navState.payload;
@@ -189,6 +198,24 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
         onToggleFavorite={() => toggleFavorite(navState.payload?.id)}
         showFavoriteButton
         onCancelAanvraag={handleCancelAanvraag}
+      />
+    );
+  }
+
+  if (navState.type === 'samenwerking') {
+    const aanvraag = navState.payload;
+    return (
+      <ParcelDetailScreen
+        perceel={aanvraag.perceel}
+        onBack={() => navDispatch({ type: 'CLOSE_SAMENWERKING' })}
+        isFavorited={isFavorite(aanvraag.perceel?.id)}
+        onToggleFavorite={() => toggleFavorite(aanvraag.perceel?.id)}
+        showFavoriteButton
+        onOpenConversation={(conversation) => {
+          setSelectedConversation(conversation);
+          onOpenConversation?.(conversation);
+        }}
+        onEndSamenwerking={onEndSamenwerking}
       />
     );
   }
@@ -297,7 +324,68 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
               </View>
             )}
 
-            {aanvragen.length > 0 && (
+            {confirmedSamenwerkingen.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Actieve samenwerkingen</Text>
+                <ScrollView
+                  horizontal
+                  nestedScrollEnabled
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.plotsScrollView}
+                  contentContainerStyle={styles.plotsScroller}
+                  onMomentumScrollEnd={(event) => {
+                    const nextDot = Math.round(event.nativeEvent.contentOffset.x / (PLOT_CARD.cardWidth + PLOT_CARD.carouselGap));
+                    setActiveDotSamenwerking(Math.max(0, Math.min(confirmedSamenwerkingen.length - 1, nextDot)));
+                  }}
+                >
+                  {confirmedSamenwerkingen.map((aanvraag) => {
+                    const perceel = aanvraag.perceel;
+                    if (!perceel) return null;
+                    const plot = mapPerceelToPlot(perceel);
+                    const chipConfig = AANVRAAG_STATUS_CHIP.confirmed;
+                    return (
+                      <View key={aanvraag.id} style={styles.aanvraagCardWrap}>
+                        <PlotCard
+                          plot={plot}
+                          onPress={() => navDispatch({ type: 'OPEN_SAMENWERKING', aanvraag })}
+                          isFavorited={isFavorite(plot.id)}
+                          onToggleFavorite={() => toggleFavorite(plot.id)}
+                        />
+                        <View style={[styles.statusChip, { backgroundColor: chipConfig.bg }]}>
+                          <Text style={[styles.statusChipText, { color: chipConfig.color }]}>{chipConfig.label}</Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+
+                {confirmedSamenwerkingen.length > 1 ? (
+                  <View
+                    style={styles.dotRow}
+                    accessibilityRole="adjustable"
+                    accessibilityLabel="Samenwerkingen carrousel"
+                    accessibilityValue={{
+                      min: 1,
+                      max: confirmedSamenwerkingen.length,
+                      now: visibleDotSamenwerkingIndex + 1,
+                      text: `Samenwerking ${visibleDotSamenwerkingIndex + 1} van ${confirmedSamenwerkingen.length}`,
+                    }}
+                    accessibilityLiveRegion="polite"
+                  >
+                    {confirmedSamenwerkingen.map((aanvraag, index) => (
+                      <View
+                        key={`dot-samenwerking-${aanvraag.id}`}
+                        style={[styles.dot, index === visibleDotSamenwerkingIndex && styles.dotActive]}
+                        accessibilityElementsHidden
+                        importantForAccessibility="no"
+                      />
+                    ))}
+                  </View>
+                ) : null}
+              </View>
+            )}
+
+            {pendingAanvragen.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Jouw aanvragen</Text>
                 <ScrollView
@@ -308,10 +396,10 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
                   contentContainerStyle={styles.plotsScroller}
                   onMomentumScrollEnd={(event) => {
                     const nextDot = Math.round(event.nativeEvent.contentOffset.x / (PLOT_CARD.cardWidth + PLOT_CARD.carouselGap));
-                    setActiveDotAanvragen(Math.max(0, Math.min(aanvragen.length - 1, nextDot)));
+                    setActiveDotAanvragen(Math.max(0, Math.min(pendingAanvragen.length - 1, nextDot)));
                   }}
                 >
-                  {aanvragen.map((aanvraag) => {
+                  {pendingAanvragen.map((aanvraag) => {
                     const perceel = aanvraag.perceel;
                     if (!perceel) return null;
                     const plot = mapPerceelToPlot(perceel);
@@ -332,20 +420,20 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
                   })}
                 </ScrollView>
 
-                {aanvragen.length > 1 ? (
+                {pendingAanvragen.length > 1 ? (
                   <View
                     style={styles.dotRow}
                     accessibilityRole="adjustable"
                     accessibilityLabel="Aanvragen carrousel"
                     accessibilityValue={{
                       min: 1,
-                      max: aanvragen.length,
+                      max: pendingAanvragen.length,
                       now: visibleDotAanvraagIndex + 1,
-                      text: `Aanvraag ${visibleDotAanvraagIndex + 1} van ${aanvragen.length}`,
+                      text: `Aanvraag ${visibleDotAanvraagIndex + 1} van ${pendingAanvragen.length}`,
                     }}
                     accessibilityLiveRegion="polite"
                   >
-                    {aanvragen.map((aanvraag, index) => (
+                    {pendingAanvragen.map((aanvraag, index) => (
                       <View
                         key={`dot-aanvraag-${aanvraag.id}`}
                         style={[styles.dot, index === visibleDotAanvraagIndex && styles.dotActive]}

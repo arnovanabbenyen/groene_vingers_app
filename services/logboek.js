@@ -6,7 +6,7 @@ export async function getActiveSamenwerking(userId) {
 
   const { data, error } = await supabase
     .from('aanvragen')
-    .select('id, perceel_id, sender_id, status, confirmed_at, type_samenwerking, created_at, percelen(id, naam, plaats, fotos, voorzieningen, grootte, owner_id)')
+    .select('id, perceel_id, sender_id, status, confirmed_at, type_samenwerking, created_at, percelen(id, naam, beschrijving, grootte, adres, fotos, plaats, voorzieningen, voorkeur_samenwerking, approximate_lat, approximate_lng, lat, lng, extra_info, owner_id)')
     .eq('sender_id', userId)
     .eq('status', AANVRAAG_STATUS.CONFIRMED)
     .order('created_at', { ascending: false })

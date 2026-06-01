@@ -10,7 +10,7 @@ const RADIUS_METERS = 300;
 const FILL_COLOR = 'rgba(87,98,56,0.12)';
 const STROKE_COLOR = 'rgba(87,98,56,0.38)';
 
-export default function ParcelLocationMap({ latitude, longitude }) {
+export default function ParcelLocationMap({ latitude, longitude, showCircle = true }) {
   const [expanded, setExpanded] = useState(false);
   const insets = useSafeAreaInsets();
 
@@ -60,13 +60,15 @@ export default function ParcelLocationMap({ latitude, longitude }) {
       >
         <View style={styles.fullWrap}>
           <MapView style={StyleSheet.absoluteFill} initialRegion={fullRegion}>
-            <Circle
-              center={coordinate}
-              radius={RADIUS_METERS}
-              fillColor={FILL_COLOR}
-              strokeColor={STROKE_COLOR}
-              strokeWidth={1.5}
-            />
+            {showCircle && (
+              <Circle
+                center={coordinate}
+                radius={RADIUS_METERS}
+                fillColor={FILL_COLOR}
+                strokeColor={STROKE_COLOR}
+                strokeWidth={1.5}
+              />
+            )}
             {marker}
           </MapView>
 

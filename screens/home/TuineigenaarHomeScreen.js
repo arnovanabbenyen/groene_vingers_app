@@ -19,7 +19,8 @@ import BerichtenOverzichtScreen from '../berichten/BerichtenOverzichtScreen';
 import ConversationDetailScreen from '../berichten/ConversationDetailScreen';
 import { createConversationForAanvraag } from '../../services/conversations';
 import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
-import SamenwerkingCard from '../../components/home/SamenwerkingCard';
+import PlotCard, { PLOT_CARD } from '../../components/home/PlotCard';
+import { mapPerceelToPlot } from '../../utils/mapPerceelToPlot';
 import TuineigenaarHeader from '../../components/home/TuineigenaarHeader';
 import DashboardSection from '../../components/common/DashboardSection';
 import DashboardEmptyState from '../../components/home/DashboardEmptyState';
@@ -60,6 +61,7 @@ export default function TuineigenaarHomeScreen({
   const [samenwerkingen, setSamenwerkingen] = useState([]);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [selectedSamenwerking, setSelectedSamenwerking] = useState(null);
+  const [activeDotSamenwerking, setActiveDotSamenwerking] = useState(0);
   const [senderProfileId, setSenderProfileId] = useState(null);
   const { aanvragen, isLoading: isLoadingAanvragen, setAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
 
@@ -120,7 +122,7 @@ export default function TuineigenaarHomeScreen({
         if (perceelIds.length > 0) {
           const { data: confirmedAanvragen } = await supabase
             .from('aanvragen')
-            .select('id, status, confirmed_at, perceel_id, sender_id, type_samenwerking, percelen(id, naam, fotos, plaats, voorzieningen, owner_id)')
+            .select('id, status, confirmed_at, perceel_id, sender_id, type_samenwerking, percelen(id, naam, beschrijving, grootte, adres, fotos, plaats, voorzieningen, voorkeur_samenwerking, approximate_lat, approximate_lng, lat, lng, extra_info, status, owner_id)')
             .in('perceel_id', perceelIds)
             .eq('status', AANVRAAG_STATUS.CONFIRMED);
 
@@ -454,7 +456,7 @@ export default function TuineigenaarHomeScreen({
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <DashboardSection title="Actieve samenwerkingen">
+        <DashboardSection title="Actieve samenwerkingen" contentStyle={styles.samenwerkingSection}>
           {samenwerkingen.length === 0 ? (
             <DashboardEmptyState
               icon={HandshakeIcon}
@@ -462,15 +464,55 @@ export default function TuineigenaarHomeScreen({
               body="Zodra een aanvraag als samenwerking is bevestigd, verschijnt die hier."
             />
           ) : (
-            <View style={styles.samenwerkingList}>
-              {samenwerkingen.map((samenwerking) => (
-                <SamenwerkingCard
-                  key={samenwerking.id}
-                  samenwerking={samenwerking}
-                  onPress={() => handleSamenwerkingPress(samenwerking)}
-                />
-              ))}
-            </View>
+            <>
+              <ScrollView
+                horizontal
+                nestedScrollEnabled
+                showsHorizontalScrollIndicator={false}
+                style={styles.samenwerkingScroll}
+                contentContainerStyle={styles.samenwerkingScrollContent}
+                onMomentumScrollEnd={(event) => {
+                  const nextDot = Math.round(event.nativeEvent.contentOffset.x / (PLOT_CARD.cardWidth + PLOT_CARD.carouselGap));
+                  setActiveDotSamenwerking(Math.max(0, Math.min(samenwerkingen.length - 1, nextDot)));
+                }}
+              >
+                {samenwerkingen.map((samenwerking) => {
+                  const perceel = samenwerking.percelen;
+                  if (!perceel) return null;
+                  const plot = mapPerceelToPlot(perceel);
+                  return (
+                    <PlotCard
+                      key={samenwerking.id}
+                      plot={plot}
+                      onPress={() => handleSamenwerkingPress(samenwerking)}
+                    />
+                  );
+                })}
+              </ScrollView>
+              {samenwerkingen.length > 1 ? (
+                <View
+                  style={styles.dotRow}
+                  accessibilityRole="adjustable"
+                  accessibilityLabel="Samenwerkingen carrousel"
+                  accessibilityValue={{
+                    min: 1,
+                    max: samenwerkingen.length,
+                    now: Math.max(0, Math.min(samenwerkingen.length - 1, activeDotSamenwerking)) + 1,
+                    text: `Samenwerking ${Math.max(0, Math.min(samenwerkingen.length - 1, activeDotSamenwerking)) + 1} van ${samenwerkingen.length}`,
+                  }}
+                  accessibilityLiveRegion="polite"
+                >
+                  {samenwerkingen.map((s, index) => (
+                    <View
+                      key={`dot-sw-${s.id}`}
+                      style={[styles.dot, index === Math.max(0, Math.min(samenwerkingen.length - 1, activeDotSamenwerking)) && styles.dotActive]}
+                      accessibilityElementsHidden
+                      importantForAccessibility="no"
+                    />
+                  ))}
+                </View>
+              ) : null}
+            </>
           )}
         </DashboardSection>
 
@@ -567,8 +609,32 @@ const styles = StyleSheet.create({
     gap: SPACING.xl,
     flexGrow: 1,
   },
-  samenwerkingList: {
-    gap: SPACING.md,
+  samenwerkingSection: {
+    gap: SPACING.sm,
+  },
+  samenwerkingScroll: {
+    marginHorizontal: -SPACING.screenX,
+  },
+  samenwerkingScrollContent: {
+    gap: PLOT_CARD.carouselGap,
+    paddingBottom: SPACING.xxs,
+    paddingHorizontal: SPACING.screenX,
+  },
+  dotRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  dot: {
+    width: SIZES.dot,
+    height: SIZES.dot,
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.indicatorMuted,
+  },
+  dotActive: {
+    width: 24,
+    backgroundColor: COLORS.brand,
   },
   addPerceelButton: {
     flexDirection: 'row',

@@ -56,6 +56,7 @@ export default function ParcelDetailScreen({
   const insets = useSafeAreaInsets();
   const [ownerProfile, setOwnerProfile] = useState(null);
   const [existingAanvraag, setExistingAanvraag] = useState(null);
+  const [confirmedConversation, setConfirmedConversation] = useState(null);
   const [showOwnerProfile, setShowOwnerProfile] = useState(false);
   const handleAanvraag = onAanvraag || onRequest || (() => {});
   const perceelStatus = perceel.status || PERCEEL_STATUS.ACTIVE;
@@ -118,6 +119,15 @@ export default function ParcelDetailScreen({
         .maybeSingle();
 
       if (mounted) setExistingAanvraag(data || null);
+
+      if (data?.status === 'confirmed') {
+        const { data: convData } = await supabase
+          .from('conversations')
+          .select('id, aanvraag_id')
+          .eq('aanvraag_id', data.id)
+          .maybeSingle();
+        if (mounted) setConfirmedConversation(convData || null);
+      }
     }
     checkExistingAanvraag();
     return () => { mounted = false; };
@@ -218,10 +228,16 @@ export default function ParcelDetailScreen({
               </View>
             )
           )}
-          <ParcelLocationMap
-            latitude={perceel.approximate_lat}
-            longitude={perceel.approximate_lng}
-          />
+          {(() => {
+            const showExact = (isOwner || hasConfirmedSamenwerking) && (perceel.lat || perceel.lng);
+            return (
+              <ParcelLocationMap
+                latitude={showExact ? (perceel.lat || perceel.approximate_lat) : perceel.approximate_lat}
+                longitude={showExact ? (perceel.lng || perceel.approximate_lng) : perceel.approximate_lng}
+                showCircle={!showExact}
+              />
+            );
+          })()}
         </View>
 
         <View style={styles.section}>
@@ -294,7 +310,30 @@ export default function ParcelDetailScreen({
           </View>
         ) : !isOwner ? (
           existingAanvraag ? (
-            onCancelAanvraag &&
+            existingAanvraag.status === 'confirmed' ? (
+              <View style={[styles.samenwerkingSection, { paddingBottom: insets.bottom + SPACING.md }]}>
+                <View style={styles.samenwerkingCard}>
+                  <Pressable
+                    style={({ pressed }) => [styles.openChatButton, !confirmedConversation && styles.buttonDisabled, pressed && styles.buttonPressed]}
+                    onPress={() => confirmedConversation && onOpenConversation?.({ ...confirmedConversation, otherUser: ownerProfile })}
+                    disabled={!confirmedConversation}
+                    accessibilityRole="button"
+                    accessibilityLabel="Open gesprek"
+                  >
+                    <ChatCircleIcon size={18} color={COLORS.surface} weight="fill" accessibilityElementsHidden />
+                    <Text style={styles.openChatButtonText}>Open gesprek</Text>
+                  </Pressable>
+                  <Pressable
+                    style={({ pressed }) => [styles.endButton, pressed && styles.buttonPressed]}
+                    onPress={() => onEndSamenwerking?.(existingAanvraag)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Beëindig samenwerking"
+                  >
+                    <Text style={styles.endButtonText}>Beëindig samenwerking</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : onCancelAanvraag &&
             (existingAanvraag.status === 'pending' || existingAanvraag.status === 'accepted') ? (
               <View style={[styles.aanvraagSection, { paddingBottom: insets.bottom + SPACING.md }]}>
                 <Pressable
@@ -447,6 +486,9 @@ const styles = StyleSheet.create({
   },
   buttonPressed: {
     opacity: 0.8,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
   primaryButton: {
     marginTop: SPACING.md,

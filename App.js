@@ -647,10 +647,22 @@ export default function App() {
             onSkipReview={() => setCurrentScreen('home')}
           />
         ) : currentScreen === 'samenwerking-detail' && detailSamenwerking ? (
-          <SamenwerkingDetailScreen
-            samenwerking={detailSamenwerking}
+          <ParcelDetailScreen
+            perceel={detailSamenwerking.percelen || detailSamenwerking.perceel}
+            isOwner={selectedRole === 'tuineigenaar'}
+            samenwerking={selectedRole === 'tuineigenaar' ? detailSamenwerking : null}
             onBack={() => { setDetailSamenwerking(null); setCurrentScreen('profiel'); }}
-            onOpenConversation={(conv) => handleOpenConversation(conv)}
+            onOpenConversation={(samenwerkingOrConv) => {
+              if (samenwerkingOrConv?.conversation?.id) {
+                handleOpenConversation({
+                  id: samenwerkingOrConv.conversation.id,
+                  aanvraag_id: samenwerkingOrConv.id,
+                  otherUser: samenwerkingOrConv.senderProfile,
+                });
+              } else {
+                handleOpenConversation(samenwerkingOrConv);
+              }
+            }}
             onEndSamenwerking={(enriched) => {
               setSelectedSamenwerking(enriched);
               setEndingMode('initiator');

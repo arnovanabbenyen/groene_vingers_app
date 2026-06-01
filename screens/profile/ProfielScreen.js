@@ -87,6 +87,7 @@ export default function ProfielScreen({
     role === 'tuinzoeker' ? refreshKey : null
   );
   const { aanvragen, isLoading: isLoadingAanvragen } = useMyAanvragen(refreshKey);
+  const pendingAanvragen = aanvragen.filter((a) => a.status !== AANVRAAG_STATUS.CONFIRMED);
   const aanvraagStatusByPerceelId = aanvragen.reduce((map, aanvraag) => {
     if (aanvraag?.perceel?.id) {
       map.set(aanvraag.perceel.id, aanvraag.status);
@@ -135,7 +136,7 @@ export default function ProfielScreen({
 
         const { data: percelenData, error: percelenError } = await supabase
           .from('percelen')
-          .select('id, owner_id, naam, beschrijving, grootte, adres, plaats, fotos, voorzieningen, voorkeur_samenwerking, approximate_lat, approximate_lng, extra_info, status, created_at')
+          .select('id, owner_id, naam, beschrijving, grootte, adres, plaats, fotos, voorzieningen, voorkeur_samenwerking, approximate_lat, approximate_lng, lat, lng, extra_info, status, created_at')
           .eq('owner_id', userId)
           .neq('status', PERCEEL_STATUS_DELETED)
           .order('created_at', { ascending: false });
@@ -148,7 +149,7 @@ export default function ProfielScreen({
           if (perceelIds.length > 0) {
             const { data: samenwerkingenRaw, error: swError } = await supabase
               .from('aanvragen')
-              .select('id, created_at, sender_id, perceel_id')
+              .select('id, created_at, confirmed_at, sender_id, perceel_id')
               .in('perceel_id', perceelIds)
               .eq('status', AANVRAAG_STATUS.CONFIRMED)
               .order('created_at', { ascending: false });
@@ -163,15 +164,26 @@ export default function ProfielScreen({
             if (senderIds.length > 0) {
               const { data: senders } = await supabase
                 .from('profiles')
-                .select('id, first_name, last_name')
+                .select('id, first_name, last_name, avatar_url')
                 .in('id', senderIds);
               sendersById = (senders || []).reduce((acc, s) => { acc[s.id] = s; return acc; }, {});
+            }
+
+            const aanvraagIds = swData.map((a) => a.id);
+            let convByAanvraag = {};
+            if (aanvraagIds.length > 0) {
+              const { data: convs } = await supabase
+                .from('conversations')
+                .select('id, aanvraag_id')
+                .in('aanvraag_id', aanvraagIds);
+              for (const c of (convs || [])) convByAanvraag[c.aanvraag_id] = c;
             }
 
             const enriched = swData.map((a) => ({
               ...a,
               perceel: percelenById[a.perceel_id] || null,
-              sender: sendersById[a.sender_id] || null,
+              senderProfile: sendersById[a.sender_id] || null,
+              conversation: convByAanvraag[a.id] || null,
             }));
 
             if (mounted) setSamenwerkingen(enriched);
@@ -435,52 +447,27 @@ export default function ProfielScreen({
             {activeSamenwerking ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Actieve samenwerking</Text>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.activeSamenwerkingCard,
-                    pressed && styles.activeSamenwerkingCardPressed,
-                  ]}
-                  onPress={() => onOpenSamenwerking?.(activeSamenwerking)}
-                  accessibilityRole="button"
-                  accessibilityLabel={[
-                    'Actieve samenwerking',
-                    activeSamenwerking.percelen?.naam,
-                    activeSamenwerking.percelen?.plaats,
-                  ].filter(Boolean).join(', ')}
-                  accessibilityHint="Tik om de samenwerking te bekijken"
+                <ScrollView
+                  horizontal
+                  nestedScrollEnabled
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.savedScroll}
+                  contentContainerStyle={styles.savedScrollContent}
                 >
-                  {activeSamenwerking.percelen?.fotos?.[0] ? (
-                    <Image
-                      source={{ uri: activeSamenwerking.percelen.fotos[0] }}
-                      style={styles.activeSamenwerkingImage}
-                      resizeMode="cover"
-                      accessibilityElementsHidden
+                  <View style={styles.aanvraagCardWrap}>
+                    <PlotCard
+                      plot={mapPerceelToPlot(activeSamenwerking.percelen)}
+                      onPress={() => onOpenSamenwerking?.(activeSamenwerking)}
+                      isFavorited={false}
+                      showFavoriteButton={false}
                     />
-                  ) : (
-                    <View style={[styles.activeSamenwerkingImage, styles.activeSamenwerkingPlaceholder]}>
-                      <LeafIcon size={24} color={COLORS.brand} weight="regular" accessibilityElementsHidden />
-                    </View>
-                  )}
-                  <View style={styles.activeSamenwerkingInfo}>
-                    <Text style={styles.activeSamenwerkingNaam} numberOfLines={1}>
-                      {activeSamenwerking.percelen?.naam || 'Perceel'}
-                    </Text>
-                    {activeSamenwerking.percelen?.plaats ? (
-                      <Text style={styles.activeSamenwerkingPlaats} numberOfLines={1}>
-                        {activeSamenwerking.percelen.plaats}
+                    <View style={[styles.aanvraagStatusChip, { backgroundColor: COLORS.brand }]}>
+                      <Text style={[styles.aanvraagStatusChipText, { color: COLORS.surface }]}>
+                        Samenwerking actief
                       </Text>
-                    ) : null}
-                    <View style={styles.activeSamenwerkingCtaRow}>
-                      <Text style={styles.activeSamenwerkingCtaText}>Bekijk samenwerking</Text>
-                      <ArrowRightIcon
-                        size={13}
-                        color={COLORS.brand}
-                        weight="regular"
-                        accessibilityElementsHidden
-                      />
                     </View>
                   </View>
-                </Pressable>
+                </ScrollView>
               </View>
             ) : null}
 
@@ -492,7 +479,7 @@ export default function ProfielScreen({
                   color={COLORS.brand}
                   accessibilityLabel="Aanvragen worden geladen"
                 />
-              ) : aanvragen.length === 0 ? (
+              ) : pendingAanvragen.length === 0 ? (
                 <EmptyState
                   compact
                   icon={LeafIcon}
@@ -500,7 +487,7 @@ export default function ProfielScreen({
                   body="Aanvragen die je indient verschijnen hier."
                 />
               ) : (() => {
-                const validAanvragen = aanvragen.filter((a) => a.perceel != null);
+                const validAanvragen = pendingAanvragen.filter((a) => a.perceel != null);
                 const clampedAanvraagDot = Math.max(0, Math.min(validAanvragen.length - 1, activeAanvraagDot));
                 return (
                   <>
@@ -670,7 +657,7 @@ export default function ProfielScreen({
                           <View key={s.id} style={styles.aanvraagCardWrap}>
                             <PlotCard
                               plot={plot}
-                              onPress={() => onPerceelPress?.(plot)}
+                              onPress={() => onOpenSamenwerking?.(s)}
                               isFavorited={false}
                               showFavoriteButton={false}
                             />
