@@ -8,10 +8,12 @@ export default function AuthButton({
   variant = 'primary',
   disabled = false,
   loading = false,
+  icon: Icon,
   ...rest
 }) {
   const isPrimary = variant === 'primary';
   const isDisabled = disabled || loading;
+  const iconColor = isPrimary ? COLORS.textInverse : COLORS.brand;
 
   return (
     <Pressable
@@ -31,9 +33,11 @@ export default function AuthButton({
         {loading ? (
           <ActivityIndicator
             size="small"
-            color={isPrimary ? COLORS.textInverse : COLORS.brand}
+            color={iconColor}
             style={styles.spinner}
           />
+        ) : Icon && !loading ? (
+          <Icon size={20} color={iconColor} weight="regular" />
         ) : null}
         <Text style={isPrimary ? styles.buttonTextPrimary : styles.buttonTextSecondary}>
           {label}

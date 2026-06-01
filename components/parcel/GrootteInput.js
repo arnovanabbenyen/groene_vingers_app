@@ -58,8 +58,8 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.lg,
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textPrimary,
     paddingVertical: 0,
   },
@@ -72,8 +72,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   unitText: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.lg,
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textSecondary,
   },
 });

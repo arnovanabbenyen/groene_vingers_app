@@ -3,6 +3,8 @@ import {
   AccessibilityInfo,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,6 +18,7 @@ import { decode as decodeBase64 } from 'base64-arraybuffer';
 import {
   BinocularsIcon,
   CameraIcon,
+  CheckIcon,
   FrameCornersIcon,
   HandshakeIcon,
   InfoIcon,
@@ -511,6 +514,10 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {}, ini
     <View style={styles.screen}>
       <Header title={isEditMode ? 'Perceel bewerken' : 'Perceel toevoegen'} onBack={onBack} />
 
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -676,15 +683,17 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {}, ini
         {submitError ? <FieldError message={submitError} /> : null}
 
         <AuthButton
-          label={isEditMode ? 'Wijzigingen opslaan' : 'Perceel toevoegen'}
+          label={isEditMode ? 'Opslaan' : 'Toevoegen'}
+          icon={isEditMode ? CheckIcon : PlusCircleIcon}
           onPress={handleSubmit}
           loading={isSaving}
-          accessibilityLabel={isEditMode ? 'Sla wijzigingen op' : 'Perceel toevoegen'}
+          accessibilityLabel={isEditMode ? 'Wijzigingen opslaan' : 'Perceel toevoegen'}
           accessibilityHint={
             isEditMode ? 'Sla wijzigingen voor dit perceel op' : 'Sla dit nieuwe perceel op'
           }
         />
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -694,13 +703,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  flex: {
+    flex: 1,
+  },
   scroll: {
     flex: 1,
   },
   content: {
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.lg,
-    paddingBottom: SIZES.bottomNavClearance + SPACING.lg,
+    paddingBottom: SPACING.xl,
     gap: SPACING.lg,
   },
 
@@ -747,8 +759,10 @@ const styles = StyleSheet.create({
   // Description
   descriptionShell: {
     borderRadius: RADIUS.xs,
-    backgroundColor: COLORS.brandOverlay,
-    borderWidth: 0,
-    padding: SPACING.sm,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
   },
 });

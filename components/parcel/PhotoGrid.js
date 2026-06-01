@@ -1,5 +1,5 @@
 import { Dimensions, Image, Pressable, StyleSheet, View } from 'react-native';
-import { CameraIcon, XCircleIcon } from 'phosphor-react-native';
+import { PlusCircleIcon, XCircleIcon } from 'phosphor-react-native';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 
 const TILE_WIDTH = Math.round(
@@ -48,7 +48,7 @@ export default function PhotoGrid({ photos = [], onAdd, onRemove }) {
             accessibilityLabel="Foto toevoegen"
             accessibilityHint={`Voeg foto ${index + 1} toe aan je perceel`}
           >
-            <CameraIcon size={24} color={COLORS.textMuted} weight="regular" />
+            <PlusCircleIcon size={32} color={COLORS.textMuted} weight="regular" />
           </Pressable>
         );
       })}

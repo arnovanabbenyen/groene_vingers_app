@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Pressable } from 'react-native';
 import { Eye, EyeSlash } from 'phosphor-react-native';
-import { COLORS, FONTS, RADIUS } from '../theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
-const FIELD = {
-  error: { background: '#FBEAEA' },
-};
+const ERROR_BG = '#FBEAEA';
 
 const AuthTextField = React.forwardRef(function AuthTextField(
   {
@@ -19,6 +17,7 @@ const AuthTextField = React.forwardRef(function AuthTextField(
     secureTextEntry,
     halfWidth = false,
     error = false,
+    onFocus,
     onBlur,
     autoComplete,
     textContentType,
@@ -37,6 +36,17 @@ const AuthTextField = React.forwardRef(function AuthTextField(
   ref,
 ) {
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    onFocus?.();
+  };
+
+  const handleBlur = (e) => {
+    setIsFocused(false);
+    onBlur?.(e);
+  };
 
   const resolvedAccessibilityState = {
     ...(accessibilityState || {}),
@@ -48,10 +58,11 @@ const AuthTextField = React.forwardRef(function AuthTextField(
       {label ? <Text style={[styles.label, labelStyle]}>{label}</Text> : null}
       <View
         style={[
-          styles.inputShell,
-          variant === 'soft' && styles.inputShellSoft,
-          error && styles.inputShellError,
-          variant === 'soft' && error && styles.inputShellErrorSoft,
+          styles.shell,
+          variant === 'soft' && styles.shellSoft,
+          isFocused && styles.shellFocused,
+          error && styles.shellError,
+          variant === 'soft' && error && styles.shellErrorSoft,
           shellStyle,
         ]}
       >
@@ -60,7 +71,8 @@ const AuthTextField = React.forwardRef(function AuthTextField(
           ref={ref}
           value={value}
           onChangeText={onChangeText}
-          onBlur={onBlur}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           placeholder={placeholder}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
@@ -86,9 +98,8 @@ const AuthTextField = React.forwardRef(function AuthTextField(
             style={styles.toggleWrap}
           >
             {passwordVisible
-              ? <Eye size={18} color={COLORS.border} weight="regular" />
-              : <EyeSlash size={18} color={COLORS.border} weight="regular" />
-            }
+              ? <Eye size={18} color={COLORS.textMuted} weight="regular" />
+              : <EyeSlash size={18} color={COLORS.textMuted} weight="regular" />}
           </Pressable>
         ) : null}
       </View>
@@ -107,32 +118,34 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: FONTS.body,
-    fontSize: 12.8,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textPrimary,
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
   },
-  inputShell: {
-    height: 40,
+  shell: {
+    height: 44,
     borderRadius: RADIUS.xs,
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.surface,
-    paddingHorizontal: 12,
+    paddingHorizontal: SPACING.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: SPACING.sm,
   },
-  inputShellSoft: {
-    borderWidth: 0,
-    backgroundColor: 'rgba(87,98,56,0.05)',
+  shellSoft: {
+    backgroundColor: COLORS.surface,
+    borderColor: COLORS.border,
   },
-  inputShellError: {
+  shellFocused: {
+    borderColor: COLORS.brand,
+  },
+  shellError: {
     borderColor: COLORS.negative,
-    backgroundColor: FIELD.error.background,
+    backgroundColor: ERROR_BG,
   },
-  inputShellErrorSoft: {
-    borderWidth: 1,
-    backgroundColor: 'rgba(87,98,56,0.05)',
+  shellErrorSoft: {
+    backgroundColor: COLORS.surface,
   },
   iconWrap: {
     width: 18,
@@ -143,15 +156,16 @@ const styles = StyleSheet.create({
     width: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 6,
+    marginLeft: SPACING.xs,
   },
   input: {
     flex: 1,
     fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textPrimary,
     paddingVertical: 0,
   },
   inputSoft: {
-    fontSize: 16,
+    fontSize: FONT_SIZES.md,
   },
 });
