@@ -1,24 +1,26 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  ArrowLeftIcon,
   CaretDownIcon,
   CaretUpIcon,
   CheckCircleIcon,
+  CheckSquareIcon,
   CircleIcon,
-  PlusIcon,
   TrashIcon,
 } from 'phosphor-react-native';
 import { StatusBar } from 'expo-status-bar';
+import Header from '../../components/navigation/Header';
+import AuthButton from '../../components/buttons/AuthButton';
+import EmptyState from '../../components/common/EmptyState';
+import { showToast } from '../../components/common/Toast';
 import { supabase } from '../../services/supabase';
 import { deleteOpvolging, getOpvolgingen, toggleOpvolgingComplete } from '../../services/opvolgingen';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
@@ -39,8 +41,7 @@ function formatDueDate(dateStr) {
 
 function isOverdue(dateStr) {
   if (!dateStr) return false;
-  const today = toLocalDateKey(new Date());
-  return dateStr < today;
+  return dateStr < toLocalDateKey(new Date());
 }
 
 export default function OpvolgingenScreen({ aanvraagId, onBack, onNieuweOpvolging, refreshKey = 0 }) {
@@ -59,8 +60,8 @@ export default function OpvolgingenScreen({ aanvraagId, onBack, onNieuweOpvolgin
       const { data, error } = await getOpvolgingen(aanvraagId);
       if (error) throw error;
       setOpvolgingen(data || []);
-    } catch (err) {
-      console.warn('OpvolgingenScreen load error', err);
+    } catch {
+      showToast('Kon opvolgingen niet laden.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -78,55 +79,32 @@ export default function OpvolgingenScreen({ aanvraagId, onBack, onNieuweOpvolgin
       const { data, error } = await toggleOpvolgingComplete(opvolging.id, isCompleted, user?.id);
       if (error) throw error;
       setOpvolgingen((prev) => prev.map((o) => (o.id === opvolging.id ? data : o)));
-    } catch (err) {
-      Alert.alert('Fout', 'Kon status niet bijwerken.');
+    } catch {
+      showToast('Kon status niet bijwerken.', 'error');
     }
   }
 
-  function handleDelete(opvolging) {
-    Alert.alert(
-      'Opvolging verwijderen',
-      `Wil je "${opvolging.title}" verwijderen?`,
-      [
-        { text: 'Annuleren', style: 'cancel' },
-        {
-          text: 'Verwijderen',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { error } = await deleteOpvolging(opvolging.id);
-              if (error) throw error;
-              setOpvolgingen((prev) => prev.filter((o) => o.id !== opvolging.id));
-            } catch (err) {
-              Alert.alert('Fout', 'Kon opvolging niet verwijderen.');
-            }
-          },
-        },
-      ]
-    );
+  async function handleDelete(opvolging) {
+    try {
+      const { error } = await deleteOpvolging(opvolging.id);
+      if (error) throw error;
+      setOpvolgingen((prev) => prev.filter((o) => o.id !== opvolging.id));
+    } catch {
+      showToast('Kon opvolging niet verwijderen.', 'error');
+    }
   }
 
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
-
-      <SafeAreaView edges={['top']} style={styles.headerSafe}>
-        <View style={styles.headerRow}>
-          <Pressable onPress={onBack} style={styles.backButton} hitSlop={8} accessibilityRole="button">
-            <ArrowLeftIcon size={20} color={COLORS.textInverse} weight="regular" />
-            <Text style={styles.backText}>Terug</Text>
-          </Pressable>
-          <Text style={styles.headerTitle}>Opvolgingen</Text>
-          <View style={styles.headerSpacer} />
-        </View>
-      </SafeAreaView>
+      <Header title="Opvolgingen" onBack={onBack} backLabel="Terug" />
 
       {isLoading ? (
         <ActivityIndicator color={COLORS.brand} style={{ marginTop: 40 }} />
       ) : (
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 96 }]}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           {/* Open tasks */}
@@ -136,9 +114,12 @@ export default function OpvolgingenScreen({ aanvraagId, onBack, onNieuweOpvolgin
             </Text>
 
             {open.length === 0 ? (
-              <View style={styles.emptyCard}>
-                <Text style={styles.emptyText}>Geen openstaande opvolgingen. Voeg er een toe!</Text>
-              </View>
+              <EmptyState
+                icon={CheckSquareIcon}
+                title="Geen openstaande taken"
+                body="Voeg een opvolging toe via de knop onderaan."
+                compact
+              />
             ) : (
               <View style={styles.list}>
                 {open.map((item) => (
@@ -162,9 +143,7 @@ export default function OpvolgingenScreen({ aanvraagId, onBack, onNieuweOpvolgin
                 accessibilityRole="button"
                 accessibilityLabel={completedExpanded ? 'Afgeronde taken inklappen' : 'Afgeronde taken uitklappen'}
               >
-                <Text style={styles.sectionTitle}>
-                  Afgerond ({completed.length})
-                </Text>
+                <Text style={styles.sectionTitle}>Afgerond ({completed.length})</Text>
                 {completedExpanded
                   ? <CaretUpIcon size={18} color={COLORS.textSecondary} weight="regular" />
                   : <CaretDownIcon size={18} color={COLORS.textSecondary} weight="regular" />
@@ -188,17 +167,12 @@ export default function OpvolgingenScreen({ aanvraagId, onBack, onNieuweOpvolgin
         </ScrollView>
       )}
 
-      {/* FAB */}
-      <View style={[styles.fabWrap, { bottom: insets.bottom + SPACING.lg }]}>
-        <Pressable
-          style={styles.fab}
+      <View style={[styles.saveBar, { paddingBottom: insets.bottom + SPACING.sm }]}>
+        <AuthButton
+          label="Nieuwe opvolging"
           onPress={onNieuweOpvolging}
-          accessibilityRole="button"
           accessibilityLabel="Nieuwe opvolging toevoegen"
-        >
-          <PlusIcon size={22} color={COLORS.textInverse} weight="bold" />
-          <Text style={styles.fabText}>Nieuw</Text>
-        </Pressable>
+        />
       </View>
     </View>
   );
@@ -243,9 +217,9 @@ function OpvolgingRow({ item, onToggle, onDelete }) {
         onPress={onDelete}
         hitSlop={8}
         accessibilityRole="button"
-        accessibilityLabel="Verwijderen"
+        accessibilityLabel={`${item.title} verwijderen`}
       >
-        <TrashIcon size={18} color={COLORS.textMuted} weight="regular" />
+        <TrashIcon size={18} color={COLORS.negative} weight="regular" />
       </Pressable>
     </View>
   );
@@ -256,44 +230,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  headerSafe: {
-    backgroundColor: COLORS.brand,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.screenX,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.lg,
-    minHeight: 52,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    minWidth: 80,
-  },
-  backText: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textInverse,
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.xl,
-    color: COLORS.textInverse,
-  },
-  headerSpacer: {
-    minWidth: 80,
-  },
   scroll: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.lg,
+    paddingBottom: SPACING.md,
     gap: SPACING.lg,
   },
   section: {
@@ -311,19 +254,6 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: SPACING.xs,
-  },
-  emptyCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
-    padding: SPACING.lg,
-    alignItems: 'center',
-    ...SHADOWS.card,
-  },
-  emptyText: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
   },
   row: {
     flexDirection: 'row',
@@ -375,23 +305,9 @@ const styles = StyleSheet.create({
   deleteButton: {
     paddingTop: 2,
   },
-  fabWrap: {
-    position: 'absolute',
-    right: SPACING.screenX,
-  },
-  fab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-    backgroundColor: COLORS.brand,
-    borderRadius: RADIUS.pill,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    ...SHADOWS.card,
-  },
-  fabText: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textInverse,
+  saveBar: {
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: SPACING.sm,
+    backgroundColor: COLORS.background,
   },
 });
