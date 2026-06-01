@@ -22,9 +22,7 @@ import PlansScreen from './screens/plans/PlansScreen';
 import EindSamenwerkingScreen from './screens/samenwerking/EindSamenwerkingScreen';
 import SamenwerkingBeeindigdScreen from './screens/samenwerking/SamenwerkingBeeindigdScreen';
 import SamenwerkingDetailScreen from './screens/samenwerking/SamenwerkingDetailScreen';
-import { getEndedSamenwerking } from './services/samenwerkingProposal';
 import LogboekHomeScreen from './screens/loggen/LogboekHomeScreen';
-import NieuweLogScreen from './screens/loggen/NieuweLogScreen';
 import LogDetailScreen from './screens/loggen/LogDetailScreen';
 import LogboekMonthScreen from './screens/loggen/LogboekMonthScreen';
 import OpvolgingenScreen from './screens/loggen/OpvolgingenScreen';
@@ -374,6 +372,9 @@ export default function App() {
         const { data, error } = await supabase.auth.getSession();
         if (error) {
           console.log('supabase getSession error', error);
+          if (error.message?.toLowerCase().includes('refresh token')) {
+            await supabase.auth.signOut();
+          }
           return;
         }
 
@@ -405,6 +406,9 @@ export default function App() {
         }
       } catch (err) {
         console.log('restoreSession error', err);
+        if (err?.message?.toLowerCase().includes('refresh token')) {
+          await supabase.auth.signOut();
+        }
       }
     }
 
