@@ -1,34 +1,16 @@
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { FunnelIcon, MagnifyingGlassIcon, EnvelopeOpenIcon } from 'phosphor-react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { MagnifyingGlassIcon, EnvelopeOpenIcon } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BottomNav from '../../components/navigation/BottomNav';
 import AanvraagCard from '../../components/aanvraag/AanvraagCard';
+import EmptyState from '../../components/common/EmptyState';
 import { usePendingAanvragen } from '../../hooks/usePendingAanvragen';
 import { COLORS, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 import { supabase } from '../../services/supabase';
 import { createConversationForAanvraag } from '../../services/conversations';
 import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
-
-function EmptyRequestsState() {
-  return (
-    <View style={styles.emptyState} accessible accessibilityRole="text">
-      <EnvelopeOpenIcon size={40} color={COLORS.brand} weight="regular" />
-      <Text style={styles.emptyTitle}>Nog geen aanvragen ontvangen</Text>
-      <Text style={styles.emptySubtext}>Wanneer iemand interesse heeft in jouw perceel zie je het hier.</Text>
-    </View>
-  );
-}
-
-function NoResultsState() {
-  return (
-    <View style={styles.emptyState} accessible accessibilityRole="text">
-      <EnvelopeOpenIcon size={40} color={COLORS.brand} weight="regular" />
-      <Text style={styles.emptyTitle}>Geen resultaten</Text>
-      <Text style={styles.emptySubtext}>Geen aanvragen gevonden voor je zoekopdracht.</Text>
-    </View>
-  );
-}
+import { showToast } from '../../components/common/Toast';
 
 export default function VerzoekenOverzichtScreen({
   onTabPress,
@@ -62,7 +44,7 @@ export default function VerzoekenOverzichtScreen({
       .eq('id', aanvraagId);
 
     if (error) {
-      Alert.alert('Fout', 'De aanvraag kon niet worden geaccepteerd. Probeer opnieuw.');
+      showToast('Aanvraag kon niet worden geaccepteerd. Probeer opnieuw.', 'error');
       return;
     }
 
@@ -86,19 +68,14 @@ export default function VerzoekenOverzichtScreen({
     setAanvragen((current) => current.filter((aanvraag) => aanvraag.id !== aanvraagId));
     onBadgeCountChange?.((current) => Math.max(0, current - 1));
     onAanvraagActionComplete?.();
-    Alert.alert('Aanvraag geaccepteerd', 'De aanvrager wordt hierover geïnformeerd.');
+    showToast('Aanvraag geaccepteerd', 'success');
   }
 
   function handleView(aanvraag) {
     onViewAanvraag?.(aanvraag);
   }
 
-  function handleFilterPress() {
-    // TODO: implement filter modal with options like status, date range, perceel selection
-    Alert.alert('Binnenkort beschikbaar', 'Filters worden binnenkort toegevoegd.');
-  }
-
-  return (
+return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + SPACING.sm }]}>
         <Text style={styles.title} accessibilityRole="header">Aanvragen</Text>
@@ -118,14 +95,6 @@ export default function VerzoekenOverzichtScreen({
             />
           </View>
 
-          <Pressable
-            onPress={handleFilterPress}
-            style={styles.filterButton}
-            accessibilityRole="button"
-            accessibilityLabel="Filters openen"
-          >
-            <FunnelIcon size={20} color={COLORS.surface} weight="regular" />
-          </Pressable>
         </View>
       </View>
 
@@ -135,9 +104,17 @@ export default function VerzoekenOverzichtScreen({
             <ActivityIndicator size="small" color={COLORS.brand} />
           </View>
         ) : aanvragen.length === 0 ? (
-          <EmptyRequestsState />
+          <EmptyState
+            icon={EnvelopeOpenIcon}
+            title="Nog geen aanvragen"
+            body="Wanneer iemand interesse heeft in jouw perceel zie je het hier."
+          />
         ) : filteredAanvragen.length === 0 ? (
-          <NoResultsState />
+          <EmptyState
+            icon={EnvelopeOpenIcon}
+            title="Geen resultaten"
+            body="Geen aanvragen gevonden voor je zoekopdracht."
+          />
         ) : (
           filteredAanvragen.map((aanvraag) => (
             <AanvraagCard key={aanvraag.id} aanvraag={aanvraag} onAccept={handleAccept} onView={handleView} />
@@ -197,43 +174,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     paddingVertical: 0,
   },
-  filterButton: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   list: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
   listContent: {
+    flexGrow: 1,
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.md,
   },
   loadingWrap: {
-    minHeight: 220,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  emptyState: {
-    paddingVertical: SPACING.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.sm,
-  },
-  emptyTitle: {
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  emptySubtext: {
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.body,
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-    maxWidth: 280,
   },
 });

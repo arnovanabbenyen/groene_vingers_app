@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ArrowLeftIcon, ArchiveIcon, CarIcon, CheckCircleIcon, DropIcon, LeafIcon, LightningIcon, MapPinIcon, StarIcon, ToiletIcon, ToolboxIcon, WifiHighIcon } from 'phosphor-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../services/supabase';
@@ -7,6 +7,7 @@ import { COLORS, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 import { RequestAvatar } from '../../components/aanvraag/AanvraagCard';
 import { createConversationForAanvraag } from '../../services/conversations';
 import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
+import { showToast } from '../../components/common/Toast';
 
 const DAGEN = [
   { key: 'ma', label: 'Ma', fullLabel: 'Maandag' },
@@ -107,7 +108,7 @@ export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplet
     setProcessingAction(null);
 
     if (error) {
-      Alert.alert('Fout', 'De aanvraag kon niet worden geaccepteerd. Probeer opnieuw.');
+      showToast('Aanvraag kon niet worden geaccepteerd. Probeer opnieuw.', 'error');
       return;
     }
 
@@ -128,10 +129,9 @@ export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplet
       }
     }
 
-    Alert.alert('Aanvraag geaccepteerd', 'De aanvrager wordt hierover geïnformeerd.', [{ text: 'OK', onPress: () => {
-      onActionComplete?.();
-      onBack?.();
-    }}]);
+    showToast('Aanvraag geaccepteerd', 'success');
+    onActionComplete?.();
+    onBack?.();
     // TODO: send push notification to sender confirming acceptance
   }
 
@@ -151,14 +151,13 @@ export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplet
     setProcessingAction(null);
 
     if (error) {
-      Alert.alert('Fout', 'De aanvraag kon niet worden geweigerd. Probeer opnieuw.');
+      showToast('Aanvraag kon niet worden geweigerd. Probeer opnieuw.', 'error');
       return;
     }
 
-    Alert.alert('Aanvraag geweigerd', 'De aanvrager wordt hierover geïnformeerd.', [{ text: 'OK', onPress: () => {
-      onActionComplete?.();
-      onBack?.();
-    }}]);
+    showToast('Aanvraag geweigerd', 'info');
+    onActionComplete?.();
+    onBack?.();
     // TODO: send push notification to sender with decline + optional reason
   }
 
