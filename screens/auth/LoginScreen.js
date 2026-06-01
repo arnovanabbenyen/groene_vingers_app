@@ -62,9 +62,15 @@ export default function LoginScreen({ onCreateAccount, onLoginSuccess, onForgotP
         }
         onLoginSuccess?.(role);
       }
-    } catch {
-      setError('E-mailadres of wachtwoord is onjuist.');
-      setFieldErrors({ email: true, password: true });
+    } catch (err) {
+      const msg = err?.message?.toLowerCase() ?? '';
+      if (msg.includes('email not confirmed')) {
+        setError('Bevestig eerst je e-mailadres via de link in je mailbox.');
+        setFieldErrors({ email: true, password: false });
+      } else {
+        setError('E-mailadres of wachtwoord is onjuist.');
+        setFieldErrors({ email: true, password: true });
+      }
     } finally {
       setIsLoading(false);
     }

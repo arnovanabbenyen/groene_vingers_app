@@ -333,12 +333,14 @@ export default function App() {
         return;
       }
 
-      // Implicit flow (default): Supabase sends access_token + refresh_token in the hash fragment
+      // Implicit flow (default): tokens arrive in hash (#) or query string (?)
       if (url.includes('access_token')) {
         try {
           const hashIndex = url.indexOf('#');
-          if (hashIndex === -1) return;
-          const params = new URLSearchParams(url.slice(hashIndex + 1));
+          const queryIndex = url.indexOf('?');
+          const separatorIndex = hashIndex !== -1 ? hashIndex : queryIndex;
+          if (separatorIndex === -1) return;
+          const params = new URLSearchParams(url.slice(separatorIndex + 1));
           const access_token = params.get('access_token');
           const refresh_token = params.get('refresh_token');
           if (access_token && refresh_token) {
