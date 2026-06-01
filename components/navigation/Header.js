@@ -7,16 +7,20 @@ export default function Header({ title, onBack, backLabel = 'Terug', rightElemen
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       <View style={[styles.header, contentStyle]}>
-        <Pressable
-          style={styles.back}
-          onPress={onBack}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel={backLabel}
-        >
-          <ArrowLeftIcon size={20} color={COLORS.textInverse} weight="regular" accessibilityElementsHidden />
-          <Text style={styles.backText}>{backLabel}</Text>
-        </Pressable>
+        {onBack ? (
+          <Pressable
+            style={styles.back}
+            onPress={onBack}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={backLabel}
+          >
+            <ArrowLeftIcon size={20} color={COLORS.textInverse} weight="regular" accessibilityElementsHidden />
+            <Text style={styles.backText}>{backLabel}</Text>
+          </Pressable>
+        ) : (
+          <View style={styles.spacer} />
+        )}
         <Text style={styles.title} accessibilityRole="header">{title}</Text>
         {rightElement ?? <View style={styles.spacer} />}
       </View>

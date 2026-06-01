@@ -391,15 +391,22 @@ export default function TuineigenaarHomeScreen({
 
   if (activeTab === 'perceel') {
     return (
-      <PerceelToevoegenScreen
-        onBack={() => {
-          setActiveTab('start');
-        }}
-        onSaved={() => {
-          setPerceelRefreshKey((current) => current + 1);
-          setActiveTab('start');
-        }}
-      />
+      <View style={styles.container}>
+        <PerceelToevoegenScreen
+          onSaved={(saved) => {
+            setPerceelRefreshKey((current) => current + 1);
+            setActiveTab('start');
+            showToast('Perceel toegevoegd', 'success');
+          }}
+        />
+        <BottomNav
+          activeKey={activeTab}
+          onTabPress={handleTabPress}
+          role="tuineigenaar"
+          profileImageSource={profileImageSource}
+          badgeCounts={badgeCounts}
+        />
+      </View>
     );
   }
 
