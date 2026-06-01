@@ -8,6 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalendarCheckIcon, NoteIcon, PencilSimpleIcon } from 'phosphor-react-native';
 import Header from '../../components/navigation/Header';
 import AuthButton from '../../components/buttons/AuthButton';
@@ -37,6 +38,7 @@ function toLocalDateString(date) {
 }
 
 export default function NieuweOpvolgingScreen({ aanvraagId, onBack, onSaved }) {
+  const insets = useSafeAreaInsets();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState(tomorrow);
@@ -80,15 +82,7 @@ export default function NieuweOpvolgingScreen({ aanvraagId, onBack, onSaved }) {
       >
         {/* Titel */}
         <SectionCard>
-          <SectionHeader
-            icon={PencilSimpleIcon}
-            title="Titel"
-            action={
-              <Text style={[styles.charCounter, title.length >= MAX_TITLE && styles.charCounterLimit]}>
-                {title.length}/{MAX_TITLE}
-              </Text>
-            }
-          />
+          <SectionHeader icon={PencilSimpleIcon} title="Titel" />
           <View style={styles.fieldShell}>
             <TextInput
               style={styles.input}
@@ -102,6 +96,9 @@ export default function NieuweOpvolgingScreen({ aanvraagId, onBack, onSaved }) {
               accessibilityHint="Verplicht veld"
             />
           </View>
+          <Text style={[styles.charCounter, title.length >= MAX_TITLE && styles.charCounterLimit]}>
+            {title.length}/{MAX_TITLE}
+          </Text>
         </SectionCard>
 
         {/* Deadline */}
@@ -120,18 +117,14 @@ export default function NieuweOpvolgingScreen({ aanvraagId, onBack, onSaved }) {
           <SectionHeader
             icon={NoteIcon}
             title="Omschrijving"
-            action={
-              <Text style={[styles.charCounter, description.length >= MAX_DESCRIPTION && styles.charCounterLimit]}>
-                {description.length}/{MAX_DESCRIPTION}
-              </Text>
-            }
+            action={<Text style={styles.optionalLabel}>optioneel</Text>}
           />
           <View style={styles.fieldShell}>
             <TextInput
               style={styles.textarea}
               value={description}
               onChangeText={(t) => { if (t.length <= MAX_DESCRIPTION) setDescription(t); }}
-              placeholder="Voeg een omschrijving toe... (optioneel)"
+              placeholder="Voeg een omschrijving toe..."
               placeholderTextColor={COLORS.textMuted}
               multiline
               numberOfLines={5}
@@ -140,8 +133,14 @@ export default function NieuweOpvolgingScreen({ aanvraagId, onBack, onSaved }) {
               accessibilityHint="Optioneel veld"
             />
           </View>
+          <Text style={[styles.charCounter, description.length >= MAX_DESCRIPTION && styles.charCounterLimit]}>
+            {description.length}/{MAX_DESCRIPTION}
+          </Text>
         </SectionCard>
 
+      </ScrollView>
+
+      <View style={[styles.saveBar, { paddingBottom: insets.bottom + SPACING.sm }]}>
         <AuthButton
           label="Opvolging toevoegen"
           onPress={handleSave}
@@ -149,7 +148,7 @@ export default function NieuweOpvolgingScreen({ aanvraagId, onBack, onSaved }) {
           disabled={!canSave}
           accessibilityLabel="Opvolging opslaan"
         />
-      </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -165,16 +164,28 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.lg,
-    paddingBottom: SPACING.xl,
+    paddingBottom: SPACING.md,
     gap: SPACING.lg,
+  },
+  saveBar: {
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: SPACING.sm,
+    backgroundColor: COLORS.background,
   },
   charCounter: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.xs,
     color: COLORS.textMuted,
+    textAlign: 'right',
+    marginTop: SPACING.xs,
   },
   charCounterLimit: {
     color: COLORS.negative,
+  },
+  optionalLabel: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
   },
   fieldShell: {
     borderRadius: RADIUS.xs,
