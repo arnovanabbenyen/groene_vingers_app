@@ -523,7 +523,7 @@ export default function ProfielScreen({
                               plot={plot}
                               onPress={() => onAanvraagPerceelPress?.(aanvraag)}
                               isFavorited={isFavorite(plot.id)}
-                              onToggleFavorite={() => toggleFavorite(plot.id)}
+                               onToggleFavorite={() => handleToggleSavedFavorite(plot.id)}
                               showFavoriteButton
                             />
                             <View style={[styles.aanvraagStatusChip, { backgroundColor: statusConfig.bg }]}>
