@@ -16,7 +16,6 @@ import BottomNav from '../../components/navigation/BottomNav';
 import ChatAvatar from '../../components/chat/ChatAvatar';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
 import { useConversations } from '../../hooks/useConversations';
-
 const UNREAD_ROW_BG = 'rgba(255, 217, 94, 0.12)';
 
 function formatRelativeTime(timestamp) {
@@ -40,9 +39,17 @@ function formatConversationName(conversation) {
     .filter(Boolean).join(' ').trim() || 'Gesprek';
 }
 
+const SYSTEM_MESSAGE_LABELS = {
+  system_samenwerking_proposed: 'Samenwerkingsvoorstel verstuurd',
+  system_samenwerking_confirmed: 'Samenwerking bevestigd',
+  system_samenwerking_cancelled: 'Voorstel ingetrokken',
+  system_samenwerking_ended: 'Samenwerking beëindigd',
+};
+
 function formatConversationPreview(conversation) {
   const msg = conversation.lastMessage;
   if (!msg) return 'Nog geen berichten';
+  if (SYSTEM_MESSAGE_LABELS[msg.type]) return SYSTEM_MESSAGE_LABELS[msg.type];
   if (msg.media_urls?.length > 1) return `📷 ${msg.media_urls.length} foto's`;
   if (msg.media_urls?.length === 1 || msg.media_url) return '📷 Foto';
   return msg.content || 'Nog geen berichten';

@@ -21,7 +21,6 @@ import {
   ImageIcon,
   LockSimpleIcon,
   PaperPlaneRightIcon,
-  XCircleIcon,
   XIcon,
 } from 'phosphor-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -384,9 +383,10 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
       ? msg.media_urls
       : (msg.media_url ? [msg.media_url] : []);
     const hasImages = imageUrls.length > 0;
+    const displayContent = msg.content;
     const a11yLabel = hasImages
       ? (imageUrls.length > 1 ? `${imageUrls.length} foto's` : 'Foto')
-      : (msg.content || '');
+      : (displayContent || '');
 
     if (isOwn) {
       return (
@@ -401,7 +401,7 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
           >
             {hasImages
               ? <ImageGrid urls={imageUrls} onPress={openPreview} />
-              : <Text style={styles.ownBubbleText}>{msg.content}</Text>
+              : <Text style={styles.ownBubbleText}>{displayContent}</Text>
             }
           </View>
         </View>
@@ -431,7 +431,7 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
           >
             {hasImages
               ? <ImageGrid urls={imageUrls} onPress={openPreview} />
-              : <Text style={styles.otherBubbleText}>{msg.content}</Text>
+              : <Text style={styles.otherBubbleText}>{displayContent}</Text>
             }
           </View>
         </View>
@@ -618,7 +618,9 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
                     accessibilityRole="button"
                     accessibilityLabel="Afbeelding verwijderen"
                   >
-                    <XCircleIcon size={20} color="rgba(0,0,0,0.72)" weight="fill" />
+                    <View style={styles.removeCircle}>
+                      <XIcon size={11} color={COLORS.textInverse} weight="bold" />
+                    </View>
                   </Pressable>
                 </View>
               ))}
@@ -982,8 +984,16 @@ const styles = StyleSheet.create({
   },
   pendingThumbRemove: {
     position: 'absolute',
-    top: -(SPACING.xs + 2),
-    right: -(SPACING.xs + 2),
+    top: SPACING.xs,
+    right: SPACING.xs,
+  },
+  removeCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   previewOverlay: {
     flex: 1,
