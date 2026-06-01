@@ -18,6 +18,7 @@ import { decode as decodeBase64 } from 'base64-arraybuffer';
 import {
   BinocularsIcon,
   CameraIcon,
+  CheckCircleIcon,
   CheckIcon,
   FrameCornersIcon,
   HandshakeIcon,
@@ -55,6 +56,14 @@ function uid(prefix) {
 
 function createPhoto(previewUri, localUri) {
   return { id: uid('photo'), previewUri, localUri, isPlaceholder: false };
+}
+
+function formatAddressLabel(suggestion) {
+  const a = suggestion.address || {};
+  const road = a.road || a.name || '';
+  const street = [road, a.house_number].filter(Boolean).join(' ');
+  const city = a.city || a.town || a.village || a.suburb || a.municipality || '';
+  return [street, a.postcode, city].filter(Boolean).join(', ') || suggestion.display_name;
 }
 
 function normalizeExtraInfo(input) {
@@ -139,6 +148,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {}, ini
   const extraInfoRef = useRef(null);
   const adresRef = useRef(null);
   const grootteRef = useRef(null);
+  const addressConfirmedRef = useRef(false);
 
   useEffect(() => {
     setNaam(initialPerceel?.naam || '');
@@ -170,6 +180,11 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {}, ini
       return undefined;
     }
 
+    if (addressConfirmedRef.current) {
+      addressConfirmedRef.current = false;
+      return undefined;
+    }
+
     const handle = setTimeout(async () => {
       setIsAddressLoading(true);
       try {
@@ -179,7 +194,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {}, ini
           return;
         }
 
-        const url = `https://us1.locationiq.com/v1/autocomplete.php?key=${key}&q=${encodeURIComponent(adres)}&format=json&limit=5&countrycodes=be,nl`;
+        const url = `https://us1.locationiq.com/v1/autocomplete.php?key=${key}&q=${encodeURIComponent(adres)}&format=json&limit=5&countrycodes=be`;
         const res = await fetch(url);
         const json = await res.json();
         const suggestions = Array.isArray(json) ? json : [];
@@ -196,13 +211,14 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {}, ini
   }, [adres]);
 
   function selectAddressSuggestion(suggestion) {
-    const formatted = suggestion.display_name || suggestion.label || '';
+    const formatted = formatAddressLabel(suggestion);
     const parsedPlaats =
       suggestion.address?.city ||
       suggestion.address?.town ||
       suggestion.address?.village ||
       suggestion.address?.suburb ||
       null;
+    addressConfirmedRef.current = true;
     setAdres(formatted);
     setPlaats(parsedPlaats || '');
     setAdresCoords({ lat: parseFloat(suggestion.lat), lng: parseFloat(suggestion.lon) });
@@ -560,44 +576,74 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {}, ini
               label=""
               value={adres}
               onChangeText={(t) => {
+                addressConfirmedRef.current = false;
                 setAdres(t);
                 setAdresCoords(null);
               }}
               placeholder="Straat, nummer, postcode en gemeente"
-              accessibilityRole="combobox"
               accessibilityLabel="Adres van het perceel"
               accessibilityHint="Begin te typen om adressuggesties te zien"
-              variant="soft"
+              shellStyle={adresCoords ? styles.addressShellConfirmed : undefined}
             />
             {isAddressLoading ? (
               <ActivityIndicator
-                style={styles.addressLoader}
+                style={styles.addressStatus}
                 size="small"
-                color={COLORS.accent}
+                color={COLORS.brand}
                 accessibilityLabel="Adressen zoeken..."
               />
+            ) : adresCoords ? (
+              <View style={styles.addressStatus} accessibilityElementsHidden>
+                <CheckCircleIcon size={18} color={COLORS.brand} weight="fill" />
+              </View>
             ) : null}
           </View>
 
-          {addressSuggestions.length > 0 ? (
-            <View style={styles.suggestions}>
-              {addressSuggestions.map((s, i) => (
-                <Pressable
-                  key={s.place_id || String(i)}
-                  onPress={() => selectAddressSuggestion(s)}
-                  style={({ pressed }) => [styles.suggestion, pressed && styles.suggestionPressed]}
-                  accessibilityRole="button"
-                  accessibilityLabel={s.display_name}
-                >
-                  <Text style={styles.suggestionText} numberOfLines={2}>
-                    {s.display_name}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          ) : adres && !isAddressLoading ? (
-            <Text style={styles.noResults}>Geen adressen gevonden</Text>
-          ) : null}
+          {(() => {
+            const q = adres.trim().toLowerCase();
+            const visible = addressSuggestions
+              .filter((s) => {
+                const label = formatAddressLabel(s).toLowerCase();
+                const full = (s.display_name || '').toLowerCase();
+                return label.includes(q) || full.includes(q);
+              })
+              .sort((a, b) => {
+                const aStarts = formatAddressLabel(a).toLowerCase().startsWith(q) ? 0 : 1;
+                const bStarts = formatAddressLabel(b).toLowerCase().startsWith(q) ? 0 : 1;
+                return aStarts - bStarts;
+              });
+
+            if (visible.length > 0) {
+              return (
+                <View style={styles.suggestions}>
+                  {visible.map((s, i) => (
+                    <Pressable
+                      key={s.place_id || String(i)}
+                      onPress={() => selectAddressSuggestion(s)}
+                      style={({ pressed }) => [
+                        styles.suggestion,
+                        i > 0 && styles.suggestionDivider,
+                        pressed && styles.suggestionPressed,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={formatAddressLabel(s)}
+                    >
+                      <MapPinIcon size={14} color={COLORS.textMuted} weight="regular" style={styles.suggestionIcon} />
+                      <Text style={styles.suggestionText} numberOfLines={1}>
+                        {formatAddressLabel(s)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              );
+            }
+
+            if (adres.trim() && !isAddressLoading && !adresCoords) {
+              return <Text style={styles.noResults}>Geen adressen gevonden</Text>;
+            }
+
+            return null;
+          })()}
         </SectionCard>
 
         {/* Grootte */}
@@ -720,11 +766,13 @@ const styles = StyleSheet.create({
   addressWrapper: {
     position: 'relative',
   },
-  addressLoader: {
+  addressStatus: {
     position: 'absolute',
     right: SPACING.md,
-    top: '50%',
-    transform: [{ translateY: -8 }],
+    top: 13,
+  },
+  addressShellConfirmed: {
+    borderColor: COLORS.brand,
   },
   suggestions: {
     marginTop: SPACING.xs,
@@ -735,15 +783,26 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   suggestion: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.sm,
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.md,
     minHeight: 44,
-    justifyContent: 'center',
+  },
+  suggestionDivider: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.dividerSoft,
   },
   suggestionPressed: {
     backgroundColor: COLORS.surfaceBrand,
   },
+  suggestionIcon: {
+    marginTop: 3,
+    flexShrink: 0,
+  },
   suggestionText: {
+    flex: 1,
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.md,
     color: COLORS.textPrimary,
