@@ -297,14 +297,16 @@ export default function ProfielScreen({
             )}
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Percelen</Text>
-            {isLoadingProfile ? (
-              <ActivityIndicator size="small" color={COLORS.brand} />
-            ) : (
-              <PercelenCarousel percelen={percelen} />
-            )}
-          </View>
+          {isLoadingProfile || percelen.length > 0 ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Percelen</Text>
+              {isLoadingProfile ? (
+                <ActivityIndicator size="small" color={COLORS.brand} />
+              ) : (
+                <PercelenCarousel percelen={percelen} />
+              )}
+            </View>
+          ) : null}
         </ScrollView>
       </View>
     );

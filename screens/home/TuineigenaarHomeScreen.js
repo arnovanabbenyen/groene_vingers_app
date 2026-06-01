@@ -10,9 +10,11 @@ import { showConfirm } from '../../components/common/ConfirmDialog';
 import PerceelToevoegenScreen from '../parcel/PerceelToevoegenScreen';
 import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
 import AanvraagCard from '../../components/aanvraag/AanvraagCard';
+import AanvraagCarousel from '../../components/aanvraag/AanvraagCarousel';
 import { usePendingAanvragen } from '../../hooks/usePendingAanvragen';
 import VerzoekenOverzichtScreen from '../aanvraag/VerzoekenOverzichtScreen';
 import AanvraagDetailScreen from '../aanvraag/AanvraagDetailScreen';
+import ProfielScreen from '../profile/ProfielScreen';
 import BerichtenOverzichtScreen from '../berichten/BerichtenOverzichtScreen';
 import ConversationDetailScreen from '../berichten/ConversationDetailScreen';
 import { createConversationForAanvraag } from '../../services/conversations';
@@ -58,6 +60,7 @@ export default function TuineigenaarHomeScreen({
   const [samenwerkingen, setSamenwerkingen] = useState([]);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [selectedSamenwerking, setSelectedSamenwerking] = useState(null);
+  const [senderProfileId, setSenderProfileId] = useState(null);
   const { aanvragen, isLoading: isLoadingAanvragen, setAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
 
   function handleTabPress(item) {
@@ -353,11 +356,21 @@ export default function TuineigenaarHomeScreen({
   }
 
   if (currentScreen === 'aanvraag-detail' && selectedAanvraag) {
+    if (senderProfileId) {
+      return (
+        <ProfielScreen
+          profileUserId={senderProfileId}
+          onBack={() => setSenderProfileId(null)}
+        />
+      );
+    }
+
     return (
       <AanvraagDetailScreen
         aanvraag={selectedAanvraag}
-        onBack={onCloseAanvraag}
+        onBack={() => { setSenderProfileId(null); onCloseAanvraag?.(); }}
         onActionComplete={onAanvraagActionComplete}
+        onViewProfile={(senderId) => { if (senderId) setSenderProfileId(senderId); }}
       />
     );
   }
@@ -460,7 +473,21 @@ export default function TuineigenaarHomeScreen({
           />
         </DashboardSection>
 
-        <DashboardSection title="Nieuwe aanvragen">
+        <DashboardSection
+          title="Nieuwe aanvragen"
+          action={aanvragen.length > 0 ? (
+            <Pressable
+              onPress={() => setActiveTab('verzoeken')}
+              style={styles.bekijkAllesButton}
+              accessibilityRole="button"
+              accessibilityLabel={`Bekijk alle ${aanvragen.length} aanvragen`}
+            >
+              <Text style={styles.bekijkAllesText}>
+                Bekijk alles ({aanvragen.length})
+              </Text>
+            </Pressable>
+          ) : null}
+        >
           {isLoadingAanvragen ? (
             <View style={styles.loadingWrap} accessibilityLabel="Aanvragen worden geladen">
               <ActivityIndicator size="small" color={COLORS.brand} />
@@ -472,14 +499,11 @@ export default function TuineigenaarHomeScreen({
               body="Wanneer iemand interesse heeft in jouw perceel zie je het hier."
             />
           ) : (
-            aanvragen.map((aanvraag) => (
-              <AanvraagCard
-                key={aanvraag.id}
-                aanvraag={aanvraag}
-                onAccept={handleAccept}
-                onView={handleViewAanvraag}
-              />
-            ))
+            <AanvraagCarousel
+              aanvragen={aanvragen}
+              onView={handleViewAanvraag}
+              onAccept={handleAccept}
+            />
           )}
         </DashboardSection>
 
@@ -521,15 +545,14 @@ export default function TuineigenaarHomeScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.background,
   },
   scroll: {
     flex: 1,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.background,
   },
   content: {
     paddingHorizontal: SPACING.screenX,
-    backgroundColor: COLORS.surface,
     paddingTop: SPACING.lg,
     paddingBottom: SPACING.sm,
     gap: SPACING.xl,
@@ -556,5 +579,17 @@ const styles = StyleSheet.create({
     minHeight: 110,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  bekijkAllesButton: {
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1.5,
+    borderColor: COLORS.brand,
+  },
+  bekijkAllesText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.brand,
   },
 });

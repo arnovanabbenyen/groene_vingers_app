@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import {
-  CheckIcon,
-  MagnifyingGlassIcon,
-  LeafIcon,
-  StarIcon,
-  UserCircleIcon,
-} from 'phosphor-react-native';
-import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { BinocularsIcon, LeafIcon, StarIcon, UserCircleIcon } from 'phosphor-react-native';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 
 export function normalizeSize(size) {
   if (size == null || size === '') return '—';
@@ -20,12 +14,18 @@ function formatRequesterName(sender) {
 }
 
 export function RequestAvatar({ sender }) {
+  const name = formatRequesterName(sender);
   if (sender?.avatar_url) {
-    return <Image source={{ uri: sender.avatar_url }} style={styles.userAvatar} accessibilityLabel={`Profielfoto van ${formatRequesterName(sender)}`} />;
+    return (
+      <Image
+        source={{ uri: sender.avatar_url }}
+        style={styles.avatar}
+        accessibilityLabel={`Profielfoto van ${name}`}
+      />
+    );
   }
-
   return (
-    <View style={[styles.userAvatar, styles.userAvatarFallback]} accessibilityLabel={`Profielfoto van ${formatRequesterName(sender)}`}>
+    <View style={[styles.avatar, styles.avatarFallback]} accessibilityLabel={`Profielfoto van ${name}`}>
       <UserCircleIcon size={44} color={COLORS.brand} weight="regular" />
     </View>
   );
@@ -37,7 +37,11 @@ function PerceelImage({ perceel }) {
 
   if (!firstPhoto || imageError) {
     return (
-      <View style={styles.gardenPlaceholder} accessibilityRole="image" accessibilityLabel={`Geen foto beschikbaar voor ${perceel?.naam || 'dit perceel'}`}>
+      <View
+        style={styles.imagePlaceholder}
+        accessibilityRole="image"
+        accessibilityLabel={`Geen foto beschikbaar voor ${perceel?.naam || 'dit perceel'}`}
+      >
         <LeafIcon size={40} color={COLORS.brand} weight="regular" />
       </View>
     );
@@ -46,7 +50,7 @@ function PerceelImage({ perceel }) {
   return (
     <Image
       source={{ uri: firstPhoto }}
-      style={styles.gardenImage}
+      style={styles.image}
       resizeMode="cover"
       onError={() => setImageError(true)}
       accessibilityLabel={`Foto van ${perceel?.naam || 'het perceel'}`}
@@ -54,125 +58,103 @@ function PerceelImage({ perceel }) {
   );
 }
 
-function AanvraagCard({ aanvraag, onAccept, onView }) {
+function AanvraagCard({ aanvraag, onView, style }) {
   const sender = aanvraag?.sender;
   const perceel = aanvraag?.perceel;
   const fullName = formatRequesterName(sender);
-  const title = perceel?.naam || 'Perceel';
-  const size = normalizeSize(perceel?.grootte);
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.7}
+    <Pressable
       onPress={() => onView(aanvraag)}
-      style={styles.requestCard}
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed, style]}
       accessibilityRole="button"
       accessibilityLabel={`Open aanvraag van ${fullName}`}
       accessibilityHint="Open de detailweergave van deze aanvraag"
     >
       <View style={styles.userRow}>
-        <View style={styles.userInfo}>
-          <RequestAvatar sender={sender} />
-          <View style={styles.userNameWrap}>
-            <Text style={styles.userName}>{fullName}</Text>
-          </View>
-        </View>
-
-        <View style={styles.scoreWrap}>
-          <View style={styles.scorePill}>
-            <StarIcon size={16} color={COLORS.accent} weight="fill" />
-            <Text style={styles.scoreText}>4,5</Text>
-          </View>
+        <RequestAvatar sender={sender} />
+        <Text style={styles.userName} numberOfLines={1}>{fullName}</Text>
+        <View style={styles.ratingPill}>
+          <StarIcon size={14} color={COLORS.accent} weight="fill" accessibilityElementsHidden />
+          <Text style={styles.ratingText}>{sender?.rating ?? 'Nieuw'}</Text>
         </View>
       </View>
 
       <PerceelImage perceel={perceel} />
 
-      <View style={styles.gardenInfo}>
-        <Text style={styles.gardenTitle} numberOfLines={1}>{title}</Text>
-        <Text style={styles.gardenSize}>{size}</Text>
+      <View style={styles.perceelInfo}>
+        <Text style={styles.perceelNaam} numberOfLines={1}>{perceel?.naam || 'Perceel'}</Text>
+        <Text style={styles.perceelGrootte}>{normalizeSize(perceel?.grootte)}</Text>
       </View>
 
-      <View style={styles.actionRow}>
-        <Pressable
-          style={[styles.actionButton, styles.acceptButton]}
-          onPress={() => onView(aanvraag)}
-          accessibilityRole="button"
-          accessibilityLabel={`Bekijk aanvraag van ${fullName}`}
-          accessibilityHint={`Open de detailweergave van de aanvraag van ${fullName}`}
-        >
-          <MagnifyingGlassIcon size={18} color={COLORS.surface} weight="regular" />
-          <Text style={styles.acceptButtonText}>Bekijk aanvraag</Text>
-        </Pressable>
-      </View>
-    </TouchableOpacity>
+      <Pressable
+        style={({ pressed }) => [styles.actionButton, pressed && styles.actionButtonPressed]}
+        onPress={() => onView(aanvraag)}
+        accessibilityRole="button"
+        accessibilityLabel={`Bekijk aanvraag van ${fullName}`}
+        accessibilityHint={`Open de detailweergave van de aanvraag van ${fullName}`}
+      >
+        <BinocularsIcon size={18} color={COLORS.textInverse} weight="regular" accessibilityElementsHidden />
+        <Text style={styles.actionButtonText}>Bekijk aanvraag</Text>
+      </Pressable>
+    </Pressable>
   );
 }
 
 export default AanvraagCard;
 
 const styles = StyleSheet.create({
-  requestCard: {
+  card: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
     padding: SPACING.md,
     marginBottom: SPACING.lg,
     borderWidth: 1,
-    borderColor: 'rgba(54, 57, 43, 0.08)',
+    borderColor: COLORS.brandOverlay,
     ...SHADOWS.card,
+  },
+  cardPressed: {
+    opacity: 0.85,
   },
   userRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: SPACING.md,
-  },
-  userInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
-    flex: 1,
+    marginBottom: SPACING.md,
   },
-  userAvatar: {
+  avatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: RADIUS.pill,
   },
-  userAvatarFallback: {
+  avatarFallback: {
     backgroundColor: COLORS.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  userNameWrap: {
-    flex: 1,
   },
   userName: {
+    flex: 1,
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.textPrimary,
   },
-  scoreWrap: {
+  ratingPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: SPACING.xs,
   },
-  scorePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  scoreText: {
-    fontFamily: FONTS.body,
-    fontSize: 14,
+  ratingText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textPrimary,
   },
-  gardenImage: {
+  image: {
     width: '100%',
     height: 200,
     borderRadius: RADIUS.sm,
     marginBottom: SPACING.md,
   },
-  gardenPlaceholder: {
+  imagePlaceholder: {
     width: '100%',
     height: 200,
     borderRadius: RADIUS.sm,
@@ -181,53 +163,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: SPACING.md,
   },
-  gardenInfo: {
-    marginBottom: SPACING.md,
+  perceelInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: SPACING.sm,
+    marginBottom: SPACING.md,
   },
-  gardenTitle: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
-    color: COLORS.textPrimary,
+  perceelNaam: {
     flex: 1,
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.textPrimary,
   },
-  gardenSize: {
-    fontFamily: FONTS.body,
-    fontSize: 14,
-    color: COLORS.textSecondary,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
+  perceelGrootte: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
   },
   actionButton: {
-    flex: 1,
     height: 48,
     borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.brand,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: SPACING.sm,
   },
-  acceptButton: {
-    backgroundColor: COLORS.brand,
+  actionButtonPressed: {
+    opacity: 0.85,
   },
-  acceptButtonText: {
+  actionButtonText: {
     fontFamily: FONTS.displayMedium,
-    fontSize: 14,
-    color: COLORS.surface,
-  },
-  viewButton: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 2,
-    borderColor: COLORS.brand,
-  },
-  viewButtonText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: 14,
-    color: COLORS.brand,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textInverse,
   },
 });

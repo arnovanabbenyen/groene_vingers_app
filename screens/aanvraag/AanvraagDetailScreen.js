@@ -1,13 +1,35 @@
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { ArrowLeftIcon, ArchiveIcon, CarIcon, CheckCircleIcon, DropIcon, LeafIcon, LightningIcon, MapPinIcon, StarIcon, ToiletIcon, ToolboxIcon, WifiHighIcon } from 'phosphor-react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  CalendarBlankIcon,
+  CalendarCheckIcon,
+  CaretRightIcon,
+  CheckCircleIcon,
+  DropIcon,
+  HandshakeIcon,
+  LeafIcon,
+  LightningIcon,
+  MapPinIcon,
+  PencilSimpleIcon,
+  PlantIcon,
+  RecycleIcon,
+  ShovelIcon,
+  StarIcon,
+  ToiletIcon,
+  TreeIcon,
+  WifiHighIcon,
+} from 'phosphor-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../services/supabase';
-import { COLORS, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 import { RequestAvatar } from '../../components/aanvraag/AanvraagCard';
 import { createConversationForAanvraag } from '../../services/conversations';
 import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
 import { showToast } from '../../components/common/Toast';
+import Header from '../../components/navigation/Header';
+import SectionCard from '../../components/parcel/SectionCard';
+import SectionHeader from '../../components/parcel/SectionHeader';
+import AuthButton from '../../components/buttons/AuthButton';
 
 const DAGEN = [
   { key: 'ma', label: 'Ma', fullLabel: 'Maandag' },
@@ -21,17 +43,16 @@ const DAGEN = [
 
 const VOORZIENING_ICONS = {
   water: DropIcon,
+  tools: ShovelIcon,
+  zaden: PlantIcon,
+  compost: RecycleIcon,
+  bomen: TreeIcon,
+  // legacy keys
+  gereedschap: ShovelIcon,
+  materiaal: ShovelIcon,
   elektriciteit: LightningIcon,
   wifi: WifiHighIcon,
-  gereedschap: ToolboxIcon,
-  materiaal: ToolboxIcon,
-  tools: ToolboxIcon,
-  compost: LeafIcon,
-  opslag: ArchiveIcon,
-  parkeergelegenheid: CarIcon,
   toilet: ToiletIcon,
-  zaden: LeafIcon,
-  bomen: LeafIcon,
 };
 
 const warnedVoorzieningen = new Set();
@@ -42,27 +63,15 @@ function capitalizeFirstLetter(value) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-function getAvailabilityLabel(key) {
-  const item = DAGEN.find((dag) => dag.key === key.toLowerCase());
-  return item?.fullLabel || capitalizeFirstLetter(key);
-}
-
 function getVoorzieningIcon(label) {
   const normalized = String(label || '').trim().toLowerCase();
   const Icon = VOORZIENING_ICONS[normalized];
-
   if (Icon) return Icon;
-
   if (!warnedVoorzieningen.has(normalized)) {
     warnedVoorzieningen.add(normalized);
     console.warn(`Unknown voorziening value: ${label}`);
   }
-
   return CheckCircleIcon;
-}
-
-function formatTypeSamenwerking(value) {
-  return capitalizeFirstLetter(value);
 }
 
 function parseStartDate(value) {
@@ -71,7 +80,7 @@ function parseStartDate(value) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplete }) {
+export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplete, onViewProfile }) {
   const insets = useSafeAreaInsets();
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingAction, setProcessingAction] = useState(null);
@@ -80,235 +89,227 @@ export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplet
   const perceel = aanvraag?.perceel || null;
   const senderName = [sender?.first_name, sender?.last_name].filter(Boolean).join(' ').trim() || 'Aanvrager';
   const perceelPlace = perceel?.plaats || '';
-  const placeLine = perceelPlace ? `${perceelPlace} · 2,8km` : '2,8km';
-  const locationLabel = perceel?.plaats || perceel?.naam || 'Perceel';
-  const selectedDays = useMemo(() => (aanvraag?.availability || []).map((day) => String(day).toLowerCase()), [aanvraag?.availability]);
+  const selectedDays = useMemo(
+    () => (aanvraag?.availability || []).map((day) => String(day).toLowerCase()),
+    [aanvraag?.availability],
+  );
   const startDate = parseStartDate(aanvraag?.start_date);
   const startDateParts = startDate
     ? {
-        dd: String(startDate.getDate()).padStart(2, '0'),
-        mm: String(startDate.getMonth() + 1).padStart(2, '0'),
-        yyyy: String(startDate.getFullYear()),
+        dag: String(startDate.getDate()).padStart(2, '0'),
+        maand: startDate.toLocaleDateString('nl-BE', { month: 'long' }),
+        jaar: String(startDate.getFullYear()),
       }
-    : { dd: '--', mm: '--', yyyy: '----' };
+    : { dag: '--', maand: '--', jaar: '----' };
   const perceelPhoto = Array.isArray(perceel?.fotos) ? perceel.fotos[0] : null;
+  const voorzieningen = perceel?.voorzieningen || [];
 
   async function handleAccept() {
-    showConfirm({
-      title: 'Accepteer aanvraag?',
-      message: 'Weet je zeker dat je deze aanvraag wilt accepteren? De aanvrager wordt hierover geïnformeerd.',
-      confirmLabel: 'Accepteer',
-      cancelLabel: 'Annuleren',
-      onConfirm: async () => {
-        setIsProcessing(true);
-        setProcessingAction('accept');
+    setIsProcessing(true);
+    setProcessingAction('accept');
+    try {
+      const { error } = await supabase
+        .from('aanvragen')
+        .update({ status: AANVRAAG_STATUS.ACCEPTED, updated_at: new Date().toISOString() })
+        .eq('id', aanvraag.id);
+      if (error) throw error;
 
-        const { error } = await supabase
-          .from('aanvragen')
-          .update({
-            status: AANVRAAG_STATUS.ACCEPTED,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', aanvraag.id);
-
-        setIsProcessing(false);
-        setProcessingAction(null);
-
-        if (error) {
-          showToast('Aanvraag kon niet worden geaccepteerd. Probeer opnieuw.', 'error');
-          return;
+      if (aanvraag?.id && aanvraag?.sender_id) {
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (!userError) {
+          const { error: conversationError } = await createConversationForAanvraag({
+            aanvraagId: aanvraag.id,
+            ownerId: userData?.user?.id,
+            senderId: aanvraag.sender_id,
+          });
+          if (conversationError) console.warn('Failed to create conversation for accepted aanvraag', conversationError);
         }
+      }
 
-        if (aanvraag?.id && aanvraag?.sender_id) {
-          const { data: userData, error: userError } = await supabase.auth.getUser();
-          if (userError) {
-            console.warn('Failed to load current user for conversation creation', userError);
-          } else {
-            const { error: conversationError } = await createConversationForAanvraag({
-              aanvraagId: aanvraag.id,
-              ownerId: userData?.user?.id,
-              senderId: aanvraag.sender_id,
-            });
-
-            if (conversationError) console.warn('Failed to create conversation for accepted aanvraag', conversationError);
-          }
-        }
-
-        showToast('Aanvraag geaccepteerd', 'success');
-        onActionComplete?.();
-        onBack?.();
-      },
-    });
+      setIsProcessing(false);
+      setProcessingAction(null);
+      showToast('Aanvraag geaccepteerd', 'success');
+      onActionComplete?.();
+      onBack?.();
+    } catch {
+      setIsProcessing(false);
+      setProcessingAction(null);
+      showToast('Aanvraag kon niet worden geaccepteerd. Probeer opnieuw.', 'error');
+    }
   }
 
   async function handleDecline() {
-    showConfirm({
-      title: 'Weiger aanvraag?',
-      message: 'Weet je zeker dat je deze aanvraag wilt weigeren? De aanvrager wordt hiervan op de hoogte gesteld.',
-      confirmLabel: 'Weiger',
-      cancelLabel: 'Annuleren',
-      onConfirm: async () => {
-        setIsProcessing(true);
-        setProcessingAction('decline');
+    setIsProcessing(true);
+    setProcessingAction('decline');
+    try {
+      const { error } = await supabase
+        .from('aanvragen')
+        .update({ status: AANVRAAG_STATUS.DECLINED, updated_at: new Date().toISOString() })
+        .eq('id', aanvraag.id);
+      if (error) throw error;
 
-        const { error } = await supabase
-          .from('aanvragen')
-          .update({
-            status: AANVRAAG_STATUS.DECLINED,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', aanvraag.id);
-
-        setIsProcessing(false);
-        setProcessingAction(null);
-
-        if (error) {
-          showToast('Aanvraag kon niet worden geweigerd. Probeer opnieuw.', 'error');
-          return;
-        }
-
-        showToast('Aanvraag geweigerd', 'info');
-        onActionComplete?.();
-        onBack?.();
-      },
-    });
+      setIsProcessing(false);
+      setProcessingAction(null);
+      showToast('Aanvraag geweigerd', 'info');
+      onActionComplete?.();
+      onBack?.();
+    } catch {
+      setIsProcessing(false);
+      setProcessingAction(null);
+      showToast('Aanvraag kon niet worden geweigerd. Probeer opnieuw.', 'error');
+    }
   }
 
   return (
-    <View style={styles.container}>
-      <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={onBack}
-            activeOpacity={0.7}
+    <View style={styles.screen}>
+      <Header title="Aanvraag" onBack={onBack} backLabel="Terug" />
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <SectionCard>
+          <Pressable
+            style={({ pressed }) => [styles.senderRow, pressed && styles.senderRowPressed]}
+            onPress={() => onViewProfile?.(sender?.id)}
             accessibilityRole="button"
-            accessibilityLabel="Terug naar overzicht"
+            accessibilityLabel={`Bekijk profiel van ${senderName}`}
+            accessibilityHint="Open het profiel van de aanvrager"
           >
-            <ArrowLeftIcon size={20} color={COLORS.surface} weight="regular" />
-            <Text style={styles.backLabel}>Terug</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.headerTitle} accessibilityRole="header">Aanvraag</Text>
-          <View style={styles.headerRightSpacer} />
-        </View>
-      </SafeAreaView>
-
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.senderSection}>
-          <RequestAvatar sender={sender} />
-
-          <View style={styles.senderTextWrap}>
-            <View style={styles.senderNameRow}>
-              <Text style={styles.senderName}>{senderName}</Text>
-              <CheckCircleIcon size={16} color={COLORS.brand} weight="fill" style={styles.sealIcon} />
+            <RequestAvatar sender={sender} />
+            <View style={styles.senderInfo}>
+              <View style={styles.senderNameRow}>
+                <Text style={styles.senderName}>{senderName}</Text>
+              </View>
+              {perceelPlace ? (
+                <View style={styles.senderMeta}>
+                  <MapPinIcon size={14} color={COLORS.textMuted} weight="regular" accessibilityElementsHidden />
+                  <Text style={styles.senderMetaText}>{perceelPlace}</Text>
+                </View>
+              ) : null}
             </View>
-
-            <View style={styles.senderMetaRow}>
-              <MapPinIcon size={14} color={COLORS.textMuted} weight="regular" />
-              <Text style={styles.senderMetaText}>{placeLine}</Text>
+            <View style={styles.ratingPill}>
+              <StarIcon size={16} color={COLORS.accent} weight="fill" accessibilityElementsHidden />
+              <Text style={styles.ratingText}>{sender?.rating ?? 'Nieuw'}</Text>
             </View>
-          </View>
+            <CaretRightIcon size={18} color={COLORS.textMuted} weight="regular" accessibilityElementsHidden />
+          </Pressable>
+        </SectionCard>
 
-          <View style={styles.senderRatingWrap}>
-            <StarIcon size={16} color="#FFB800" weight="fill" />
-            <Text style={styles.senderRatingText}>4,5</Text>
-          </View>
-        </View>
-
-        <View style={styles.photoSection}>
+        <SectionCard>
+          <SectionHeader icon={MapPinIcon} title={perceel?.naam || 'Perceel'} />
           {perceelPhoto ? (
-            <Image source={{ uri: perceelPhoto }} style={styles.photo} resizeMode="cover" />
+            <Image
+              source={{ uri: perceelPhoto }}
+              style={styles.photo}
+              resizeMode="cover"
+              accessibilityLabel={`Foto van ${perceel?.naam || 'het perceel'}`}
+            />
           ) : (
-            <View style={styles.photoPlaceholder}>
-              <Text style={styles.photoPlaceholderText}>Geen foto beschikbaar</Text>
+            <View style={styles.photoPlaceholder} accessibilityRole="image" accessibilityLabel="Geen foto beschikbaar">
+              <LeafIcon size={40} color={COLORS.textMuted} weight="regular" />
             </View>
           )}
+          {voorzieningen.length > 0 ? (
+            <View style={styles.voorzieningenRow}>
+              {voorzieningen.map((voorziening, index) => {
+                const Icon = getVoorzieningIcon(voorziening);
+                return (
+                  <React.Fragment key={`${voorziening}-${index}`}>
+                    <View style={styles.voorzieningItem}>
+                      <Icon size={18} color={COLORS.brand} weight="regular" accessibilityElementsHidden />
+                      <Text style={styles.voorzieningLabel}>{capitalizeFirstLetter(voorziening)}</Text>
+                    </View>
+                    {index < voorzieningen.length - 1 ? <View style={styles.voorzieningSeparator} /> : null}
+                  </React.Fragment>
+                );
+              })}
+            </View>
+          ) : null}
+        </SectionCard>
 
-          <View style={styles.photoBadgeLeft}>
-            <MapPinIcon size={12} color={COLORS.brand} weight="fill" />
-            <Text style={styles.photoBadgeText}>{locationLabel}</Text>
-          </View>
+        <SectionCard>
+          <SectionHeader icon={PencilSimpleIcon} title="Motivatie" />
+          <Text style={styles.bodyText}>{aanvraag?.motivation}</Text>
+        </SectionCard>
 
-          <View style={styles.photoBadgeRight}>
-            <StarIcon size={12} color="#FFB800" weight="fill" />
-            <Text style={styles.photoBadgeText}>4,5</Text>
-          </View>
-        </View>
+        {aanvraag?.type_samenwerking ? (
+          <SectionCard>
+            <SectionHeader icon={HandshakeIcon} title="Type samenwerking" />
+            <View style={styles.typePill}>
+              <Text style={styles.typePillText}>{capitalizeFirstLetter(aanvraag.type_samenwerking)}</Text>
+            </View>
+          </SectionCard>
+        ) : null}
 
-        <View style={styles.voorzieningenRow}>
-          {(perceel?.voorzieningen || []).map((voorziening, index) => {
-            const Icon = getVoorzieningIcon(voorziening);
-            const label = capitalizeFirstLetter(voorziening);
-
-            return (
-              <React.Fragment key={`${voorziening}-${index}`}>
-                <View style={styles.voorzieningItem}>
-                  <Icon size={18} color={COLORS.brand} weight="regular" />
-                  <Text style={styles.voorzieningLabel}>{label}</Text>
-                </View>
-                {index < (perceel?.voorzieningen || []).length - 1 ? <View style={styles.voorzieningSeparator} /> : null}
-              </React.Fragment>
-            );
-          })}
-
-          <View style={styles.voorzieningSeparator} />
-          <View style={styles.voorzieningItem}>
-            <MapPinIcon size={18} color={COLORS.brand} weight="regular" />
-            <Text style={styles.voorzieningLabel}>2,5km</Text>
-          </View>
-        </View>
-
-        <View style={styles.motivationSection}>
-          <Text style={styles.sectionLabel}>Motivatie:</Text>
-          <Text style={styles.motivationText}>{aanvraag?.motivation}</Text>
-        </View>
-
-        <View style={styles.typeSection}>
-          <Text style={styles.sectionLabel}>Type samenwerking:</Text>
-          <View style={styles.chip}>
-            <Text style={styles.chipText}>{formatTypeSamenwerking(aanvraag?.type_samenwerking)}</Text>
-          </View>
-        </View>
-
-        <View style={styles.availabilitySection}>
-          <Text style={styles.sectionLabel}>Beschikbaarheid:</Text>
-          <View style={styles.daysRow}>
+        <SectionCard>
+          <SectionHeader icon={CalendarBlankIcon} title="Beschikbaarheid" />
+          <View
+            style={styles.daysRow}
+            accessibilityRole="group"
+            accessibilityLabel="Beschikbare dagen van de aanvrager"
+          >
             {DAGEN.map((dag) => {
               const isSelected = selectedDays.includes(dag.key);
               return (
                 <View
                   key={dag.key}
-                  style={[styles.dayCircle, isSelected ? styles.dayCircleSelected : styles.dayCircleUnselected]}
+                  style={[styles.dayChip, isSelected && styles.dayChipSelected]}
                   accessible
                   accessibilityRole="text"
-                  accessibilityLabel={`${dag.fullLabel}, ${isSelected ? 'geselecteerd' : 'niet geselecteerd'}`}
+                  accessibilityLabel={`${dag.fullLabel}, ${isSelected ? 'beschikbaar' : 'niet beschikbaar'}`}
                 >
-                  <Text style={[styles.dayText, isSelected ? styles.dayTextSelected : styles.dayTextUnselected]}>{dag.label}</Text>
+                  <Text style={[styles.dayChipText, isSelected && styles.dayChipTextSelected]}>
+                    {dag.label}
+                  </Text>
                 </View>
               );
             })}
           </View>
-        </View>
+        </SectionCard>
 
-        <View style={styles.startDateSection}>
-          <Text style={styles.sectionLabel}>Gewenste start datum:</Text>
-          <View style={styles.dateRow}>
-            <View style={styles.dateBox}><Text style={styles.dateText}>{startDateParts.dd}</Text></View>
-            <View style={styles.dateBox}><Text style={styles.dateText}>{startDateParts.mm}</Text></View>
-            <View style={styles.dateBox}><Text style={styles.dateText}>{startDateParts.yyyy}</Text></View>
+        <SectionCard>
+          <SectionHeader icon={CalendarCheckIcon} title="Gewenste startdatum" />
+          <View
+            style={styles.dateRow}
+            accessibilityRole="group"
+            accessibilityLabel={`Gewenste startdatum: ${startDateParts.dag} ${startDateParts.maand} ${startDateParts.jaar}`}
+          >
+            {[
+              { label: 'Dag', value: startDateParts.dag },
+              { label: 'Maand', value: startDateParts.maand },
+              { label: 'Jaar', value: startDateParts.jaar },
+            ].map((block) => (
+              <View key={block.label} style={styles.dateBlock}>
+                <Text style={styles.dateBlockLabel}>{block.label}</Text>
+                <Text style={styles.dateBlockValue} adjustsFontSizeToFit numberOfLines={1}>
+                  {block.value}
+                </Text>
+              </View>
+            ))}
           </View>
-        </View>
+        </SectionCard>
       </ScrollView>
 
-      <View style={[styles.actionBar, { paddingBottom: insets.bottom + 16 }]}>
-        <RequestActions
-          onPrimary={handleAccept}
-          onSecondary={handleDecline}
-          primaryLabel="Accepteer verzoek"
-          secondaryLabel="Weiger verzoek"
-          primaryLoading={isProcessing && processingAction === 'accept'}
-          secondaryLoading={isProcessing && processingAction === 'decline'}
+      <View style={[styles.actionBar, { paddingBottom: insets.bottom + SPACING.md }]}>
+        <AuthButton
+          label="Accepteer verzoek"
+          onPress={handleAccept}
+          variant="primary"
+          loading={isProcessing && processingAction === 'accept'}
+          disabled={isProcessing}
+          accessibilityLabel="Accepteer aanvraag"
+          accessibilityHint="Accepteer de aanvraag van de tuinzoeker"
+        />
+        <AuthButton
+          label="Weiger verzoek"
+          onPress={handleDecline}
+          variant="secondary"
+          loading={isProcessing && processingAction === 'decline'}
+          disabled={isProcessing}
+          accessibilityLabel="Weiger aanvraag"
+          accessibilityHint="Weiger de aanvraag van de tuinzoeker"
         />
       </View>
     </View>
@@ -316,58 +317,171 @@ export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplet
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  headerSafeArea: { backgroundColor: COLORS.brand },
-  header: { backgroundColor: COLORS.brand, paddingHorizontal: SPACING.screenX, paddingVertical: 12, minHeight: 56, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' },
-  backButton: { position: 'absolute', left: SPACING.screenX, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  backLabel: { color: COLORS.surface, fontFamily: FONTS.bodyMedium, fontSize: 14 },
-  headerTitle: { color: COLORS.surface, fontFamily: FONTS.displaySemiBold, fontSize: 20 },
-  headerRightSpacer: { width: 52 },
-  scrollView: { flex: 1, backgroundColor: COLORS.surface },
-  scrollContent: { paddingBottom: 24 },
-  senderSection: { paddingHorizontal: SPACING.screenX, paddingVertical: 16, flexDirection: 'row', alignItems: 'center' },
-  senderTextWrap: { flex: 1, marginLeft: 12 },
-  senderNameRow: { flexDirection: 'row', alignItems: 'center' },
-  senderName: { fontFamily: FONTS.bodyMedium, fontSize: 17, color: COLORS.textPrimary },
-  sealIcon: { marginLeft: 4 },
-  senderMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
-  senderMetaText: { color: COLORS.textMuted, fontFamily: FONTS.bodyMedium, fontSize: 13 },
-  senderRatingWrap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  senderRatingText: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.textPrimary },
-  photoSection: { marginHorizontal: SPACING.screenX, marginTop: 8, position: 'relative' },
-  photo: { width: '100%', height: 200, borderRadius: 16 },
-  photoPlaceholder: { width: '100%', height: 200, borderRadius: 16, backgroundColor: COLORS.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
-  photoPlaceholderText: { color: COLORS.textMuted, fontFamily: FONTS.body, fontSize: 14 },
-  photoBadgeLeft: { position: 'absolute', left: 12, bottom: 12, backgroundColor: COLORS.surface, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
-  photoBadgeRight: { position: 'absolute', right: 12, bottom: 12, backgroundColor: COLORS.surface, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
-  photoBadgeText: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.textPrimary },
-  voorzieningenRow: { marginHorizontal: SPACING.screenX, marginTop: 16, paddingVertical: 14, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#E5E5E5', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
-  voorzieningItem: { alignItems: 'center', justifyContent: 'center', gap: 4 },
-  voorzieningLabel: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.textMuted },
-  voorzieningSeparator: { width: 1, height: 24, backgroundColor: COLORS.divider || '#E5E5E5' },
-  motivationSection: { paddingHorizontal: SPACING.screenX, paddingTop: 12 },
-  motivationText: { fontFamily: FONTS.body, fontSize: 15, lineHeight: 22, color: COLORS.textPrimary },
-  typeSection: { paddingHorizontal: SPACING.screenX, marginTop: 12 },
-  availabilitySection: { paddingHorizontal: SPACING.screenX, marginTop: 20 },
-  startDateSection: { paddingHorizontal: SPACING.screenX, marginTop: 20 },
-  sectionLabel: { fontFamily: FONTS.bodyMedium, fontSize: 16, color: COLORS.textPrimary, marginBottom: 12 },
-  chip: { backgroundColor: COLORS.surfaceMuted, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
-  chipText: { fontFamily: FONTS.body, fontSize: 15, color: COLORS.textPrimary },
-  daysRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  dayCircle: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  dayCircleSelected: { backgroundColor: COLORS.brand },
-  dayCircleUnselected: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: COLORS.brand },
-  dayText: { fontFamily: FONTS.bodyMedium, fontSize: 13 },
-  dayTextSelected: { color: COLORS.surface },
-  dayTextUnselected: { color: COLORS.brand },
-  dateRow: { flexDirection: 'row', gap: 8 },
-  dateBox: { flex: 1, backgroundColor: COLORS.surfaceMuted, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-  dateText: { fontFamily: FONTS.bodyMedium, fontSize: 17, color: COLORS.textPrimary },
-  actionBar: { paddingHorizontal: SPACING.screenX, paddingTop: 16, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.divider || '#E5E5E5' },
-  buttonBase: { height: 44, borderRadius: RADIUS.sm, alignItems: 'center', justifyContent: 'center' },
-  primaryButton: { backgroundColor: COLORS.brand, marginBottom: 12 },
-  secondaryButton: { backgroundColor: 'transparent', borderWidth: 2, borderColor: COLORS.brand },
-  primaryButtonText: { color: COLORS.surface, fontFamily: FONTS.bodyMedium, fontSize: 16 },
-  secondaryButtonText: { color: COLORS.brand, fontFamily: FONTS.bodyMedium, fontSize: 16 },
-  buttonDisabled: { opacity: 0.8 },
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  scroll: {
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.xl,
+    gap: SPACING.lg,
+  },
+  senderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  senderRowPressed: {
+    opacity: 0.7,
+  },
+  senderInfo: {
+    flex: 1,
+    gap: SPACING.xs,
+  },
+  senderNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  senderName: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.textPrimary,
+  },
+  senderMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  senderMetaText: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textMuted,
+  },
+  ratingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  ratingText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textPrimary,
+  },
+  photo: {
+    width: '100%',
+    height: 180,
+    borderRadius: RADIUS.sm,
+  },
+  photoPlaceholder: {
+    width: '100%',
+    height: 180,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voorzieningenRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingTop: SPACING.md,
+    marginTop: SPACING.md,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.dividerSoft,
+  },
+  voorzieningItem: {
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  voorzieningLabel: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+  },
+  voorzieningSeparator: {
+    width: 1,
+    height: 24,
+    backgroundColor: COLORS.dividerSoft,
+  },
+  bodyText: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.md,
+    lineHeight: 22,
+    color: COLORS.textPrimary,
+  },
+  typePill: {
+    backgroundColor: COLORS.surfaceMuted,
+    borderRadius: RADIUS.sm,
+    paddingVertical: SPACING.sm,
+    alignItems: 'center',
+  },
+  typePillText: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
+  },
+  daysRow: {
+    flexDirection: 'row',
+    gap: SPACING.xs,
+  },
+  dayChip: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1.5,
+    borderColor: COLORS.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayChipSelected: {
+    backgroundColor: COLORS.brand,
+  },
+  dayChipText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.brand,
+  },
+  dayChipTextSelected: {
+    color: COLORS.textInverse,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+  },
+  dateBlock: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.xs,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    gap: SPACING.xxs,
+    minHeight: 60,
+    justifyContent: 'center',
+  },
+  dateBlockLabel: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xxs,
+    color: COLORS.textSecondary,
+  },
+  dateBlockValue: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.textPrimary,
+  },
+  actionBar: {
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: SPACING.md,
+    backgroundColor: COLORS.surface,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.dividerSoft,
+    gap: SPACING.sm,
+  },
 });
