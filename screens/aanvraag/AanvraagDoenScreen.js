@@ -1,69 +1,20 @@
-import React, { useMemo, useRef, useState } from 'react';
-import {
-  AccessibilityInfo,
-  Image,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import {
-  ArrowLeftIcon,
-  DropIcon,
-  LeafIcon,
-  MapPinIcon,
-  ShovelIcon,
-  TreeIcon,
-} from 'phosphor-react-native';
+import React, { useRef, useState } from 'react';
+import { AccessibilityInfo, Animated, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CalendarBlankIcon, CalendarCheckIcon, PencilSimpleIcon } from 'phosphor-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
+import Header from '../../components/navigation/Header';
+import SectionCard from '../../components/parcel/SectionCard';
+import SectionHeader from '../../components/parcel/SectionHeader';
+import AuthTextArea from '../../components/auth/AuthTextArea';
 import AuthButton from '../../components/buttons/AuthButton';
 import FieldError from '../../components/notifications/FieldError';
+import PerceelSummaryCard from '../../components/aanvraag/PerceelSummaryCard';
+import WeekdaySelector from '../../components/aanvraag/WeekdaySelector';
 import { supabase } from '../../services/supabase';
 import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 import MOCK_PERCEEL from '../../mocks/perceelMock';
-
-const WEEKDAYS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
-
-function normalizeSize(rawSize) {
-  if (!rawSize) return '';
-  const asText = String(rawSize);
-  return asText.includes('m²') ? asText : `${asText}m²`;
-}
-
-function getPerceelItems(perceel) {
-  const chips = Array.isArray(perceel?.chips) ? perceel.chips.filter(Boolean) : [];
-  const voorzieningen = Array.isArray(perceel?.voorzieningen) ? perceel.voorzieningen.filter(Boolean) : [];
-  const distance = perceel?.distance || chips.find((item) => String(item).includes('km')) || null;
-  const firstAmenity = voorzieningen[0] || chips.find((item) => !String(item).includes('km')) || 'Water';
-  const secondAmenity = voorzieningen[1] || chips.find((item, index) => !String(item).includes('km') && item !== firstAmenity && index > 0) || 'Materiaal';
-  return [firstAmenity, secondAmenity, distance || '2,8km'];
-}
-
-function AmenityIcon({ label }) {
-  const normalized = String(label || '').toLowerCase();
-
-  if (normalized.includes('water')) {
-    return <DropIcon size={16} color={COLORS.textPrimary} weight="regular" />;
-  }
-
-  if (normalized.includes('tool') || normalized.includes('materiaal')) {
-    return <ShovelIcon size={16} color={COLORS.textPrimary} weight="regular" />;
-  }
-
-  if (normalized.includes('boom')) {
-    return <TreeIcon size={16} color={COLORS.textPrimary} weight="regular" />;
-  }
-
-  if (normalized.includes('km')) {
-    return <MapPinIcon size={16} color={COLORS.textPrimary} weight="regular" />;
-  }
-
-  return <LeafIcon size={16} color={COLORS.textPrimary} weight="regular" />;
-}
 
 export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
   if (!perceel && !__DEV__) {
@@ -72,37 +23,39 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
   perceel = perceel || MOCK_PERCEEL;
 
   const today = new Date();
-  const currentYear = today.getFullYear();
+  const insets = useSafeAreaInsets();
+  const motivationRef = useRef(null);
+  const sheetAnim = useRef(new Animated.Value(300)).current;
 
   const [motivation, setMotivation] = useState('');
   const [availability, setAvailability] = useState([]);
   const [startDate, setStartDate] = useState(today);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [heroImageError, setHeroImageError] = useState(false);
 
-  const motivationRef = useRef(null);
+  function openDatePicker() {
+    sheetAnim.setValue(300);
+    setShowDatePicker(true);
+    Animated.spring(sheetAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+      damping: 20,
+      stiffness: 200,
+    }).start();
+  }
 
-  const perceelItems = useMemo(() => getPerceelItems(perceel), [perceel]);
-
-  const heroSource = useMemo(() => {
-    const firstPhoto = Array.isArray(perceel.fotos) && perceel.fotos[0] ? perceel.fotos[0] : perceel.image;
-    return typeof firstPhoto === 'string' ? { uri: firstPhoto } : firstPhoto;
-  }, [perceel.fotos, perceel.image]);
-
-  const hasHeroImage = Boolean(heroSource?.uri || heroSource);
-
-  function toggleDay(label) {
-    setAvailability((current) => (
-      current.includes(label)
-        ? current.filter((item) => item !== label)
-        : [...current, label]
-    ));
+  function closeDatePicker() {
+    Animated.timing(sheetAnim, {
+      toValue: 300,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setShowDatePicker(false));
   }
 
   function validate() {
     const next = {};
-    if (!motivation || motivation.trim().length === 0) {
+    if (!motivation.trim()) {
       next.motivation = 'Vul je motivatie in';
     }
     const now = new Date();
@@ -112,15 +65,12 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
     if (picked < now) {
       next.date = 'De startdatum moet in de toekomst liggen';
     }
-
     setErrors(next);
 
     if (Object.keys(next).length > 0) {
       const firstKey = Object.keys(next)[0];
       AccessibilityInfo.announceForAccessibility(next[firstKey]);
-      if (firstKey === 'motivation') {
-        motivationRef.current?.focus?.();
-      }
+      if (firstKey === 'motivation') motivationRef.current?.focus?.();
     }
 
     return Object.keys(next).length === 0;
@@ -129,16 +79,14 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
   async function handleSubmit() {
     if (!validate()) return;
     setLoading(true);
-    setErrors((current) => ({ ...current, submit: null }));
+    setErrors((c) => ({ ...c, submit: null }));
 
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
 
       const senderId = userData?.user?.id;
-      if (!senderId) {
-        throw new Error('Je bent niet ingelogd. Log opnieuw in en probeer het opnieuw.');
-      }
+      if (!senderId) throw new Error('Je bent niet ingelogd. Log opnieuw in en probeer het opnieuw.');
 
       const { data: existing, error: checkError } = await supabase
         .from('aanvragen')
@@ -159,31 +107,27 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
         throw new Error(`Je hebt al een aanvraag voor dit perceel die ${statusLabel} is.`);
       }
 
-      const formattedDate = startDate.toISOString().split('T')[0];
-
       const row = {
         perceel_id: perceel?.id,
         sender_id: senderId,
         motivation: motivation.trim(),
-        type_samenwerking: Array.isArray(perceel?.voorkeur_samenwerking) && perceel.voorkeur_samenwerking.length > 0
-          ? perceel.voorkeur_samenwerking.join(', ')
-          : null,
+        type_samenwerking:
+          Array.isArray(perceel?.voorkeur_samenwerking) && perceel.voorkeur_samenwerking.length > 0
+            ? perceel.voorkeur_samenwerking.join(', ')
+            : null,
         availability,
-        start_date: formattedDate,
+        start_date: startDate.toISOString().split('T')[0],
         status: AANVRAAG_STATUS.PENDING,
       };
 
-      const { error: insertError } = await supabase
-        .from('aanvragen')
-        .insert(row);
-
+      const { error: insertError } = await supabase.from('aanvragen').insert(row);
       if (insertError) throw insertError;
 
       onContinue?.({ success: true });
     } catch (err) {
       console.error('Aanvraag submit error:', err);
       const message = err?.message || 'Aanvraag kon niet worden verzonden. Probeer opnieuw.';
-      setErrors((current) => ({ ...current, submit: message }));
+      setErrors((c) => ({ ...c, submit: message }));
       AccessibilityInfo.announceForAccessibility(message);
     } finally {
       setLoading(false);
@@ -192,125 +136,106 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.header}>
-        <Pressable onPress={onBack} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Terug" accessibilityHint="Ga terug naar de perceeldetails">
-          <ArrowLeftIcon size={24} color={COLORS.textInverse} weight="regular" />
-          <Text style={styles.backText}>Terug</Text>
-        </Pressable>
-        <Text accessibilityRole="header" style={styles.headerTitle}>Aanvraag sturen</Text>
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      <Header title="Aanvraag sturen" onBack={onBack} backLabel="Terug" />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.summaryCard} accessible accessibilityRole="summary">
-          <View style={styles.summaryImageWrap}>
-            {hasHeroImage && !heroImageError ? (
-              <Image source={heroSource} style={styles.summaryImage} resizeMode="cover" onError={() => setHeroImageError(true)} />
-            ) : (
-              <View style={[styles.summaryImage, styles.summaryImagePlaceholder]}>
-                <LeafIcon size={36} color={COLORS.brand} weight="regular" />
-              </View>
-            )}
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <PerceelSummaryCard perceel={perceel} />
 
-            <View style={[styles.pill, styles.locationPill]}>
-              <MapPinIcon size={16} color={COLORS.textPrimary} weight="regular" />
-              <Text style={styles.pillText}>{perceel.location || perceel.plaats || 'Locatie onbekend'}</Text>
-            </View>
-
-          </View>
-
-          <View style={styles.summaryTitleRow}>
-            <Text style={styles.summaryTitle}>{perceel.title || 'Perceel'}</Text>
-            <Text style={styles.summarySize}>{normalizeSize(perceel.size)}</Text>
-          </View>
-
-          <Text style={styles.summaryDescription}>{perceel.description || 'Geen beschrijving'}</Text>
-
-          <View style={styles.summaryMetaRow}>
-            {perceelItems.map((item, index) => (
-              <View key={`${item}-${index}`} style={styles.summaryMetaItemWrap}>
-                <View style={styles.summaryMetaItem}>
-                  <AmenityIcon label={item} />
-                  <Text style={styles.summaryMetaText}>{item}</Text>
-                </View>
-                {index < perceelItems.length - 1 ? <View style={styles.summaryDivider} /> : null}
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Motivatie (max 300 tekens):</Text>
-          <View style={styles.textAreaShell}>
-            <TextInput
+          <SectionCard>
+            <SectionHeader icon={PencilSimpleIcon} title="Motivatie" />
+            <AuthTextArea
               ref={motivationRef}
               value={motivation}
               onChangeText={setMotivation}
-              placeholder="Typ hier je motivatie..."
-              placeholderTextColor={COLORS.textSecondary}
-              multiline
+              placeholder="Schrijf hier waarom je geïnteresseerd bent in dit perceel..."
+              height={160}
               maxLength={300}
-              style={styles.textAreaInput}
+              error={!!errors.motivation}
               accessibilityLabel="Motivatie"
               accessibilityHint="Schrijf waarom je geïnteresseerd bent in dit perceel"
             />
-          </View>
-          {errors.motivation ? <FieldError message={errors.motivation} /> : null}
-        </View>
+            {errors.motivation ? <FieldError message={errors.motivation} /> : null}
+          </SectionCard>
 
-        <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Beschikbaarheid:</Text>
-          <View style={styles.weekdayRow}>
-            {WEEKDAYS.map((weekday) => {
-              const isSelected = availability.includes(weekday);
-              return (
+          <SectionCard>
+            <SectionHeader icon={CalendarBlankIcon} title="Beschikbaarheid" />
+            <WeekdaySelector value={availability} onChange={setAvailability} />
+          </SectionCard>
+
+          <SectionCard>
+            <SectionHeader icon={CalendarCheckIcon} title="Gewenste startdatum" />
+            <View style={styles.dateBlocks}>
+              {[
+                { label: 'Dag', value: String(startDate.getDate()).padStart(2, '0'), a11y: `Dag: ${startDate.getDate()}` },
+                { label: 'Maand', value: startDate.toLocaleDateString('nl-BE', { month: 'long' }), a11y: `Maand: ${startDate.toLocaleDateString('nl-BE', { month: 'long' })}` },
+                { label: 'Jaar', value: String(startDate.getFullYear()), a11y: `Jaar: ${startDate.getFullYear()}` },
+              ].map((block) => (
                 <Pressable
-                  key={weekday}
-                  onPress={() => toggleDay(weekday)}
-                  style={[styles.weekdayPill, isSelected && styles.weekdayPillSelected]}
+                  key={block.label}
+                  style={[styles.dateBlock, showDatePicker && styles.dateBlockActive]}
+                  onPress={openDatePicker}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: isSelected }}
-                  accessibilityLabel={`Beschikbaarheid ${weekday}`}
-                  accessibilityHint={`Markeer ${weekday} als beschikbaar`}
+                  accessibilityLabel={`${block.a11y}. Tik om de datum te wijzigen`}
                 >
-                  <Text style={[styles.weekdayText, isSelected && styles.weekdayTextSelected]}>{weekday}</Text>
+                  <Text style={styles.dateBlockLabel}>{block.label}</Text>
+                  <Text
+                    style={[styles.dateBlockValue, showDatePicker && styles.dateBlockValueActive]}
+                    adjustsFontSizeToFit
+                    numberOfLines={1}
+                  >
+                    {block.value}
+                  </Text>
                 </Pressable>
-              );
-            })}
+              ))}
+            </View>
+            {errors.date ? <FieldError message={errors.date} /> : null}
+          </SectionCard>
+
+          {errors.submit ? <FieldError message={errors.submit} /> : null}
+
+          <AuthButton label="Stuur verzoek" onPress={handleSubmit} variant="primary" loading={loading} />
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      <Modal
+        visible={showDatePicker}
+        transparent
+        animationType="none"
+        onRequestClose={closeDatePicker}
+      >
+        <Pressable style={styles.backdrop} onPress={closeDatePicker} />
+        <Animated.View
+          style={[styles.sheet, { paddingBottom: insets.bottom + SPACING.md, transform: [{ translateY: sheetAnim }] }]}
+        >
+          <View style={styles.sheetHandle} />
+          <DateTimePicker
+            value={startDate}
+            mode="date"
+            display="spinner"
+            onChange={(_, selected) => { if (selected) setStartDate(selected); }}
+            minimumDate={today}
+            locale="nl-BE"
+          />
+          <View style={styles.sheetDoneWrap}>
+            <Pressable
+              style={styles.sheetDoneBtn}
+              onPress={closeDatePicker}
+              accessibilityRole="button"
+              accessibilityLabel="Datum bevestigen"
+            >
+              <Text style={styles.sheetDoneText}>Klaar</Text>
+            </Pressable>
           </View>
-        </View>
-
-        <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Gewenste start datum:</Text>
-          <View style={styles.datePickerWrapper} accessibilityLabel="Gewenste startdatum">
-            <DateTimePicker
-              value={startDate}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={(event, selectedDate) => {
-                if (selectedDate) setStartDate(selectedDate);
-              }}
-              minimumDate={new Date()}
-              accessibilityLabel="Gewenste startdatum"
-              locale="nl-BE"
-            />
-          </View>
-          {errors.date ? <FieldError message={errors.date} /> : null}
-        </View>
-
-        {errors.submit ? <FieldError message={errors.submit} /> : null}
-
-        <AuthButton
-          label="Stuur verzoek"
-          onPress={handleSubmit}
-          variant="primary"
-          loading={loading}
-        />
-      </ScrollView>
+        </Animated.View>
+      </Modal>
     </View>
   );
 }
@@ -320,32 +245,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  header: {
-    backgroundColor: COLORS.brand,
-    paddingTop: 64,
-    paddingBottom: 18,
-    paddingHorizontal: SPACING.screenX,
-  },
-  backButton: {
-    position: 'absolute',
-    left: SPACING.screenX,
-    top: 68,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  backText: {
-    color: COLORS.textInverse,
-    fontSize: 16,
-    lineHeight: 16,
-    fontFamily: FONTS.displayMedium,
-  },
-  headerTitle: {
-    color: COLORS.textInverse,
-    fontSize: 20,
-    lineHeight: 20,
-    fontFamily: FONTS.displaySemiBold,
-    textAlign: 'center',
+  flex: {
+    flex: 1,
   },
   scroll: {
     flex: 1,
@@ -353,167 +254,80 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.lg,
-    paddingBottom: 24,
-    gap: SPACING.xl,
+    paddingBottom: SPACING.xl,
+    gap: SPACING.lg,
   },
-  summaryCard: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.md,
-    gap: SPACING.md,
-    ...SHADOWS.card,
-  },
-  summaryImageWrap: {
-    width: '100%',
-    height: 201,
-    borderRadius: RADIUS.sm,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  summaryImage: {
-    width: '100%',
-    height: '100%',
-  },
-  summaryImagePlaceholder: {
-    backgroundColor: COLORS.surfaceMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pill: {
-    position: 'absolute',
+  dateBlocks: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  locationPill: {
-    left: 8,
-    bottom: 8,
-  },
-  pillText: {
-    color: COLORS.textPrimary,
-    fontSize: 12.8,
-    lineHeight: 13,
-    fontFamily: FONTS.body,
-  },
-  summaryTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     gap: SPACING.sm,
   },
-  summaryTitle: {
+  dateBlock: {
     flex: 1,
-    color: COLORS.textPrimary,
-    fontSize: 16,
-    lineHeight: 16,
-    fontFamily: FONTS.displayMedium,
-  },
-  summarySize: {
-    color: COLORS.textPrimary,
-    fontSize: 12.8,
-    lineHeight: 13,
-    fontFamily: FONTS.body,
-  },
-  summaryDescription: {
-    color: COLORS.textPrimary,
-    fontSize: 16,
-    lineHeight: 16,
-    fontFamily: FONTS.body,
-    textAlign: 'left',
-  },
-  summaryMetaRow: {
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    paddingVertical: 4,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  summaryMetaItemWrap: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.xs,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    gap: SPACING.xxs,
+    minHeight: 60,
     justifyContent: 'center',
   },
-  summaryMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  summaryMetaText: {
-    color: COLORS.textPrimary,
-    fontSize: 12.8,
-    lineHeight: 13,
-    fontFamily: FONTS.body,
-  },
-  summaryDivider: {
-    width: 1,
-    alignSelf: 'stretch',
-    backgroundColor: COLORS.border,
-    marginLeft: 8,
-  },
-  formSection: {
-    gap: SPACING.md,
-  },
-  sectionTitle: {
-    color: COLORS.textPrimary,
-    fontSize: 20,
-    lineHeight: 20,
-    fontFamily: FONTS.displaySemiBold,
-    fontWeight: '600',
-  },
-  textAreaShell: {
-    backgroundColor: 'rgba(87,98,56,0.05)',
-    borderRadius: 8,
-    minHeight: 216,
-    padding: 8,
-  },
-  textAreaInput: {
-    minHeight: 200,
-    color: COLORS.textPrimary,
-    fontSize: 16,
-    lineHeight: 24,
-    fontFamily: FONTS.body,
-    textAlignVertical: 'top',
-  },
-  weekdayRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  weekdayPill: {
-    flex: 1,
-    minHeight: 32,
-    borderRadius: 83,
-    borderWidth: 3,
+  dateBlockActive: {
     borderColor: COLORS.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
   },
-  weekdayPillSelected: {
-    backgroundColor: COLORS.brand,
+  dateBlockLabel: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xxs,
+    color: COLORS.textSecondary,
   },
-  weekdayText: {
+  dateBlockValue: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.textPrimary,
+  },
+  dateBlockValueActive: {
     color: COLORS.brand,
-    fontSize: 16,
-    lineHeight: 16,
-    fontFamily: FONTS.bodyMedium,
   },
-  weekdayTextSelected: {
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  sheet: {
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: RADIUS.lg,
+    borderTopRightRadius: RADIUS.lg,
+    paddingTop: SPACING.sm,
+    paddingHorizontal: SPACING.screenX,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.indicatorMuted,
+    alignSelf: 'center',
+    marginBottom: SPACING.sm,
+  },
+  sheetDoneWrap: {
+    paddingTop: SPACING.md,
+  },
+  sheetDoneBtn: {
+    backgroundColor: COLORS.brand,
+    borderRadius: RADIUS.pill,
+    paddingVertical: SPACING.sm,
+    alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  sheetDoneText: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textInverse,
-  },
-  datePickerWrapper: {
-    borderRadius: 8,
-    backgroundColor: 'rgba(87,98,56,0.05)',
-    overflow: 'hidden',
   },
 });
