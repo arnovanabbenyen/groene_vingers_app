@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 import {
   Alert,
   Animated,
-  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -174,7 +173,7 @@ export default function NieuweLogScreen({ onBack, samenwerking, onSaved, hideHea
       allowsEditing: false,
       quality: 1,
       allowsMultipleSelection: true,
-      selectionLimit: 5,
+      selectionLimit: 4,
     });
 
     if (result.canceled || !result.assets?.length) return;

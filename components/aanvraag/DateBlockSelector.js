@@ -48,7 +48,7 @@ export default function DateBlockSelector({ value, onChange, minimumDate, maximu
 
   return (
     <>
-      <View style={styles.blocks} accessibilityRole="group" accessibilityLabel="Gewenste startdatum">
+      <View style={styles.blocks} accessibilityRole="group" accessibilityLabel={accessibilityLabel}>
         {blocks.map((block) => (
           <Pressable
             key={block.label}
@@ -94,6 +94,7 @@ export default function DateBlockSelector({ value, onChange, minimumDate, maximu
             display="spinner"
             onChange={(_, selected) => { if (selected) onChange(selected); }}
             minimumDate={minimumDate}
+            maximumDate={maximumDate}
             locale="nl-BE"
           />
           <View style={styles.doneWrap}>
