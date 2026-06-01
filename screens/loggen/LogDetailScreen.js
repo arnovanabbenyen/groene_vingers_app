@@ -19,7 +19,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   CalendarIcon,
   CameraIcon,
-  CheckIcon,
   NoteIcon,
   PencilSimpleIcon,
   TrashIcon,
@@ -228,21 +227,6 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
         title={isEditing ? 'Log bewerken' : 'Log'}
         onBack={isEditing ? handleCancelEdit : onBack}
         backLabel={isEditing ? 'Annuleren' : 'Terug'}
-        backIcon={isEditing ? XIcon : undefined}
-        rightElement={isEditing ? (
-          <Pressable
-            style={[styles.saveAction, isSaving && styles.saveActionDisabled]}
-            onPress={handleSaveEdit}
-            disabled={isSaving}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Opslaan"
-            accessibilityState={{ disabled: isSaving, busy: isSaving }}
-          >
-            <CheckIcon size={18} color={COLORS.textInverse} weight="bold" accessibilityElementsHidden />
-            <Text style={styles.saveActionText}>{isSaving ? 'Bezig…' : 'Opslaan'}</Text>
-          </Pressable>
-        ) : null}
       />
 
       <ScrollView
@@ -323,8 +307,16 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
           </SectionCard>
         )}
 
-        {/* Acties (alleen in leesmodus) */}
-        {!isEditing && (
+        {/* Acties */}
+        {isEditing ? (
+          <AuthButton
+            label="Wijzigingen opslaan"
+            onPress={handleSaveEdit}
+            loading={isSaving}
+            disabled={isSaving}
+            accessibilityLabel="Wijzigingen opslaan"
+          />
+        ) : (
           <View style={styles.actionButtons}>
             <AuthButton
               label="Bewerken"
@@ -470,19 +462,6 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     gap: SPACING.sm,
-  },
-  saveAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-  },
-  saveActionDisabled: {
-    opacity: 0.5,
-  },
-  saveActionText: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textInverse,
   },
   previewOverlay: {
     flex: 1,
