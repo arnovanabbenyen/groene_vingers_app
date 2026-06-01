@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { XCircleIcon } from 'phosphor-react-native';
-import { COLORS, FONTS, SPACING } from '../theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, SPACING } from '../theme/tokens';
 
 export default function FieldError({ message }) {
   if (!message) return null;
@@ -23,9 +23,8 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: SPACING.sm,
     marginTop: SPACING.xs,
-    marginBottom: SPACING.lg,
   },
   containerMulti: {
     alignItems: 'flex-start',
@@ -33,7 +32,7 @@ const styles = StyleSheet.create({
   text: {
     flex: 1,
     fontFamily: FONTS.body,
-    fontSize: 12.8,
+    fontSize: FONT_SIZES.sm,
     lineHeight: 18,
     color: COLORS.negative,
   },

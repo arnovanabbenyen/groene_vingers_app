@@ -28,6 +28,7 @@ export default function WeekdaySelector({ value = [], onChange }) {
             accessibilityRole="checkbox"
             accessibilityState={{ checked }}
             accessibilityLabel={full}
+            accessibilityHint={checked ? 'Dubbeltik om te deselecteren' : 'Dubbeltik om te selecteren'}
           >
             <Text style={[styles.chipText, checked && styles.chipTextSelected]}>{short}</Text>
           </Pressable>

@@ -1,8 +1,7 @@
 import React, { useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalendarBlankIcon, CalendarCheckIcon, PencilSimpleIcon } from 'phosphor-react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import Header from '../../components/navigation/Header';
 import SectionCard from '../../components/parcel/SectionCard';
 import SectionHeader from '../../components/parcel/SectionHeader';
@@ -11,9 +10,10 @@ import AuthButton from '../../components/buttons/AuthButton';
 import FieldError from '../../components/notifications/FieldError';
 import PerceelSummaryCard from '../../components/aanvraag/PerceelSummaryCard';
 import WeekdaySelector from '../../components/aanvraag/WeekdaySelector';
+import DateBlockSelector from '../../components/aanvraag/DateBlockSelector';
 import { supabase } from '../../services/supabase';
 import { AANVRAAG_STATUS } from '../../services/aanvraagStatus';
-import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
+import { COLORS, SPACING } from '../../components/theme/tokens';
 import MOCK_PERCEEL from '../../mocks/perceelMock';
 
 export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
@@ -23,40 +23,21 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
   perceel = perceel || MOCK_PERCEEL;
 
   const today = new Date();
-  const insets = useSafeAreaInsets();
   const motivationRef = useRef(null);
-  const sheetAnim = useRef(new Animated.Value(300)).current;
 
   const [motivation, setMotivation] = useState('');
   const [availability, setAvailability] = useState([]);
   const [startDate, setStartDate] = useState(today);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-
-  function openDatePicker() {
-    sheetAnim.setValue(300);
-    setShowDatePicker(true);
-    Animated.spring(sheetAnim, {
-      toValue: 0,
-      useNativeDriver: true,
-      damping: 20,
-      stiffness: 200,
-    }).start();
-  }
-
-  function closeDatePicker() {
-    Animated.timing(sheetAnim, {
-      toValue: 300,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => setShowDatePicker(false));
-  }
 
   function validate() {
     const next = {};
     if (!motivation.trim()) {
       next.motivation = 'Vul je motivatie in';
+    }
+    if (availability.length === 0) {
+      next.availability = 'Selecteer minstens één beschikbare dag';
     }
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -168,34 +149,16 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
           <SectionCard>
             <SectionHeader icon={CalendarBlankIcon} title="Beschikbaarheid" />
             <WeekdaySelector value={availability} onChange={setAvailability} />
+            {errors.availability ? <FieldError message={errors.availability} /> : null}
           </SectionCard>
 
           <SectionCard>
             <SectionHeader icon={CalendarCheckIcon} title="Gewenste startdatum" />
-            <View style={styles.dateBlocks}>
-              {[
-                { label: 'Dag', value: String(startDate.getDate()).padStart(2, '0'), a11y: `Dag: ${startDate.getDate()}` },
-                { label: 'Maand', value: startDate.toLocaleDateString('nl-BE', { month: 'long' }), a11y: `Maand: ${startDate.toLocaleDateString('nl-BE', { month: 'long' })}` },
-                { label: 'Jaar', value: String(startDate.getFullYear()), a11y: `Jaar: ${startDate.getFullYear()}` },
-              ].map((block) => (
-                <Pressable
-                  key={block.label}
-                  style={[styles.dateBlock, showDatePicker && styles.dateBlockActive]}
-                  onPress={openDatePicker}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${block.a11y}. Tik om de datum te wijzigen`}
-                >
-                  <Text style={styles.dateBlockLabel}>{block.label}</Text>
-                  <Text
-                    style={[styles.dateBlockValue, showDatePicker && styles.dateBlockValueActive]}
-                    adjustsFontSizeToFit
-                    numberOfLines={1}
-                  >
-                    {block.value}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+            <DateBlockSelector
+              value={startDate}
+              onChange={setStartDate}
+              minimumDate={today}
+            />
             {errors.date ? <FieldError message={errors.date} /> : null}
           </SectionCard>
 
@@ -204,38 +167,6 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
           <AuthButton label="Stuur verzoek" onPress={handleSubmit} variant="primary" loading={loading} />
         </ScrollView>
       </KeyboardAvoidingView>
-
-      <Modal
-        visible={showDatePicker}
-        transparent
-        animationType="none"
-        onRequestClose={closeDatePicker}
-      >
-        <Pressable style={styles.backdrop} onPress={closeDatePicker} />
-        <Animated.View
-          style={[styles.sheet, { paddingBottom: insets.bottom + SPACING.md, transform: [{ translateY: sheetAnim }] }]}
-        >
-          <View style={styles.sheetHandle} />
-          <DateTimePicker
-            value={startDate}
-            mode="date"
-            display="spinner"
-            onChange={(_, selected) => { if (selected) setStartDate(selected); }}
-            minimumDate={today}
-            locale="nl-BE"
-          />
-          <View style={styles.sheetDoneWrap}>
-            <Pressable
-              style={styles.sheetDoneBtn}
-              onPress={closeDatePicker}
-              accessibilityRole="button"
-              accessibilityLabel="Datum bevestigen"
-            >
-              <Text style={styles.sheetDoneText}>Klaar</Text>
-            </Pressable>
-          </View>
-        </Animated.View>
-      </Modal>
     </View>
   );
 }
@@ -256,78 +187,5 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.lg,
     paddingBottom: SPACING.xl,
     gap: SPACING.lg,
-  },
-  dateBlocks: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
-  },
-  dateBlock: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.xs,
-    backgroundColor: COLORS.background,
-    borderRadius: RADIUS.sm,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    gap: SPACING.xxs,
-    minHeight: 60,
-    justifyContent: 'center',
-  },
-  dateBlockActive: {
-    borderColor: COLORS.brand,
-  },
-  dateBlockLabel: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.xxs,
-    color: COLORS.textSecondary,
-  },
-  dateBlockValue: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.textPrimary,
-  },
-  dateBlockValueActive: {
-    color: COLORS.brand,
-  },
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  sheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: RADIUS.lg,
-    borderTopRightRadius: RADIUS.lg,
-    paddingTop: SPACING.sm,
-    paddingHorizontal: SPACING.screenX,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  sheetHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.indicatorMuted,
-    alignSelf: 'center',
-    marginBottom: SPACING.sm,
-  },
-  sheetDoneWrap: {
-    paddingTop: SPACING.md,
-  },
-  sheetDoneBtn: {
-    backgroundColor: COLORS.brand,
-    borderRadius: RADIUS.pill,
-    paddingVertical: SPACING.sm,
-    alignItems: 'center',
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  sheetDoneText: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textInverse,
   },
 });

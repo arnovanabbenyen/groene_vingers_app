@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import {
-  CheckCircleIcon,
   CheckIcon,
-  EyeIcon,
+  MagnifyingGlassIcon,
   LeafIcon,
   StarIcon,
   UserCircleIcon,
 } from 'phosphor-react-native';
-import RequestActions from './RequestActions';
 import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 
 export function normalizeSize(size) {
@@ -85,7 +83,6 @@ function AanvraagCard({ aanvraag, onAccept, onView }) {
             <StarIcon size={16} color={COLORS.accent} weight="fill" />
             <Text style={styles.scoreText}>4,5</Text>
           </View>
-          <CheckCircleIcon size={18} color={COLORS.brand} weight="regular" />
         </View>
       </View>
 
@@ -96,15 +93,18 @@ function AanvraagCard({ aanvraag, onAccept, onView }) {
         <Text style={styles.gardenSize}>{size}</Text>
       </View>
 
-      <RequestActions
-        onPrimary={() => onAccept(aanvraag.id)}
-        onSecondary={() => onView(aanvraag)}
-        primaryLabel="Accepteer"
-        secondaryLabel="Bekijk"
-        primaryAccessibilityLabel={`Accepteer aanvraag van ${fullName}`}
-        secondaryAccessibilityLabel={`Bekijk aanvraag van ${fullName}`}
-        style={styles.actionRow}
-      />
+      <View style={styles.actionRow}>
+        <Pressable
+          style={[styles.actionButton, styles.acceptButton]}
+          onPress={() => onView(aanvraag)}
+          accessibilityRole="button"
+          accessibilityLabel={`Bekijk aanvraag van ${fullName}`}
+          accessibilityHint={`Open de detailweergave van de aanvraag van ${fullName}`}
+        >
+          <MagnifyingGlassIcon size={18} color={COLORS.surface} weight="regular" />
+          <Text style={styles.acceptButtonText}>Bekijk aanvraag</Text>
+        </Pressable>
+      </View>
     </TouchableOpacity>
   );
 }
