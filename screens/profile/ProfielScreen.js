@@ -87,6 +87,12 @@ export default function ProfielScreen({
     role === 'tuinzoeker' ? refreshKey : null
   );
   const { aanvragen, isLoading: isLoadingAanvragen } = useMyAanvragen(refreshKey);
+  const aanvraagStatusByPerceelId = aanvragen.reduce((map, aanvraag) => {
+    if (aanvraag?.perceel?.id) {
+      map.set(aanvraag.perceel.id, aanvraag.status);
+    }
+    return map;
+  }, new Map());
   const { percelen: savedPercelen, isLoading: isLoadingSaved, refresh: refreshSaved } = useSavedPercelen(refreshKey);
   const { isFavorite, toggleFavorite } = useFavorites();
 
@@ -595,8 +601,9 @@ export default function ProfielScreen({
                         setActiveSavedDot(Math.max(0, Math.min(slicedSaved.length - 1, next)));
                       }}
                     >
-                        {slicedSaved.map((perceel) => {
+                      {slicedSaved.map((perceel) => {
                         const plot = mapPerceelToPlot(perceel);
+                        const requestStatus = aanvraagStatusByPerceelId.get(perceel.id) || null;
                         return (
                           <PlotCard
                             key={perceel.id}
@@ -605,6 +612,7 @@ export default function ProfielScreen({
                             isFavorited={isFavorite(perceel.id)}
                             onToggleFavorite={() => handleToggleSavedFavorite(perceel.id)}
                             showFavoriteButton
+                            requestStatus={requestStatus}
                           />
                         );
                       })}

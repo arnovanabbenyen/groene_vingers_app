@@ -26,3 +26,29 @@ export const AANVRAAG_STATUS = {
   CANCELLED: 'cancelled',
   ENDED: 'ended',
 };
+
+export const AANVRAAG_STATUS_META = {
+  [AANVRAAG_STATUS.PENDING]: {
+    label: 'In behandeling',
+    tone: 'pending',
+    accessibleLabel: 'Je hebt een aanvraag verstuurd',
+  },
+  [AANVRAAG_STATUS.ACCEPTED]: {
+    label: 'In behandeling',
+    tone: 'accepted',
+    accessibleLabel: 'Je aanvraag is door de eigenaar bekeken',
+  },
+  [AANVRAAG_STATUS.CONFIRMED]: {
+    label: 'Bevestigd',
+    tone: 'confirmed',
+    accessibleLabel: 'De samenwerking is bevestigd',
+  },
+};
+
+export function getAanvraagStatusMeta(status) {
+  return AANVRAAG_STATUS_META[status] || null;
+}
+
+export function isActiveAanvraagStatus(status) {
+  return Boolean(AANVRAAG_STATUS_META[status]);
+}

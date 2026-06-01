@@ -14,6 +14,7 @@ import { ArrowLeftIcon, HeartIcon, MagnifyingGlassIcon, XIcon } from 'phosphor-r
 import EmptyState from '../../components/common/EmptyState';
 import { useSavedPercelen } from '../../hooks/useSavedPercelen';
 import { useFavorites } from '../../hooks/useFavorites';
+import { useMyAanvragen } from '../../hooks/useMyAanvragen';
 import PlotCard from '../../components/home/PlotCard';
 import { mapPerceelToPlot } from '../../utils/mapPerceelToPlot';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
@@ -25,6 +26,11 @@ export default function OpgeslagenScreen({ onBack, onPerceelPress }) {
 
   const { percelen, isLoading } = useSavedPercelen();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { aanvragen } = useMyAanvragen();
+
+  const aanvraagStatusByPerceelId = useMemo(() => {
+    return new Map((aanvragen || []).map((aanvraag) => [aanvraag.perceel_id, aanvraag.status]));
+  }, [aanvragen]);
 
   const filteredPercelen = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -123,6 +129,7 @@ export default function OpgeslagenScreen({ onBack, onPerceelPress }) {
         >
           {filteredPercelen.map((perceel) => {
             const plot = mapPerceelToPlot(perceel);
+            const requestStatus = aanvraagStatusByPerceelId.get(perceel.id) || null;
             return (
               <PlotCard
                 key={perceel.id}
@@ -131,6 +138,7 @@ export default function OpgeslagenScreen({ onBack, onPerceelPress }) {
                 isFavorited={isFavorite(perceel.id)}
                 onToggleFavorite={() => handleToggleFavorite(perceel.id)}
                 showFavoriteButton
+                requestStatus={requestStatus}
               />
             );
           })}

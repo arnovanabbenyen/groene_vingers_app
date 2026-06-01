@@ -24,6 +24,7 @@ import MapPerceelCard from '../../components/kaart/MapPerceelCard';
 import PerceelPopupCard from '../../components/kaart/PerceelPopupCard';
 import FilterScreen from './FilterScreen';
 import { useMapPercelen } from '../../hooks/useMapPercelen';
+import { useMyAanvragen } from '../../hooks/useMyAanvragen';
 import { useFavorites } from '../../hooks/useFavorites';
 import {
   COLORS,
@@ -81,6 +82,7 @@ export default function KaartScreen({
   const mapRef = useRef(null);
   const searchInputRef = useRef(null);
   const { percelen, isLoading } = useMapPercelen();
+  const { aanvragen } = useMyAanvragen();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPerceel, setSelectedPerceel] = useState(null);
   const [trackingMarkerId, setTrackingMarkerId] = useState(null);
@@ -90,6 +92,9 @@ export default function KaartScreen({
   const [filterVisible, setFilterVisible] = useState(false);
   const [activeFilters, setActiveFilters] = useState(DEFAULT_FILTERS);
   const { isFavorite, toggleFavorite } = useFavorites();
+  const aanvraagStatusByPerceelId = useMemo(() => {
+    return new Map((aanvragen || []).map((aanvraag) => [aanvraag.perceel_id, aanvraag.status]));
+  }, [aanvragen]);
 
   const sheetHeight = useRef(new Animated.Value(COLLAPSED_HEIGHT)).current;
   const currentHeightRef = useRef(COLLAPSED_HEIGHT);
@@ -264,6 +269,7 @@ export default function KaartScreen({
         >
           {perceelenWithCoords.map((perceel) => {
             const isSelected = selectedPerceel?.id === perceel.id;
+            const requestStatus = aanvraagStatusByPerceelId.get(perceel.id) || null;
             return (
               <Marker
                 key={perceel.id}
@@ -274,10 +280,10 @@ export default function KaartScreen({
                 onPress={() => handlePinPress(perceel)}
                 tracksViewChanges={trackingMarkerId === perceel.id}
                 anchor={{ x: 0.5, y: 0.5 }}
-                accessibilityLabel={perceel.naam}
+                accessibilityLabel={`${perceel.naam}${requestStatus ? ', aangevraagd' : ''}`}
                 accessibilityRole="button"
               >
-                <MapMarker selected={isSelected} />
+                <MapMarker selected={isSelected} requested={Boolean(requestStatus)} />
               </Marker>
             );
           })}
@@ -333,6 +339,7 @@ export default function KaartScreen({
                 onOpen={() => onOpenPerceel?.(toPlotShape(selectedPerceel))}
                 isFavorited={isFavorite(selectedPerceel?.id)}
                 onToggleFavorite={() => toggleFavorite(selectedPerceel?.id)}
+                requestStatus={aanvraagStatusByPerceelId.get(selectedPerceel.id) || null}
               />
             </Pressable>
           </Pressable>
@@ -389,6 +396,7 @@ export default function KaartScreen({
                   onPress={() => onOpenPerceel?.(toPlotShape(perceel))}
                   isFavorited={isFavorite(perceel.id)}
                   onToggleFavorite={() => toggleFavorite(perceel.id)}
+                  requestStatus={aanvraagStatusByPerceelId.get(perceel.id) || null}
                 />
               ))
             )}

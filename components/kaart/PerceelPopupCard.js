@@ -3,9 +3,11 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LeafIcon, MapPinIcon, XIcon } from 'phosphor-react-native';
 import FavoriteHeartButton from '../parcel/FavoriteHeartButton';
 import AmenityIcon from './AmenityIcon';
+import RequestStatusBadge from '../parcel/RequestStatusBadge';
+import { getAanvraagStatusMeta } from '../../services/aanvraagStatus';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 
-export default function PerceelPopupCard({ perceel, onClose, onOpen, isFavorited = false, onToggleFavorite }) {
+export default function PerceelPopupCard({ perceel, onClose, onOpen, isFavorited = false, onToggleFavorite, requestStatus = null }) {
   const [imageError, setImageError] = useState(false);
   const imageUrl = perceel.fotos?.[0];
   const hasImage = imageUrl && !imageError;
@@ -13,13 +15,14 @@ export default function PerceelPopupCard({ perceel, onClose, onOpen, isFavorited
   const hasOverflow = allAmenities.length > 3;
   const amenities = allAmenities.slice(0, hasOverflow ? 2 : 3);
   const overflowCount = allAmenities.length - amenities.length;
+  const requestStatusLabel = getAanvraagStatusMeta(requestStatus)?.label;
 
   return (
     <Pressable
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       onPress={onOpen}
       accessibilityRole="button"
-      accessibilityLabel={`Open perceel ${perceel.naam}`}
+      accessibilityLabel={`Open perceel ${perceel.naam}${requestStatusLabel ? `, ${requestStatusLabel}` : ''}`}
       accessibilityHint="Tik voor alle details van dit perceel"
     >
       <View style={styles.imageWrap}>
@@ -35,6 +38,12 @@ export default function PerceelPopupCard({ perceel, onClose, onOpen, isFavorited
             <LeafIcon size={32} color={COLORS.brand} weight="regular" accessibilityElementsHidden />
           </View>
         )}
+
+        {requestStatus ? (
+          <View style={styles.requestBadgeRow}>
+            <RequestStatusBadge status={requestStatus} />
+          </View>
+        ) : null}
 
         <View style={styles.locationPill}>
           <MapPinIcon size={13} color={COLORS.textPrimary} weight="regular" accessibilityElementsHidden />
@@ -131,6 +140,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
     maxWidth: '65%',
+  },
+  requestBadgeRow: {
+    position: 'absolute',
+    top: SPACING.sm,
+    left: SPACING.sm,
   },
   locationText: {
     fontFamily: FONTS.body,

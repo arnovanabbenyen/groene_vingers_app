@@ -3,9 +3,11 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LeafIcon, MapPinIcon } from 'phosphor-react-native';
 import FavoriteHeartButton from '../parcel/FavoriteHeartButton';
 import AmenityIcon from './AmenityIcon';
+import RequestStatusBadge from '../parcel/RequestStatusBadge';
+import { getAanvraagStatusMeta } from '../../services/aanvraagStatus';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 
-export default function MapPerceelCard({ perceel, onPress, isFavorited = false, onToggleFavorite }) {
+export default function MapPerceelCard({ perceel, onPress, isFavorited = false, onToggleFavorite, requestStatus = null }) {
   const [imageError, setImageError] = useState(false);
   const imageUrl = perceel.fotos?.[0];
   const hasImage = imageUrl && !imageError;
@@ -13,13 +15,14 @@ export default function MapPerceelCard({ perceel, onPress, isFavorited = false, 
   const hasOverflow = allAmenities.length > 3;
   const amenities = allAmenities.slice(0, hasOverflow ? 2 : 3);
   const overflowCount = allAmenities.length - amenities.length;
+  const requestStatusLabel = getAanvraagStatusMeta(requestStatus)?.label;
 
   return (
     <Pressable
       style={({ pressed }) => [styles.container, pressed && styles.pressed]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${perceel.naam}, ${perceel.plaats || 'locatie onbekend'}`}
+      accessibilityLabel={`${perceel.naam}, ${perceel.plaats || 'locatie onbekend'}${requestStatusLabel ? `, ${requestStatusLabel}` : ''}`}
       accessibilityHint="Tik voor meer details"
     >
       <View style={styles.imageWrap}>
@@ -35,6 +38,12 @@ export default function MapPerceelCard({ perceel, onPress, isFavorited = false, 
             <LeafIcon size={32} color={COLORS.brand} weight="regular" accessibilityElementsHidden />
           </View>
         )}
+
+        {requestStatus ? (
+          <View style={styles.requestBadgeRow}>
+            <RequestStatusBadge status={requestStatus} />
+          </View>
+        ) : null}
 
         <View style={styles.badgeRow}>
           <View style={styles.locationPill}>
@@ -123,6 +132,11 @@ const styles = StyleSheet.create({
     left: SPACING.sm,
     right: SPACING.sm,
     flexDirection: 'row',
+  },
+  requestBadgeRow: {
+    position: 'absolute',
+    top: SPACING.sm,
+    left: SPACING.sm,
   },
   locationPill: {
     flexDirection: 'row',

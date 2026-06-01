@@ -161,9 +161,9 @@ export default function ParcelDetailScreen({
 
         {!isOwner && existingAanvraag ? (
           <View style={styles.aanvraagStatusBanner}>
-            <ClockClockwiseIcon size={16} color={COLORS.textMuted} weight="regular" accessibilityElementsHidden />
+            <ClockClockwiseIcon size={16} color={COLORS.textPrimary} weight="regular" accessibilityElementsHidden />
             <Text style={styles.hiddenBannerText}>
-              {AANVRAAG_STATUS_LABEL[existingAanvraag.status] ?? 'Aanvraag ingediend'}
+              {AANVRAAG_STATUS_LABEL[existingAanvraag.status] ?? 'Aanvraag in behandeling'}
             </Text>
           </View>
         ) : null}

@@ -3,6 +3,7 @@ import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-nati
 import { LeafIcon, MapPinIcon } from 'phosphor-react-native';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 import FavoriteHeartButton from '../parcel/FavoriteHeartButton';
+import RequestStatusBadge from '../parcel/RequestStatusBadge';
 import AmenityIcon from '../kaart/AmenityIcon';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -15,11 +16,25 @@ export const PLOT_CARD = {
   badgeInset: 8,   // retained for HomeScreen statusChip positioning
 };
 
-function PlotCardBadges({ location, isFavorited, onToggleFavorite, showFavoriteButton, statusLabel, statusTone = 'active' }) {
+function PlotCardBadges({
+  location,
+  isFavorited,
+  onToggleFavorite,
+  showFavoriteButton,
+  statusLabel,
+  statusTone = 'active',
+  requestStatus = null,
+}) {
   const hasStatusBadge = !!statusLabel;
 
   return (
     <>
+      {requestStatus ? (
+        <View style={styles.requestStatusWrap}>
+          <RequestStatusBadge status={requestStatus} />
+        </View>
+      ) : null}
+
       <View style={styles.locationBadge}>
         <MapPinIcon size={13} color={COLORS.textPrimary} weight="regular" />
         <Text style={styles.locationText} numberOfLines={1}>
@@ -53,6 +68,7 @@ export default function PlotCard({
   showFavoriteButton = true,
   statusLabel,
   statusTone = 'active',
+  requestStatus = null,
   cardWidth = PLOT_CARD.cardWidth,
 }) {
   const [imageError, setImageError] = useState(false);
@@ -107,6 +123,7 @@ export default function PlotCard({
           showFavoriteButton={showFavoriteButton}
           statusLabel={statusLabel}
           statusTone={statusTone}
+          requestStatus={requestStatus}
         />
       </View>
 
@@ -204,6 +221,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bodyMedium,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textPrimary,
+  },
+  requestStatusWrap: {
+    position: 'absolute',
+    top: SPACING.md,
+    left: SPACING.md,
+    zIndex: 2,
   },
   heartWrap: {
     position: 'absolute',
