@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.screenX,
-    paddingBottom: 0,
+    paddingBottom: SPACING.xl,
   },
   divider: {
     marginTop: SPACING.xl,
