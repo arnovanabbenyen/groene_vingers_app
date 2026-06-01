@@ -709,9 +709,9 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {}, ini
           />
         </SectionCard>
 
-        {/* Extra informatie */}
+        {/* Opvolgingen */}
         <SectionCard>
-          <SectionHeader icon={InfoIcon} title="Extra informatie" />
+          <SectionHeader icon={InfoIcon} title="Opvolgingen" />
           <ExtraInfoEditor
             inputRef={extraInfoRef}
             draft={extraInfoDraft}
@@ -719,6 +719,9 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {}, ini
             items={extraInfoItems}
             onAdd={addExtraInfoItem}
             onRemove={removeExtraInfoItem}
+            placeholder="Voeg een opvolging toe en druk op gereed..."
+            accessibilityLabel="Opvolgingen invoerveld"
+            accessibilityHint="Voer een opvolging in en druk op gereed om die toe te voegen aan de lijst"
           />
         </SectionCard>
 

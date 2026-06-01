@@ -13,16 +13,20 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CalendarIcon, CameraIcon, LeafIcon, XCircleIcon } from 'phosphor-react-native';
+import { CalendarCheckIcon, CameraIcon, LeafIcon, BinocularsIcon, XIcon } from 'phosphor-react-native';
 import Header from '../../components/navigation/Header';
 import AuthButton from '../../components/buttons/AuthButton';
-import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
+import SectionCard from '../../components/parcel/SectionCard';
+import SectionHeader from '../../components/parcel/SectionHeader';
+import DateBlockSelector from '../../components/aanvraag/DateBlockSelector';
+import PhotoGrid from '../../components/parcel/PhotoGrid';
+import { showToast } from '../../components/common/Toast';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 import { supabase } from '../../services/supabase';
 import { uploadChatImage } from '../../services/messageMedia';
 
 const MAX_DESCRIPTION = 2000;
+const INPUT_BG = 'rgba(87,98,56,0.06)';
 
 function toLocalDateString(date) {
   const year = date.getFullYear();
@@ -36,13 +40,10 @@ function formatDisplayDate(date) {
 }
 
 export default function NieuweLogScreen({ onBack, samenwerking, onSaved }) {
-  const insets = useSafeAreaInsets();
   const [beschrijving, setBeschrijving] = useState('');
   const [loggedDate, setLoggedDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [photos, setPhotos] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [submitError, setSubmitError] = useState('');
 
   const perceelNaam = samenwerking?.percelen?.naam ?? 'Jouw perceel';
   const canSubmit = beschrijving.trim().length > 0;
@@ -51,89 +52,126 @@ export default function NieuweLogScreen({ onBack, samenwerking, onSaved }) {
     setPhotos((prev) => prev.filter((p) => p.id !== id));
   }
 
-  async function pickFromCamera() {
-    try {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert('Geen toegang', 'Camera-toegang is nodig om een foto te maken.');
-        return;
+  function setPhotoAtIndex(index, newPhoto) {
+    setPhotos((prev) => {
+      const next = prev.slice(0, 4);
+      next[index] = newPhoto;
+      return next;
+    });
+  }
+
+  function addPhotoToFirstEmptySlot(newPhoto) {
+    setPhotos((prev) => {
+      const next = prev.slice(0, 4);
+      const emptyIndex = next.findIndex((item) => !item);
+      if (emptyIndex === -1) return next;
+      next[emptyIndex] = newPhoto;
+      return next;
+    });
+  }
+
+  async function addGalleryAssetsToSlots(assets, startIndex = 0) {
+    const processedPhotos = [];
+    for (const asset of assets.slice(0, 4 - startIndex)) {
+      const manipulated = await ImageManipulator.manipulateAsync(
+        asset.uri,
+        asset.width && asset.width > 1920 ? [{ resize: { width: 1920 } }] : [],
+        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG },
+      );
+      const id = `photo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      processedPhotos.push({ id, localUri: manipulated.uri });
+    }
+
+    setPhotos((prev) => {
+      const next = prev.slice(0, 4);
+      let slotIndex = startIndex;
+
+      for (const photo of processedPhotos) {
+        while (slotIndex < 4 && next[slotIndex]) slotIndex += 1;
+        if (slotIndex >= 4) break;
+        next[slotIndex] = photo;
+        slotIndex += 1;
       }
 
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
-        allowsEditing: false,
-        quality: 1,
-      });
+      return next;
+    });
+  }
 
-      if (result.canceled || !result.assets?.[0]?.uri) return;
+  async function pickFromCamera(index) {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      showToast('Camera-toegang is nodig om een foto te maken.', 'error');
+      return;
+    }
 
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      allowsEditing: false,
+      quality: 1,
+    });
+
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+
+    try {
       const asset = result.assets[0];
       const manipulated = await ImageManipulator.manipulateAsync(
         asset.uri,
         asset.width && asset.width > 1920 ? [{ resize: { width: 1920 } }] : [],
         { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG },
       );
-
       const id = `photo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-      setPhotos((prev) => [...prev, { id, localUri: manipulated.uri }]);
+      const nextPhoto = { id, localUri: manipulated.uri };
+      if (typeof index === 'number') {
+        setPhotoAtIndex(index, nextPhoto);
+      } else {
+        addPhotoToFirstEmptySlot(nextPhoto);
+      }
     } catch (err) {
-      Alert.alert('Fout', err.message || 'Foto nemen mislukt.');
+      showToast(err.message || 'Foto nemen mislukt.', 'error');
     }
   }
 
-  async function pickFromGallery() {
+  async function pickFromGallery(index) {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      showToast('Fotobibliotheek-toegang is nodig.', 'error');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: false,
+      quality: 1,
+      allowsMultipleSelection: true,
+      selectionLimit: 5,
+    });
+
+    if (result.canceled || !result.assets?.length) return;
+
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert('Geen toegang', 'Fotobibliotheek-toegang is nodig.');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: false,
-        quality: 1,
-        allowsMultipleSelection: true,
-        selectionLimit: 5,
-      });
-
-      if (result.canceled || !result.assets?.length) return;
-
-      const newPhotos = [];
-      for (const asset of result.assets) {
-        const manipulated = await ImageManipulator.manipulateAsync(
-          asset.uri,
-          asset.width && asset.width > 1920 ? [{ resize: { width: 1920 } }] : [],
-          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG },
-        );
-        const id = `photo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-        newPhotos.push({ id, localUri: manipulated.uri });
-      }
-
-      setPhotos((prev) => [...prev, ...newPhotos]);
+      const startIndex = typeof index === 'number' ? index : 0;
+      await addGalleryAssetsToSlots(result.assets, startIndex);
     } catch (err) {
-      Alert.alert('Fout', err.message || "Foto's kiezen mislukt.");
+      showToast(err.message || "Foto's kiezen mislukt.", 'error');
     }
   }
 
-  function promptAddPhoto() {
-    Alert.alert("Foto toevoegen", 'Kies hoe je een foto wilt toevoegen.', [
-      { text: 'Foto nemen', onPress: pickFromCamera },
-      { text: 'Kies uit galerij', onPress: pickFromGallery },
+  function promptForPhoto(index) {
+    Alert.alert('Foto toevoegen', 'Kies hoe je een foto wilt toevoegen.', [
+      { text: 'Foto nemen', onPress: () => pickFromCamera(index) },
+      { text: 'Kies uit galerij', onPress: () => pickFromGallery(index) },
       { text: 'Annuleer', style: 'cancel' },
     ]);
   }
 
   async function handleSubmit() {
     if (!canSubmit) return;
-
     if (!supabase) {
-      setSubmitError('Supabase is niet geconfigureerd.');
+      showToast('Supabase is niet geconfigureerd.', 'error');
       return;
     }
 
     setIsSaving(true);
-    setSubmitError('');
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -161,7 +199,7 @@ export default function NieuweLogScreen({ onBack, samenwerking, onSaved }) {
 
       onSaved?.();
     } catch (err) {
-      setSubmitError(err.message || 'Opslaan mislukt.');
+      showToast(err.message || 'Opslaan mislukt.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -181,127 +219,70 @@ export default function NieuweLogScreen({ onBack, samenwerking, onSaved }) {
         showsVerticalScrollIndicator={false}
       >
         {/* Context */}
-        <View style={styles.card}>
-          <View style={styles.contextRow}>
-            <LeafIcon size={18} color={COLORS.brand} weight="regular" />
-            <Text style={styles.contextLabel}>Perceel</Text>
-          </View>
+        <SectionCard>
+          <SectionHeader icon={LeafIcon} title="Perceel" />
           <Text style={styles.perceelName}>{perceelNaam}</Text>
-        </View>
+        </SectionCard>
 
         {/* Datum */}
-        <View style={styles.card}>
-          <View style={styles.sectionHeader}>
-            <CalendarIcon size={22} color={COLORS.brand} weight="regular" />
-            <Text style={styles.sectionTitle}>Datum bezoek</Text>
-          </View>
-          <Pressable
-            style={styles.dateButton}
-            onPress={() => setShowDatePicker((v) => !v)}
-            accessibilityRole="button"
-            accessibilityLabel="Kies datum"
-          >
-            <Text style={styles.dateButtonText}>{formatDisplayDate(loggedDate)}</Text>
-            <CalendarIcon size={16} color={COLORS.textSecondary} weight="regular" />
-          </Pressable>
-          {showDatePicker && (
-            <>
-              <DateTimePicker
-                value={loggedDate}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                maximumDate={new Date()}
-                onChange={(event, selectedDate) => {
-                  if (Platform.OS === 'android') setShowDatePicker(false);
-                  if (selectedDate) setLoggedDate(selectedDate);
-                }}
-              />
-              {Platform.OS === 'ios' && (
-                <Pressable
-                  style={styles.dateConfirm}
-                  onPress={() => setShowDatePicker(false)}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.dateConfirmText}>Klaar</Text>
-                </Pressable>
-              )}
-            </>
-          )}
-        </View>
+        <SectionCard>
+          <SectionHeader icon={CalendarCheckIcon} title="Datum bezoek" />
+          <DateBlockSelector
+            value={loggedDate}
+            onChange={setLoggedDate}
+            maximumDate={new Date()}
+            accessibilityLabel="Datum bezoek"
+          />
+        </SectionCard>
 
         {/* Beschrijving */}
-        <View style={styles.card}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Beschrijving</Text>
-            <Text style={[styles.charCounter, beschrijving.length >= MAX_DESCRIPTION && styles.charCounterLimit]}>
-              {beschrijving.length}/{MAX_DESCRIPTION}
-            </Text>
-          </View>
-          <TextInput
-            style={styles.textarea}
-            value={beschrijving}
-            onChangeText={(t) => {
-              if (t.length <= MAX_DESCRIPTION) setBeschrijving(t);
-            }}
-            placeholder="Wat heb je vandaag gedaan op je perceel?"
-            placeholderTextColor={COLORS.textMuted}
-            multiline
-            numberOfLines={6}
-            textAlignVertical="top"
-            accessibilityLabel="Beschrijving van je bezoek"
+        <SectionCard>
+          <SectionHeader
+            icon={BinocularsIcon}
+            title="Beschrijving"
+            action={
+              <Text
+                style={[styles.charCounter, beschrijving.length >= MAX_DESCRIPTION && styles.charCounterLimit]}
+              >
+                {beschrijving.length}/{MAX_DESCRIPTION}
+              </Text>
+            }
           />
-        </View>
+          <View style={styles.descriptionShell}>
+            <TextInput
+              style={styles.textarea}
+              value={beschrijving}
+              onChangeText={(t) => { if (t.length <= MAX_DESCRIPTION) setBeschrijving(t); }}
+              placeholder="Wat heb je vandaag gedaan op je perceel?"
+              placeholderTextColor={COLORS.textMuted}
+              multiline
+              numberOfLines={6}
+              textAlignVertical="top"
+              accessibilityLabel="Beschrijving van je bezoek"
+            />
+          </View>
+        </SectionCard>
 
         {/* Foto's */}
-        <View style={styles.card}>
-          <View style={styles.sectionHeader}>
-            <CameraIcon size={22} color={COLORS.brand} weight="regular" />
-            <Text style={styles.sectionTitle}>Foto's</Text>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.photoStrip}
-          >
-            {photos.map((photo) => (
-              <View key={photo.id} style={styles.photoThumbWrap}>
-                <Image source={{ uri: photo.localUri }} style={styles.photoThumb} />
-                <Pressable
-                  style={styles.photoRemove}
-                  onPress={() => removePhoto(photo.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Foto verwijderen"
-                  hitSlop={4}
-                >
-                  <XCircleIcon size={22} color={COLORS.negative} weight="fill" />
-                </Pressable>
-              </View>
-            ))}
-            <Pressable
-              style={styles.photoAddButton}
-              onPress={promptAddPhoto}
-              accessibilityRole="button"
-              accessibilityLabel="Foto toevoegen"
-            >
-              <CameraIcon size={24} color={COLORS.textSecondary} weight="regular" />
-              <Text style={styles.photoAddText}>Toevoegen</Text>
-            </Pressable>
-          </ScrollView>
-        </View>
+        <SectionCard>
+          <SectionHeader icon={CameraIcon} title="Foto's" />
+          <PhotoGrid
+            photos={photos.map((photo) => ({
+              ...photo,
+              previewUri: photo.localUri,
+            }))}
+            onAdd={promptForPhoto}
+            onRemove={(index) => removePhoto(photos[index]?.id)}
+          />
+        </SectionCard>
 
-        {submitError ? (
-          <Text style={styles.errorText}>{submitError}</Text>
-        ) : null}
-      </ScrollView>
-
-      <View style={[styles.submitBar, { paddingBottom: Math.max(insets.bottom, SPACING.md) }]}>
         <AuthButton
           label="Log opslaan"
           onPress={handleSubmit}
           loading={isSaving}
           disabled={!canSubmit}
         />
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -317,44 +298,10 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.lg,
-    paddingBottom: 24,
-    gap: SPACING.md,
-  },
-  card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.sm,
-    padding: SPACING.md,
-    ...SHADOWS.card,
-  },
-  contextRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-    marginBottom: 4,
-  },
-  contextLabel: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.brand,
+    paddingBottom: SPACING.xl,
+    gap: SPACING.lg,
   },
   perceelName: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.textPrimary,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    marginBottom: SPACING.sm,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: SPACING.sm,
-  },
-  sectionTitle: {
     fontFamily: FONTS.displaySemiBold,
     fontSize: FONT_SIZES.lg,
     color: COLORS.textPrimary,
@@ -363,10 +310,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(87,98,56,0.05)',
+    backgroundColor: INPUT_BG,
     borderRadius: RADIUS.sm,
     paddingHorizontal: SPACING.sm,
-    paddingVertical: 10,
+    paddingVertical: SPACING.sm + 2,
   },
   dateButtonText: {
     fontFamily: FONTS.bodyMedium,
@@ -395,69 +342,19 @@ const styles = StyleSheet.create({
     color: COLORS.negative,
   },
   textarea: {
-    backgroundColor: 'rgba(87,98,56,0.05)',
-    borderRadius: RADIUS.sm,
-    padding: SPACING.sm,
+    backgroundColor: COLORS.surface,
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.lg,
     color: COLORS.textPrimary,
     minHeight: 140,
     lineHeight: 22,
   },
-  photoStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    paddingVertical: 4,
-  },
-  photoThumbWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: RADIUS.sm,
-    position: 'relative',
-  },
-  photoThumb: {
-    width: 80,
-    height: 80,
-    borderRadius: RADIUS.sm,
-    resizeMode: 'cover',
-  },
-  photoRemove: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
+  descriptionShell: {
+    borderRadius: RADIUS.xs,
     backgroundColor: COLORS.surface,
-    borderRadius: 999,
-    zIndex: 2,
-  },
-  photoAddButton: {
-    width: 80,
-    height: 80,
-    borderRadius: RADIUS.sm,
     borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: COLORS.dividerSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(87,98,56,0.03)',
-  },
-  photoAddText: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.textSecondary,
-  },
-  errorText: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.negative,
-    textAlign: 'center',
-  },
-  submitBar: {
-    backgroundColor: COLORS.surface,
-    paddingHorizontal: SPACING.screenX,
-    paddingTop: SPACING.md,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.dividerSoft,
+    borderColor: COLORS.border,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
   },
 });

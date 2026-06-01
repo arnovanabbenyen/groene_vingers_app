@@ -10,6 +10,9 @@ export default function ExtraInfoEditor({
   items = [],
   onAdd,
   onRemove,
+  placeholder = 'Voeg een punt toe en druk op gereed...',
+  accessibilityLabel = 'Extra informatie invoerveld',
+  accessibilityHint = 'Voer een punt in en druk op gereed om het toe te voegen aan de lijst',
 }) {
   return (
     <View>
@@ -18,9 +21,9 @@ export default function ExtraInfoEditor({
         label=""
         value={draft}
         onChangeText={onDraftChange}
-        placeholder="Voeg een punt toe en druk op gereed..."
-        accessibilityLabel="Extra informatie invoerveld"
-        accessibilityHint="Voer een punt in en druk op gereed om het toe te voegen aan de lijst"
+        placeholder={placeholder}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
         variant="soft"
         returnKeyType="done"
         blurOnSubmit={false}

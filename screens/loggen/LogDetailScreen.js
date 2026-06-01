@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Alert,
+  ActivityIndicator,
   Dimensions,
   FlatList,
   Image,
@@ -23,17 +23,18 @@ import {
   ImagesIcon,
   PencilSimpleIcon,
   TrashIcon,
-  XCircleIcon,
   XIcon,
 } from 'phosphor-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../../services/supabase';
 import { pickFromCamera, pickFromGallery, uploadChatImage } from '../../services/messageMedia';
 import { deleteLogboekEntry, getLogboekEntry, updateLogboekEntry } from '../../services/logboek';
+import { showToast } from '../../components/common/Toast';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const MAX_DESCRIPTION = 2000;
+const INPUT_BG = 'rgba(87,98,56,0.06)';
 
 function parseDateString(dateStr) {
   if (!dateStr) return new Date();
@@ -76,7 +77,7 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
         const data = await getLogboekEntry(logId);
         if (!mounted) return;
         if (!data) {
-          Alert.alert('Niet gevonden', 'Deze log bestaat niet meer.');
+          showToast('Deze log bestaat niet meer.', 'info');
           onBack?.();
           return;
         }
@@ -84,9 +85,9 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
         setDescription(data.description ?? '');
         setLoggedDate(parseDateString(data.logged_at));
         setPhotos((data.fotos || []).map((url) => ({ uri: url, isExisting: true })));
-      } catch (err) {
+      } catch {
         if (mounted) {
-          Alert.alert('Fout', 'Log kon niet geladen worden.');
+          showToast('Log kon niet geladen worden.', 'error');
           onBack?.();
         }
       } finally {
@@ -113,26 +114,20 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
   async function handlePickCamera() {
     const assets = await pickFromCamera();
     if (assets.length) {
-      setPhotos((prev) => [
-        ...prev,
-        ...assets.map((a) => ({ uri: a.uri, isExisting: false })),
-      ]);
+      setPhotos((prev) => [...prev, ...assets.map((a) => ({ uri: a.uri, isExisting: false }))]);
     }
   }
 
   async function handlePickGallery() {
     const assets = await pickFromGallery();
     if (assets.length) {
-      setPhotos((prev) => [
-        ...prev,
-        ...assets.map((a) => ({ uri: a.uri, isExisting: false })),
-      ]);
+      setPhotos((prev) => [...prev, ...assets.map((a) => ({ uri: a.uri, isExisting: false }))]);
     }
   }
 
   async function handleSaveEdit() {
     if (!description.trim()) {
-      Alert.alert('Beschrijving ontbreekt', 'Vul een beschrijving in.');
+      showToast('Vul een beschrijving in.', 'error');
       return;
     }
 
@@ -166,13 +161,14 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
       setShowDatePicker(false);
       onUpdated?.();
     } catch (err) {
-      Alert.alert('Opslaan mislukt', err.message || 'Probeer opnieuw.');
+      showToast(err.message || 'Opslaan mislukt. Probeer opnieuw.', 'error');
     } finally {
       setIsSaving(false);
     }
   }
 
   function handleDelete() {
+    const { Alert } = require('react-native');
     Alert.alert(
       'Log verwijderen?',
       'Deze log wordt definitief verwijderd. Dit kan niet ongedaan gemaakt worden.',
@@ -187,7 +183,7 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
               await deleteLogboekEntry(log.id);
               onDeleted?.();
             } catch (err) {
-              Alert.alert('Verwijderen mislukt', err.message || 'Probeer opnieuw.');
+              showToast(err.message || 'Verwijderen mislukt.', 'error');
               setIsDeleting(false);
             }
           },
@@ -199,7 +195,7 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
   if (isLoading || !log) {
     return (
       <View style={styles.loading}>
-        <Text style={styles.loadingText}>Laden…</Text>
+        <ActivityIndicator size="large" color={COLORS.brand} accessibilityLabel="Laden" />
       </View>
     );
   }
@@ -212,7 +208,7 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
       <SafeAreaView edges={['top']} style={styles.headerSafe}>
         <View style={styles.headerRow}>
           <Pressable
-            style={styles.headerLeft}
+            style={({ pressed }) => [styles.headerLeft, pressed && { opacity: 0.7 }]}
             onPress={isEditing ? handleCancelEdit : onBack}
             hitSlop={8}
             accessibilityRole="button"
@@ -226,18 +222,23 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
             </Text>
           </Pressable>
 
-          <Text style={styles.headerTitle} numberOfLines={1}>
+          <Text style={styles.headerTitle} numberOfLines={1} accessibilityRole="header">
             {isEditing ? 'Log bewerken' : 'Log'}
           </Text>
 
           {isEditing ? (
             <Pressable
-              style={[styles.headerRight, isSaving && styles.headerActionDisabled]}
+              style={({ pressed }) => [
+                styles.headerRight,
+                isSaving && styles.headerActionDisabled,
+                pressed && !isSaving && { opacity: 0.7 },
+              ]}
               onPress={handleSaveEdit}
               disabled={isSaving}
               hitSlop={8}
               accessibilityRole="button"
               accessibilityLabel="Opslaan"
+              accessibilityState={{ disabled: isSaving, busy: isSaving }}
             >
               <CheckIcon size={20} color={COLORS.textInverse} weight="bold" />
               <Text style={styles.headerSideText}>
@@ -266,9 +267,10 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
           {isEditing ? (
             <>
               <Pressable
-                style={styles.dateButton}
+                style={({ pressed }) => [styles.dateButton, pressed && { opacity: 0.8 }]}
                 onPress={() => setShowDatePicker((v) => !v)}
                 accessibilityRole="button"
+                accessibilityLabel="Datum kiezen"
               >
                 <Text style={styles.dateButtonText}>{formatDisplayDate(loggedDate)}</Text>
                 <CalendarIcon size={16} color={COLORS.textSecondary} weight="regular" />
@@ -288,9 +290,10 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
                   />
                   {Platform.OS === 'ios' && (
                     <Pressable
-                      style={styles.dateConfirm}
+                      style={({ pressed }) => [styles.dateConfirm, pressed && { opacity: 0.8 }]}
                       onPress={() => setShowDatePicker(false)}
                       accessibilityRole="button"
+                      accessibilityLabel="Datum bevestigen"
                     >
                       <Text style={styles.dateConfirmText}>Klaar</Text>
                     </Pressable>
@@ -321,9 +324,7 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
             <TextInput
               style={styles.textarea}
               value={description}
-              onChangeText={(t) => {
-                if (t.length <= MAX_DESCRIPTION) setDescription(t);
-              }}
+              onChangeText={(t) => { if (t.length <= MAX_DESCRIPTION) setDescription(t); }}
               multiline
               numberOfLines={6}
               textAlignVertical="top"
@@ -351,22 +352,24 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
                 {photos.map((photo, index) => (
                   <View key={`${photo.uri}-${index}`} style={styles.photoCell}>
                     <Pressable
-                      onPress={() => {
-                        if (!isEditing) setPreviewIndex(index);
-                      }}
-                      style={styles.photoFrame}
+                      onPress={() => { if (!isEditing) setPreviewIndex(index); }}
+                      style={({ pressed }) => [styles.photoFrame, pressed && !isEditing && { opacity: 0.85 }]}
+                      accessibilityRole={isEditing ? undefined : 'button'}
+                      accessibilityLabel={isEditing ? undefined : `Foto ${index + 1} bekijken`}
                     >
                       <Image source={{ uri: photo.uri }} style={styles.photoThumb} />
                     </Pressable>
                     {isEditing && (
                       <Pressable
-                        style={styles.photoRemove}
+                        style={({ pressed }) => [styles.photoRemove, pressed && { opacity: 0.7 }]}
                         onPress={() => removePhoto(index)}
-                        hitSlop={4}
+                        hitSlop={SPACING.xs}
                         accessibilityRole="button"
                         accessibilityLabel="Foto verwijderen"
                       >
-                        <XCircleIcon size={22} color={COLORS.negative} weight="fill" />
+                        <View style={styles.removeCircle}>
+                          <XIcon size={11} color={COLORS.textInverse} weight="bold" />
+                        </View>
                       </Pressable>
                     )}
                   </View>
@@ -377,17 +380,19 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
             {isEditing && (
               <View style={styles.photoActions}>
                 <Pressable
-                  style={styles.photoActionBtn}
+                  style={({ pressed }) => [styles.photoActionBtn, pressed && { opacity: 0.8 }]}
                   onPress={handlePickCamera}
                   accessibilityRole="button"
+                  accessibilityLabel="Foto nemen met camera"
                 >
                   <CameraIcon size={18} color={COLORS.brand} weight="regular" />
                   <Text style={styles.photoActionText}>Camera</Text>
                 </Pressable>
                 <Pressable
-                  style={styles.photoActionBtn}
+                  style={({ pressed }) => [styles.photoActionBtn, pressed && { opacity: 0.8 }]}
                   onPress={handlePickGallery}
                   accessibilityRole="button"
+                  accessibilityLabel="Foto kiezen uit galerij"
                 >
                   <ImagesIcon size={18} color={COLORS.brand} weight="regular" />
                   <Text style={styles.photoActionText}>Galerij</Text>
@@ -401,19 +406,26 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
         {!isEditing && (
           <View style={styles.actionButtons}>
             <Pressable
-              style={styles.editButton}
+              style={({ pressed }) => [styles.editButton, pressed && { opacity: 0.8 }]}
               onPress={() => setIsEditing(true)}
               accessibilityRole="button"
+              accessibilityLabel="Log bewerken"
             >
               <PencilSimpleIcon size={18} color={COLORS.brand} weight="regular" />
               <Text style={styles.editButtonText}>Bewerken</Text>
             </Pressable>
 
             <Pressable
-              style={[styles.deleteButton, isDeleting && styles.buttonDisabled]}
+              style={({ pressed }) => [
+                styles.deleteButton,
+                isDeleting && styles.buttonDisabled,
+                pressed && !isDeleting && { opacity: 0.8 },
+              ]}
               onPress={handleDelete}
               disabled={isDeleting}
               accessibilityRole="button"
+              accessibilityLabel="Log verwijderen"
+              accessibilityState={{ disabled: isDeleting, busy: isDeleting }}
             >
               <TrashIcon size={18} color={COLORS.negative} weight="regular" />
               <Text style={styles.deleteButtonText}>
@@ -433,13 +445,15 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
           onRequestClose={() => setPreviewIndex(null)}
         >
           <View style={styles.previewOverlay}>
-            <View style={[styles.previewHeader, { paddingTop: Math.max(insets.top, 16) }]}>
+            <View style={[styles.previewHeader, { paddingTop: Math.max(insets.top, SPACING.md) }]}>
               <Pressable
                 style={styles.previewCloseBtn}
                 onPress={() => setPreviewIndex(null)}
                 hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Sluiten"
               >
-                <XIcon size={20} color="#FFFFFF" weight="bold" />
+                <XIcon size={20} color={COLORS.textInverse} weight="bold" />
               </Pressable>
               {photos.length > 1 && (
                 <Text style={styles.previewCounter}>
@@ -457,22 +471,13 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
               keyExtractor={(_, i) => String(i)}
               renderItem={({ item }) => (
                 <View style={styles.previewImageWrap}>
-                  <Image
-                    source={{ uri: item.uri }}
-                    style={styles.previewImage}
-                    resizeMode="contain"
-                  />
+                  <Image source={{ uri: item.uri }} style={styles.previewImage} resizeMode="contain" />
                 </View>
               )}
-              getItemLayout={(_, index) => ({
-                length: SCREEN_WIDTH,
-                offset: SCREEN_WIDTH * index,
-                index,
-              })}
+              getItemLayout={(_, index) => ({ length: SCREEN_WIDTH, offset: SCREEN_WIDTH * index, index })}
               showsHorizontalScrollIndicator={false}
               onMomentumScrollEnd={(e) => {
-                const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-                setPreviewIndex(index);
+                setPreviewIndex(Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH));
               }}
             />
           </View>
@@ -482,7 +487,7 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
   );
 }
 
-const PHOTO_CELL_SIZE = Math.floor((SCREEN_WIDTH - SPACING.screenX * 2 - SPACING.md * 2 - 16) / 3);
+const PHOTO_CELL_SIZE = Math.floor((SCREEN_WIDTH - SPACING.screenX * 2 - SPACING.md * 2 - SPACING.sm * 2) / 3);
 
 const styles = StyleSheet.create({
   screen: {
@@ -495,13 +500,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: COLORS.background,
   },
-  loadingText: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textSecondary,
-  },
 
-  // Header
   headerSafe: {
     backgroundColor: COLORS.brand,
   },
@@ -516,14 +515,14 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: SPACING.sm,
     minWidth: 88,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    gap: 6,
+    gap: SPACING.sm,
     minWidth: 88,
   },
   headerSideText: {
@@ -548,13 +547,13 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.lg,
-    paddingBottom: 40,
+    paddingBottom: SPACING.xl,
     gap: SPACING.md,
   },
 
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.sm,
+    borderRadius: RADIUS.md,
     padding: SPACING.md,
     ...SHADOWS.card,
   },
@@ -576,7 +575,6 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
 
-  // Date
   dateDisplay: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.lg,
@@ -586,10 +584,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(87,98,56,0.05)',
+    backgroundColor: INPUT_BG,
     borderRadius: RADIUS.sm,
     paddingHorizontal: SPACING.sm,
-    paddingVertical: 10,
+    paddingVertical: SPACING.sm + 2,
   },
   dateButtonText: {
     fontFamily: FONTS.bodyMedium,
@@ -610,7 +608,6 @@ const styles = StyleSheet.create({
     color: COLORS.textInverse,
   },
 
-  // Description
   descriptionText: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.lg,
@@ -618,7 +615,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   textarea: {
-    backgroundColor: 'rgba(87,98,56,0.05)',
+    backgroundColor: INPUT_BG,
     borderRadius: RADIUS.sm,
     padding: SPACING.sm,
     fontFamily: FONTS.body,
@@ -636,11 +633,10 @@ const styles = StyleSheet.create({
     color: COLORS.negative,
   },
 
-  // Photos
   photoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: SPACING.sm,
     marginBottom: SPACING.sm,
   },
   photoCell: {
@@ -661,11 +657,17 @@ const styles = StyleSheet.create({
   },
   photoRemove: {
     position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: COLORS.surface,
-    borderRadius: 999,
+    top: SPACING.xs,
+    right: SPACING.xs,
     zIndex: 2,
+  },
+  removeCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: RADIUS.pill,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   photoActions: {
     flexDirection: 'row',
@@ -676,12 +678,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
+    gap: SPACING.sm,
+    paddingVertical: SPACING.sm + 2,
     borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: COLORS.brand,
-    backgroundColor: 'rgba(87,98,56,0.04)',
+    backgroundColor: INPUT_BG,
   },
   photoActionText: {
     fontFamily: FONTS.bodyMedium,
@@ -689,7 +691,6 @@ const styles = StyleSheet.create({
     color: COLORS.brand,
   },
 
-  // Action buttons (view mode)
   actionButtons: {
     gap: SPACING.sm,
   },
@@ -729,10 +730,9 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
 
-  // Full-screen gallery
   previewOverlay: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#000',
   },
   previewHeader: {
     flexDirection: 'row',
@@ -744,15 +744,15 @@ const styles = StyleSheet.create({
   previewCloseBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.overlayLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   previewCounter: {
     fontFamily: FONTS.bodyMedium,
     fontSize: FONT_SIZES.md,
-    color: '#FFFFFF',
+    color: COLORS.textInverse,
   },
   previewHeaderSpacer: {
     width: 36,

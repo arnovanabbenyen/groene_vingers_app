@@ -4,7 +4,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
-export default function DateBlockSelector({ value, onChange, minimumDate }) {
+export default function DateBlockSelector({ value, onChange, minimumDate, maximumDate, accessibilityLabel = 'Datum' }) {
   const insets = useSafeAreaInsets();
   const [visible, setVisible] = useState(false);
   const sheetAnim = useRef(new Animated.Value(300)).current;
