@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { NotebookIcon, MagnifyingGlassIcon } from 'phosphor-react-native';
 import BottomNav from '../../components/navigation/BottomNav';
 import EmptyState from '../../components/common/EmptyState';
-import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
 
 export default function LogboekScreen({
   onTabPress,
@@ -43,7 +43,7 @@ export default function LogboekScreen({
           accessibilityHint="Navigeert naar de kaartweergave"
         >
           <View style={styles.ctaInner}>
-            <MagnifyingGlassIcon size={18} color={COLORS.textInverse} weight="regular" style={styles.ctaIcon} />
+            <MagnifyingGlassIcon size={18} color={COLORS.textInverse} weight="regular" />
             <Text style={styles.ctaLabel}>Zoek een perceel op de kaart</Text>
           </View>
         </Pressable>
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   ctaBtn: {
     backgroundColor: COLORS.brand,
     borderRadius: RADIUS.sm,
-    height: 44,
+    height: SIZES.iconBtn,
     alignItems: 'center',
     justifyContent: 'center',
     ...SHADOWS.card,
@@ -104,8 +104,6 @@ const styles = StyleSheet.create({
   ctaInner: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  ctaIcon: {
-    marginRight: SPACING.sm,
+    gap: SPACING.sm,
   },
 });

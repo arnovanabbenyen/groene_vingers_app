@@ -1,6 +1,6 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { NotebookIcon } from 'phosphor-react-native';
-import { COLORS, FONTS, RADIUS, SPACING } from '../theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 
 const THUMB_SIZE = 50;
 const ACCENT_WIDTH = 3;
@@ -47,11 +47,12 @@ export default function LogEntryCard({ entry, onPress }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#F7F7F5',
+    backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
     flexDirection: 'row',
     overflow: 'hidden',
     marginBottom: SPACING.sm,
+    ...SHADOWS.card,
   },
   accent: {
     width: ACCENT_WIDTH,
@@ -67,17 +68,17 @@ const styles = StyleSheet.create({
   },
   textCol: {
     flex: 1,
-    gap: 4,
+    gap: SPACING.xs,
   },
   date: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 20,
+    fontSize: FONT_SIZES.xl,
     color: COLORS.textPrimary,
     lineHeight: 22,
   },
   description: {
     fontFamily: FONTS.body,
-    fontSize: 12.8,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
     lineHeight: 17,
   },

@@ -8,9 +8,10 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BellIcon, CheckCircleIcon, HeartIcon, PlusIcon, TargetIcon } from 'phosphor-react-native';
+import { BellIcon, CalendarIcon, CaretRightIcon, CheckCircleIcon, HeartIcon, NotebookIcon, PlusIcon, TargetIcon } from 'phosphor-react-native';
 import { StatusBar } from 'expo-status-bar';
 import BottomNav from '../../components/navigation/BottomNav';
+import EmptyState from '../../components/common/EmptyState';
 import ProgressRing from '../../components/logboek/ProgressRing';
 import WeekCalendar from '../../components/logboek/WeekCalendar';
 import LogEntryCard from '../../components/logboek/LogEntryCard';
@@ -21,6 +22,8 @@ import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
 import { getLogboekEntries, getWeeklyProgress } from '../../services/logboek';
 import { supabase } from '../../services/supabase';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
+
+const ICON_CIRCLE_SIZE = 40;
 
 export default function LogboekHomeScreen({
   samenwerking,
@@ -176,7 +179,13 @@ export default function LogboekHomeScreen({
             <Text style={styles.headerSubtitle} numberOfLines={1}>{perceelNaam}</Text>
           </View>
           <View style={styles.headerActions}>
-            <Pressable onPress={onOpenNotifications} hitSlop={8} style={styles.bellWrap}>
+            <Pressable
+              onPress={onOpenNotifications}
+              hitSlop={8}
+              style={({ pressed }) => [styles.bellWrap, pressed && { opacity: 0.7 }]}
+              accessibilityRole="button"
+              accessibilityLabel={unreadNotificationsCount > 0 ? `${unreadNotificationsCount} ongelezen melding${unreadNotificationsCount !== 1 ? 'en' : ''}` : 'Meldingen'}
+            >
               <BellIcon size={24} color={COLORS.textInverse} weight="regular" />
               {unreadNotificationsCount > 0 ? (
                 <View style={styles.bellBadge}>
@@ -186,7 +195,13 @@ export default function LogboekHomeScreen({
                 </View>
               ) : null}
             </Pressable>
-            <Pressable onPress={onOpenSaved} hitSlop={8}>
+            <Pressable
+              onPress={onOpenSaved}
+              hitSlop={8}
+              style={({ pressed }) => pressed && { opacity: 0.7 }}
+              accessibilityRole="button"
+              accessibilityLabel="Opgeslagen percelen"
+            >
               <HeartIcon size={24} color={COLORS.textInverse} weight="regular" />
             </Pressable>
           </View>
@@ -227,7 +242,7 @@ export default function LogboekHomeScreen({
             {/* Action cards */}
             <View style={styles.actionRow}>
               <Pressable
-                style={styles.actionCard}
+                style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
                 onPress={onOpenNieuweLog}
                 accessibilityRole="button"
                 accessibilityLabel="Nieuw log toevoegen"
@@ -240,7 +255,7 @@ export default function LogboekHomeScreen({
               </Pressable>
 
               <Pressable
-                style={styles.actionCard}
+                style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
                 onPress={onOpenOpvolgingen}
                 accessibilityRole="button"
                 accessibilityLabel="Opvolgingen bekijken"
@@ -255,18 +270,31 @@ export default function LogboekHomeScreen({
 
             {/* Week calendar */}
             <View style={[styles.card, styles.calendarCard]}>
-              <Text style={styles.sectionTitle}>Deze week</Text>
+              <View style={styles.calendarHeader}>
+                <Text style={styles.sectionTitle}>Deze week</Text>
+                <Pressable
+                  style={({ pressed }) => [styles.calendarExpandBtn, pressed && { opacity: 0.7 }]}
+                  onPress={() => onOpenMonth?.()}
+                  accessibilityRole="button"
+                  accessibilityLabel="Maandoverzicht bekijken"
+                >
+                  <CalendarIcon size={14} color={COLORS.brand} weight="regular" />
+                  <Text style={styles.calendarExpandText}>Maand</Text>
+                  <CaretRightIcon size={12} color={COLORS.brand} weight="bold" />
+                </Pressable>
+              </View>
               <WeekCalendar loggedDates={loggedDates} onExpand={() => onOpenMonth?.()} />
             </View>
 
             {/* Recent log entries */}
             <Text style={styles.sectionTitle}>Recente logs</Text>
             {entries.length === 0 ? (
-              <View style={styles.emptyEntries}>
-                <Text style={styles.emptyText}>
-                  Nog geen logs. Voeg je eerste bezoek toe!
-                </Text>
-              </View>
+              <EmptyState
+                icon={NotebookIcon}
+                title="Nog geen logs"
+                body="Voeg je eerste bezoek toe via de + knop onderaan."
+                compact
+              />
             ) : (
               entries.slice(0, 5).map((entry) => (
                 <LogEntryCard
@@ -350,12 +378,12 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.md,
-    paddingBottom: 32,
+    paddingBottom: SPACING.xl,
     gap: SPACING.md,
   },
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
+    borderRadius: RADIUS.lg,
     ...SHADOWS.card,
   },
   progressCard: {
@@ -381,12 +409,12 @@ const styles = StyleSheet.create({
   goalButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: SPACING.xs,
     alignSelf: 'flex-start',
     backgroundColor: COLORS.surfaceBrand,
     borderRadius: RADIUS.pill,
     paddingHorizontal: SPACING.sm,
-    paddingVertical: 4,
+    paddingVertical: SPACING.xs,
   },
   goalButtonText: {
     fontFamily: FONTS.bodyMedium,
@@ -399,16 +427,20 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     flex: 1,
-    backgroundColor: 'rgba(87,98,56,0.05)',
-    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
     padding: SPACING.md,
     gap: SPACING.sm,
     alignItems: 'flex-start',
+    ...SHADOWS.card,
+  },
+  actionCardPressed: {
+    opacity: 0.8,
   },
   actionIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: ICON_CIRCLE_SIZE,
+    height: ICON_CIRCLE_SIZE,
+    borderRadius: ICON_CIRCLE_SIZE / 2,
     backgroundColor: COLORS.surfaceBrand,
     alignItems: 'center',
     justifyContent: 'center',
@@ -427,21 +459,28 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     gap: SPACING.sm,
   },
+  calendarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  calendarExpandBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    backgroundColor: COLORS.surfaceBrand,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+  },
+  calendarExpandText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.brand,
+  },
   sectionTitle: {
     fontFamily: FONTS.displaySemiBold,
     fontSize: FONT_SIZES.lg,
     color: COLORS.textPrimary,
-  },
-  emptyEntries: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
-    padding: SPACING.lg,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
   },
 });

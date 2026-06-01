@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { MinusIcon, PlusIcon } from 'phosphor-react-native';
+import { FloppyDiskIcon, MinusIcon, PlusIcon } from 'phosphor-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Header from '../../components/navigation/Header';
-import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
+import { showToast } from '../../components/common/Toast';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
 import { supabase } from '../../services/supabase';
 import { updateWeeklyLogGoal } from '../../services/logboek';
 
 export default function WeeklyGoalScreen({ onBack, onSaved }) {
+  const insets = useSafeAreaInsets();
   const [goal, setGoal] = useState(4);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,7 +64,7 @@ export default function WeeklyGoalScreen({ onBack, onSaved }) {
       onSaved?.();
     } catch (e) {
       console.warn('WeeklyGoalScreen save error', e);
-      Alert.alert('Opslaan mislukt', e.message || 'Probeer opnieuw.');
+      showToast(e.message || 'Opslaan mislukt. Probeer opnieuw.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -124,7 +126,11 @@ export default function WeeklyGoalScreen({ onBack, onSaved }) {
               />
             </Pressable>
           </View>
+        </View>
+      )}
 
+      {!isLoading && (
+        <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, SPACING.md) + SPACING.md }]}>
           <Pressable
             style={({ pressed }) => [
               styles.saveBtn,
@@ -140,7 +146,10 @@ export default function WeeklyGoalScreen({ onBack, onSaved }) {
             {isSaving ? (
               <ActivityIndicator color={COLORS.textInverse} size="small" />
             ) : (
-              <Text style={styles.saveBtnText}>Opslaan</Text>
+              <>
+                <FloppyDiskIcon size={20} color={COLORS.textInverse} weight="regular" />
+                <Text style={styles.saveBtnText}>Opslaan</Text>
+              </>
             )}
           </Pressable>
         </View>
@@ -164,6 +173,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.xl,
     gap: SPACING.lg,
+  },
+  actionBar: {
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: SPACING.md,
+    backgroundColor: COLORS.background,
   },
   description: {
     fontFamily: FONTS.body,
@@ -208,10 +222,13 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     backgroundColor: COLORS.brand,
-    borderRadius: RADIUS.lg,
-    height: 52,
+    borderRadius: RADIUS.sm,
+    height: SIZES.iconBtn,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: SPACING.sm,
+    ...SHADOWS.card,
   },
   saveBtnDisabled: {
     opacity: 0.6,

@@ -2,8 +2,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { COLORS, FONTS } from '../theme/tokens';
 
-const RING_COLOR = '#FFB800';
-const TRACK_COLOR = 'rgba(255,184,0,0.2)';
+const RING_COLOR = COLORS.accent;
+const TRACK_COLOR = 'rgba(255,217,94,0.2)';
 
 export default function ProgressRing({ logged = 0, goal = 4, size = 96 }) {
   const strokeWidth = size * 0.09;

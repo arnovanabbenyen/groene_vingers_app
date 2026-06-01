@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { CaretLeftIcon, CaretRightIcon } from 'phosphor-react-native';
-import { COLORS, FONTS, RADIUS, SPACING } from '../theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
 const DAYS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
 
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   monthLabel: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 13,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textPrimary,
     textTransform: 'capitalize',
   },
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   dayCol: {
     flex: 1,
     alignItems: 'center',
-    gap: 4,
+    gap: SPACING.xs,
   },
   dot: {
     width: 5,
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   },
   dayLabel: {
     fontFamily: FONTS.body,
-    fontSize: 10,
+    fontSize: FONT_SIZES.xxs,
     color: COLORS.textSecondary,
   },
   dayLabelToday: {
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   },
   dayNum: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textPrimary,
   },
   dayNumToday: {
