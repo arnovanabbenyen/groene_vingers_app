@@ -594,15 +594,6 @@ export default function App() {
               setSamenwerkingRefreshKey((k) => k + 1);
             }}
           />
-        ) : currentScreen === 'nieuwe-log' ? (
-          <NieuweLogScreen
-            onBack={() => setCurrentScreen('home')}
-            samenwerking={activeSamenwerking}
-            onSaved={() => {
-              setSamenwerkingRefreshKey((k) => k + 1);
-              setCurrentScreen('home');
-            }}
-          />
         ) : currentScreen === 'opvolgingen' ? (
           <OpvolgingenScreen
             aanvraagId={activeSamenwerking?.id}
@@ -755,7 +746,7 @@ export default function App() {
             onOpenNotifications={() => setCurrentScreen('meldingen')}
             onOpenProfiel={() => setCurrentScreen('profiel')}
             onOpenSaved={() => { setOpgeslagenSource('home'); setCurrentScreen('opgeslagen'); }}
-            onOpenNieuweLog={() => setCurrentScreen('nieuwe-log')}
+            onNieuweLogSaved={() => setSamenwerkingRefreshKey((k) => k + 1)}
             onOpenWeeklyGoal={() => { setWeeklyGoalSource('home'); setCurrentScreen('weekly-goal'); }}
             onOpenLogDetail={(logId) => { setSelectedLogId(logId); setCurrentScreen('log-detail'); }}
             onOpenMonth={() => setCurrentScreen('log-month')}

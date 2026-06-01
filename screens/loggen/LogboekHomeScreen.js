@@ -19,6 +19,7 @@ import KaartScreen from '../kaart/KaartScreen';
 import BerichtenOverzichtScreen from '../berichten/BerichtenOverzichtScreen';
 import ConversationDetailScreen from '../berichten/ConversationDetailScreen';
 import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
+import NieuweLogScreen from './NieuweLogScreen';
 import { getLogboekEntries, getWeeklyProgress } from '../../services/logboek';
 import { supabase } from '../../services/supabase';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
@@ -35,7 +36,7 @@ export default function LogboekHomeScreen({
   onOpenNotifications,
   onOpenProfiel,
   onOpenSaved,
-  onOpenNieuweLog,
+  onNieuweLogSaved,
   onOpenWeeklyGoal,
   onOpenLogDetail,
   onOpenMonth,
@@ -97,10 +98,6 @@ export default function LogboekHomeScreen({
   function handleTabPress(item) {
     if (item.key === 'profiel') {
       onOpenProfiel?.();
-      return;
-    }
-    if (item.key === 'loggen') {
-      onOpenNieuweLog?.();
       return;
     }
     setActiveTab(item.key);
@@ -172,43 +169,50 @@ export default function LogboekHomeScreen({
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
-      <SafeAreaView edges={['top']} style={styles.headerSafe}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle} accessibilityRole="header">Logboek</Text>
-            <Text style={styles.headerSubtitle} numberOfLines={1}>{perceelNaam}</Text>
+      {activeTab !== 'loggen' && (
+        <SafeAreaView edges={['top']} style={styles.headerSafe}>
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.headerTitle} accessibilityRole="header">Logboek</Text>
+              <Text style={styles.headerSubtitle} numberOfLines={1}>{perceelNaam}</Text>
+            </View>
+            <View style={styles.headerActions}>
+              <Pressable
+                onPress={onOpenNotifications}
+                hitSlop={8}
+                style={({ pressed }) => [styles.bellWrap, pressed && { opacity: 0.7 }]}
+                accessibilityRole="button"
+                accessibilityLabel={unreadNotificationsCount > 0 ? `${unreadNotificationsCount} ongelezen melding${unreadNotificationsCount !== 1 ? 'en' : ''}` : 'Meldingen'}
+              >
+                <BellIcon size={24} color={COLORS.textInverse} weight="regular" />
+                {unreadNotificationsCount > 0 ? (
+                  <View style={styles.bellBadge}>
+                    <Text style={styles.bellBadgeText}>
+                      {unreadNotificationsCount > 9 ? '9+' : String(unreadNotificationsCount)}
+                    </Text>
+                  </View>
+                ) : null}
+              </Pressable>
+              <Pressable
+                onPress={onOpenSaved}
+                hitSlop={8}
+                style={({ pressed }) => pressed && { opacity: 0.7 }}
+                accessibilityRole="button"
+                accessibilityLabel="Opgeslagen percelen"
+              >
+                <HeartIcon size={24} color={COLORS.textInverse} weight="regular" />
+              </Pressable>
+            </View>
           </View>
-          <View style={styles.headerActions}>
-            <Pressable
-              onPress={onOpenNotifications}
-              hitSlop={8}
-              style={({ pressed }) => [styles.bellWrap, pressed && { opacity: 0.7 }]}
-              accessibilityRole="button"
-              accessibilityLabel={unreadNotificationsCount > 0 ? `${unreadNotificationsCount} ongelezen melding${unreadNotificationsCount !== 1 ? 'en' : ''}` : 'Meldingen'}
-            >
-              <BellIcon size={24} color={COLORS.textInverse} weight="regular" />
-              {unreadNotificationsCount > 0 ? (
-                <View style={styles.bellBadge}>
-                  <Text style={styles.bellBadgeText}>
-                    {unreadNotificationsCount > 9 ? '9+' : String(unreadNotificationsCount)}
-                  </Text>
-                </View>
-              ) : null}
-            </Pressable>
-            <Pressable
-              onPress={onOpenSaved}
-              hitSlop={8}
-              style={({ pressed }) => pressed && { opacity: 0.7 }}
-              accessibilityRole="button"
-              accessibilityLabel="Opgeslagen percelen"
-            >
-              <HeartIcon size={24} color={COLORS.textInverse} weight="regular" />
-            </Pressable>
-          </View>
-        </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      )}
 
-      <ScrollView
+      {activeTab === 'loggen' ? (
+        <NieuweLogScreen
+          samenwerking={samenwerking}
+          onSaved={() => { onNieuweLogSaved?.(); setActiveTab('start'); }}
+        />
+      ) : <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -243,7 +247,7 @@ export default function LogboekHomeScreen({
             <View style={styles.actionRow}>
               <Pressable
                 style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
-                onPress={onOpenNieuweLog}
+                onPress={() => setActiveTab('loggen')}
                 accessibilityRole="button"
                 accessibilityLabel="Nieuw log toevoegen"
               >
@@ -306,10 +310,10 @@ export default function LogboekHomeScreen({
             )}
           </>
         )}
-      </ScrollView>
+      </ScrollView>}
 
       <BottomNav
-        activeKey="start"
+        activeKey={activeTab}
         onTabPress={handleTabPress}
         profileImageSource={profileImageSource}
         badgeCounts={badgeCounts}

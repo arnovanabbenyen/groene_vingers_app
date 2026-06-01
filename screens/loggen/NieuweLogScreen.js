@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Alert,
+  Animated,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -11,9 +13,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { CalendarCheckIcon, CameraIcon, LeafIcon, BinocularsIcon, XIcon } from 'phosphor-react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { CalendarCheckIcon, CameraIcon, LeafIcon, BinocularsIcon, XIcon, PlusIcon, CheckSquareIcon, CalendarIcon, CaretDownIcon } from 'phosphor-react-native';
 import Header from '../../components/navigation/Header';
 import AuthButton from '../../components/buttons/AuthButton';
 import SectionCard from '../../components/parcel/SectionCard';
@@ -24,9 +28,18 @@ import { showToast } from '../../components/common/Toast';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 import { supabase } from '../../services/supabase';
 import { uploadChatImage } from '../../services/messageMedia';
+import { createOpvolging } from '../../services/opvolgingen';
 
 const MAX_DESCRIPTION = 2000;
+const MAX_OPVOLGING_TITLE = 120;
 const INPUT_BG = 'rgba(87,98,56,0.06)';
+
+function tomorrow() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
 
 function toLocalDateString(date) {
   const year = date.getFullYear();
@@ -39,11 +52,29 @@ function formatDisplayDate(date) {
   return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-export default function NieuweLogScreen({ onBack, samenwerking, onSaved }) {
+export default function NieuweLogScreen({ onBack, samenwerking, onSaved, hideHeader = false }) {
   const [beschrijving, setBeschrijving] = useState('');
   const [loggedDate, setLoggedDate] = useState(new Date());
   const [photos, setPhotos] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [opvolgingen, setOpvolgingen] = useState([]);
+  const [openDatePickerId, setOpenDatePickerId] = useState(null);
+  const insets = useSafeAreaInsets();
+  const sheetAnim = useRef(new Animated.Value(300)).current;
+
+  const activeOpvolging = opvolgingen.find((o) => o.id === openDatePickerId) ?? null;
+
+  function openDatePicker(id) {
+    sheetAnim.setValue(300);
+    setOpenDatePickerId(id);
+    Animated.spring(sheetAnim, { toValue: 0, useNativeDriver: true, damping: 20, stiffness: 200 }).start();
+  }
+
+  function closeDatePicker() {
+    Animated.timing(sheetAnim, { toValue: 300, duration: 200, useNativeDriver: true }).start(() =>
+      setOpenDatePickerId(null),
+    );
+  }
 
   const perceelNaam = samenwerking?.percelen?.naam ?? 'Jouw perceel';
   const canSubmit = beschrijving.trim().length > 0;
@@ -156,6 +187,24 @@ export default function NieuweLogScreen({ onBack, samenwerking, onSaved }) {
     }
   }
 
+  function addOpvolging() {
+    const id = `opv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    setOpvolgingen((prev) => [...prev, { id, title: '', dueDate: tomorrow() }]);
+  }
+
+  function removeOpvolging(id) {
+    setOpvolgingen((prev) => prev.filter((o) => o.id !== id));
+    if (openDatePickerId === id) closeDatePicker();
+  }
+
+  function updateOpvolgingTitle(id, title) {
+    setOpvolgingen((prev) => prev.map((o) => (o.id === id ? { ...o, title } : o)));
+  }
+
+  function updateOpvolgingDueDate(id, date) {
+    setOpvolgingen((prev) => prev.map((o) => (o.id === id ? { ...o, dueDate: date } : o)));
+  }
+
   function promptForPhoto(index) {
     Alert.alert('Foto toevoegen', 'Kies hoe je een foto wilt toevoegen.', [
       { text: 'Foto nemen', onPress: () => pickFromCamera(index) },
@@ -197,6 +246,15 @@ export default function NieuweLogScreen({ onBack, samenwerking, onSaved }) {
 
       if (insertError) throw insertError;
 
+      const validOpvolgingen = opvolgingen.filter((o) => o.title.trim().length > 0);
+      for (const opvolging of validOpvolgingen) {
+        await createOpvolging(aanvraagId, userId, {
+          title: opvolging.title.trim(),
+          description: null,
+          due_date: toLocalDateString(opvolging.dueDate),
+        });
+      }
+
       onSaved?.();
     } catch (err) {
       showToast(err.message || 'Opslaan mislukt.', 'error');
@@ -210,7 +268,7 @@ export default function NieuweLogScreen({ onBack, samenwerking, onSaved }) {
       style={styles.screen}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Header title="Nieuwe log" onBack={onBack} />
+      {!hideHeader && <Header title="Nieuwe log" onBack={onBack} />}
 
       <ScrollView
         style={styles.scroll}
@@ -276,6 +334,54 @@ export default function NieuweLogScreen({ onBack, samenwerking, onSaved }) {
           />
         </SectionCard>
 
+        {/* Opvolgingen */}
+        <SectionCard>
+          <SectionHeader
+            icon={CheckSquareIcon}
+            title="Opvolgingen"
+            action={<Text style={styles.optionalLabel}>optioneel</Text>}
+          />
+
+          {opvolgingen.map((item) => (
+            <View key={item.id} style={styles.opvolgingItem}>
+              <View style={styles.opvolgingTitleRow}>
+                <TextInput
+                  style={styles.opvolgingInput}
+                  value={item.title}
+                  onChangeText={(t) => {
+                    if (t.length <= MAX_OPVOLGING_TITLE) updateOpvolgingTitle(item.id, t);
+                  }}
+                  placeholder="Bijv. Onkruid verwijderen"
+                  placeholderTextColor={COLORS.textMuted}
+                  returnKeyType="done"
+                />
+                <Pressable onPress={() => removeOpvolging(item.id)} hitSlop={8} accessibilityRole="button">
+                  <XIcon size={18} color={COLORS.negative} />
+                </Pressable>
+              </View>
+
+              <Pressable
+                style={styles.opvolgingDateBtn}
+                onPress={() => openDatePicker(item.id)}
+                accessibilityRole="button"
+                accessibilityLabel="Deadline kiezen"
+              >
+                <CalendarIcon size={16} color={COLORS.brand} weight="bold" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.opvolgingDateLabel}>Deadline</Text>
+                  <Text style={styles.opvolgingDateText}>{formatDisplayDate(item.dueDate)}</Text>
+                </View>
+                <CaretDownIcon size={14} color={COLORS.brand} weight="bold" />
+              </Pressable>
+            </View>
+          ))}
+
+          <Pressable style={styles.addOpvolgingBtn} onPress={addOpvolging} accessibilityRole="button">
+            <PlusIcon size={16} color={COLORS.brand} />
+            <Text style={styles.addOpvolgingText}>Opvolging toevoegen</Text>
+          </Pressable>
+        </SectionCard>
+
         <AuthButton
           label="Log opslaan"
           onPress={handleSubmit}
@@ -283,6 +389,31 @@ export default function NieuweLogScreen({ onBack, samenwerking, onSaved }) {
           disabled={!canSubmit}
         />
       </ScrollView>
+
+      {/* Deadline bottom sheet */}
+      <Modal visible={!!openDatePickerId} transparent animationType="none" onRequestClose={closeDatePicker}>
+        <Pressable style={styles.sheetBackdrop} onPress={closeDatePicker} accessibilityLabel="Sluit datumkiezer" />
+        <Animated.View
+          style={[styles.sheet, { paddingBottom: insets.bottom + SPACING.md, transform: [{ translateY: sheetAnim }] }]}
+        >
+          <View style={styles.sheetHandle} accessibilityElementsHidden />
+          {activeOpvolging && (
+            <DateTimePicker
+              value={activeOpvolging.dueDate}
+              mode="date"
+              display="spinner"
+              minimumDate={new Date()}
+              locale="nl-BE"
+              onChange={(_, selected) => { if (selected) updateOpvolgingDueDate(activeOpvolging.id, selected); }}
+            />
+          )}
+          <View style={styles.sheetDoneWrap}>
+            <Pressable style={styles.sheetDoneBtn} onPress={closeDatePicker} accessibilityRole="button" accessibilityLabel="Datum bevestigen">
+              <Text style={styles.sheetDoneBtnText}>Klaar</Text>
+            </Pressable>
+          </View>
+        </Animated.View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -356,5 +487,108 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
+  },
+  optionalLabel: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+  },
+  opvolgingItem: {
+    gap: SPACING.xs,
+    paddingTop: SPACING.sm,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.dividerSoft,
+    marginTop: SPACING.xs,
+  },
+  opvolgingTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  opvolgingInput: {
+    flex: 1,
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
+    backgroundColor: INPUT_BG,
+    borderRadius: RADIUS.xs,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs + 2,
+  },
+  opvolgingDateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.surfaceBrand,
+    borderWidth: 1,
+    borderColor: COLORS.brandOverlayStroke,
+  },
+  opvolgingDateLabel: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.brand,
+    opacity: 0.7,
+  },
+  opvolgingDateText: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.brand,
+    textTransform: 'capitalize',
+  },
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  sheet: {
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: RADIUS.lg,
+    borderTopRightRadius: RADIUS.lg,
+    paddingTop: SPACING.sm,
+    paddingHorizontal: SPACING.screenX,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.indicatorMuted,
+    alignSelf: 'center',
+    marginBottom: SPACING.sm,
+  },
+  sheetDoneWrap: {
+    paddingTop: SPACING.md,
+  },
+  sheetDoneBtn: {
+    backgroundColor: COLORS.brand,
+    borderRadius: RADIUS.pill,
+    paddingVertical: SPACING.sm,
+    alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  sheetDoneBtnText: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textInverse,
+  },
+  addOpvolgingBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginTop: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    alignSelf: 'flex-start',
+  },
+  addOpvolgingText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.brand,
   },
 });
