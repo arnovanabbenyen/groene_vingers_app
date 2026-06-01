@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, Text, StyleSheet, View } from 'react-native';
-import { COLORS, FONTS, SPACING, RADIUS } from '../theme/tokens';
+import { COLORS, FONTS, RADIUS } from '../theme/tokens';
 
 export default function AuthButton({
   label,
@@ -12,17 +12,22 @@ export default function AuthButton({
   ...rest
 }) {
   const isPrimary = variant === 'primary';
+  const isDanger = variant === 'danger';
   const isDisabled = disabled || loading;
-  const iconColor = isPrimary ? COLORS.textInverse : COLORS.brand;
+
+  const iconColor = isPrimary || isDanger ? COLORS.textInverse : COLORS.brand;
+
+  function getButtonStyle(pressed) {
+    if (isPrimary) return [styles.buttonPrimary, pressed && styles.buttonPrimaryPressed];
+    if (isDanger)  return [styles.buttonDanger,  pressed && styles.buttonDangerPressed];
+    return [styles.buttonSecondary, pressed && styles.buttonSecondaryPressed];
+  }
+
+  const textStyle = isPrimary || isDanger ? styles.buttonTextInverse : styles.buttonTextBrand;
 
   return (
     <Pressable
-      style={({ pressed }) => [
-        styles.button,
-        isPrimary ? styles.buttonPrimary : styles.buttonSecondary,
-        pressed && (isPrimary ? styles.buttonPrimaryPressed : styles.buttonSecondaryPressed),
-        isDisabled && styles.buttonDisabled,
-      ]}
+      style={({ pressed }) => [styles.button, ...getButtonStyle(pressed), isDisabled && styles.buttonDisabled]}
       onPress={onPress}
       disabled={isDisabled}
       accessibilityRole="button"
@@ -31,17 +36,11 @@ export default function AuthButton({
     >
       <View style={styles.content}>
         {loading ? (
-          <ActivityIndicator
-            size="small"
-            color={iconColor}
-            style={styles.spinner}
-          />
-        ) : Icon && !loading ? (
-          <Icon size={20} color={iconColor} weight="regular" />
+          <ActivityIndicator size="small" color={iconColor} style={styles.spinner} />
+        ) : Icon ? (
+          <Icon size={20} color={iconColor} weight="regular" accessibilityElementsHidden />
         ) : null}
-        <Text style={isPrimary ? styles.buttonTextPrimary : styles.buttonTextSecondary}>
-          {label}
-        </Text>
+        <Text style={textStyle}>{label}</Text>
       </View>
     </Pressable>
   );
@@ -63,42 +62,38 @@ const styles = StyleSheet.create({
   spinner: {
     marginRight: -2,
   },
-
   buttonPrimary: {
     backgroundColor: COLORS.brand,
   },
-
   buttonPrimaryPressed: {
     opacity: 0.85,
   },
-
   buttonSecondary: {
     backgroundColor: COLORS.surface,
     borderWidth: 2,
     borderColor: COLORS.brand,
   },
-
   buttonSecondaryPressed: {
-    backgroundColor: COLORS.background,
-    opacity: 0.9,
+    opacity: 0.85,
   },
-
+  buttonDanger: {
+    backgroundColor: COLORS.negative,
+  },
+  buttonDangerPressed: {
+    opacity: 0.85,
+  },
   buttonDisabled: {
     opacity: 0.5,
   },
-
-  buttonTextPrimary: {
+  buttonTextInverse: {
     fontSize: 16,
     fontFamily: FONTS.displaySemiBold,
-    fontWeight: '600',
     color: COLORS.textInverse,
     textAlign: 'center',
   },
-
-  buttonTextSecondary: {
+  buttonTextBrand: {
     fontSize: 16,
     fontFamily: FONTS.displaySemiBold,
-    fontWeight: '600',
     color: COLORS.brand,
     textAlign: 'center',
   },

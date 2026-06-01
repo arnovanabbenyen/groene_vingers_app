@@ -3,7 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeftIcon } from 'phosphor-react-native';
 import { COLORS, FONT_SIZES, FONTS, SPACING } from '../theme/tokens';
 
-export default function Header({ title, onBack, backLabel = 'Terug', rightElement, contentStyle }) {
+export default function Header({ title, onBack, backLabel = 'Terug', backIcon: BackIcon = ArrowLeftIcon, rightElement, contentStyle }) {
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       <View style={[styles.header, contentStyle]}>
@@ -15,7 +15,7 @@ export default function Header({ title, onBack, backLabel = 'Terug', rightElemen
             accessibilityRole="button"
             accessibilityLabel={backLabel}
           >
-            <ArrowLeftIcon size={20} color={COLORS.textInverse} weight="regular" accessibilityElementsHidden />
+            <BackIcon size={20} color={COLORS.textInverse} weight="regular" accessibilityElementsHidden />
             <Text style={styles.backText}>{backLabel}</Text>
           </Pressable>
         ) : (
