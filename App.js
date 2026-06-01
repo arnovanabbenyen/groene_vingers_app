@@ -14,6 +14,7 @@ import MeldingenScreen from './screens/notifications/MeldingenScreen';
 import ProfielScreen from './screens/profile/ProfielScreen';
 import OpgeslagenScreen from './screens/saved/OpgeslagenScreen';
 import ParcelDetailScreen from './screens/parcel/ParcelDetailScreen';
+import PerceelToevoegenScreen from './screens/parcel/PerceelToevoegenScreen';
 import ProfielBewerkenScreen from './screens/profile/ProfielBewerkenScreen';
 import InstellingenScreen from './screens/settings/InstellingenScreen';
 import NotificatieInstellingenScreen from './screens/settings/NotificatieInstellingenScreen';
@@ -77,6 +78,7 @@ export default function App() {
   const [detailSamenwerking, setDetailSamenwerking] = useState(null);
   const [weeklyGoalSource, setWeeklyGoalSource] = useState('instellingen');
   const [opvolgingRefreshKey, setOpvolgingRefreshKey] = useState(0);
+  const [selectedProfielPerceel, setSelectedProfielPerceel] = useState(null);
   const homeInitialTabRef = useRef('start');
   const pendingPhotosRef = useRef(null);
   const { aanvragen: pendingAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
@@ -254,6 +256,57 @@ export default function App() {
   function handleAanvraagActionComplete() {
     setAanvragenRefreshKey((current) => current + 1);
     setConversationsRefreshKey((current) => current + 1);
+  }
+
+  async function handleToggleProfielPerceel() {
+    if (!selectedProfielPerceel) return;
+    const newStatus = selectedProfielPerceel.status === 'hidden' ? 'active' : 'hidden';
+    const isHiding = newStatus === 'hidden';
+    const { error } = await supabase
+      .from('percelen')
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', selectedProfielPerceel.id);
+    if (error) {
+      Alert.alert('Fout', 'De zichtbaarheid kon niet worden bijgewerkt. Probeer opnieuw.');
+      return;
+    }
+    setSelectedProfielPerceel((prev) => ({ ...prev, status: newStatus }));
+    setProfielRefreshKey((k) => k + 1);
+    Alert.alert(
+      isHiding ? 'Perceel verborgen' : 'Perceel weer zichtbaar',
+      isHiding
+        ? 'Tuinzoekers kunnen dit perceel niet meer vinden. Lopende aanvragen blijven werken.'
+        : 'Tuinzoekers kunnen dit perceel weer vinden in de app.',
+    );
+  }
+
+  function handleDeleteProfielPerceel() {
+    if (!selectedProfielPerceel) return;
+    Alert.alert(
+      'Perceel verwijderen?',
+      'Weet je zeker dat je dit perceel wilt verwijderen? Lopende aanvragen blijven bewaard, maar het perceel verdwijnt uit de app.',
+      [
+        { text: 'Annuleren', style: 'cancel' },
+        {
+          text: 'Verwijderen',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await supabase
+              .from('percelen')
+              .update({ status: 'deleted', updated_at: new Date().toISOString() })
+              .eq('id', selectedProfielPerceel.id);
+            if (error) {
+              Alert.alert('Fout', 'Het perceel kon niet worden verwijderd. Probeer opnieuw.');
+              return;
+            }
+            setSelectedProfielPerceel(null);
+            setCurrentScreen('profiel');
+            setProfielRefreshKey((k) => k + 1);
+            Alert.alert('Perceel verwijderd', 'Het perceel is uit de app gehaald.');
+          },
+        },
+      ],
+    );
   }
 
   function handleOpenConversation(conversation) {
@@ -455,6 +508,10 @@ export default function App() {
               setSelectedSavedPerceel(plot);
               setCurrentScreen('opgeslagen-detail');
             }}
+            onOwnPerceelPress={(perceel) => {
+              setSelectedProfielPerceel(perceel);
+              setCurrentScreen('profiel-perceel-detail');
+            }}
             onTabPress={(item) => {
               if (item.key === 'profiel') return;
               homeInitialTabRef.current = item.key;
@@ -584,6 +641,28 @@ export default function App() {
               setEndingMode('initiator');
               setCurrentScreen('eind-samenwerking');
             }}
+          />
+        ) : currentScreen === 'profiel-perceel-edit' && selectedProfielPerceel ? (
+          <PerceelToevoegenScreen
+            initialPerceel={selectedProfielPerceel}
+            onBack={() => setCurrentScreen('profiel-perceel-detail')}
+            onSaved={(saved) => {
+              if (saved?.id) setSelectedProfielPerceel(saved);
+              setProfielRefreshKey((k) => k + 1);
+              setCurrentScreen('profiel-perceel-detail');
+            }}
+          />
+        ) : currentScreen === 'profiel-perceel-detail' && selectedProfielPerceel ? (
+          <ParcelDetailScreen
+            perceel={selectedProfielPerceel}
+            onBack={() => {
+              setCurrentScreen('profiel');
+              setSelectedProfielPerceel(null);
+            }}
+            isOwner
+            onEdit={() => setCurrentScreen('profiel-perceel-edit')}
+            onToggleVisibility={handleToggleProfielPerceel}
+            onDelete={handleDeleteProfielPerceel}
           />
         ) : selectedRole === 'tuineigenaar' ? (
           <TuineigenaarHomeScreen

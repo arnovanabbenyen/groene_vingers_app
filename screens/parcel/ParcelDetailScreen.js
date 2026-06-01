@@ -298,7 +298,7 @@ export default function ParcelDetailScreen({
             </Pressable>
           )
         ) : (
-          <View style={[styles.ownerActionStack, { paddingBottom: insets.bottom + SPACING.md }]}>
+          <View style={[styles.ownerActionStack, { paddingBottom: insets.bottom }]}>
             <Pressable
               style={({ pressed }) => [styles.ownerPrimaryButton, pressed && styles.buttonPressed]}
               onPress={() => onEdit?.()}
@@ -350,8 +350,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     backgroundColor: COLORS.surface,
     paddingHorizontal: SPACING.screenX,
-    paddingTop: SPACING.xl,
-    paddingBottom: SPACING.xl,
+    paddingTop: SPACING.screenX,
+    paddingBottom: 0,
   },
   divider: {
     marginTop: SPACING.xl,

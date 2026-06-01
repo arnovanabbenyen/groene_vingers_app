@@ -338,13 +338,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: SPACING.sm,
-    marginTop: -4,
+    gap: SPACING.xs,
+    marginTop: SPACING.sm,
   },
   percelenDot: {
     width: SPACING.sm,
     height: SPACING.sm,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     backgroundColor: COLORS.indicatorMuted,
   },
   percelenDotActive: {

@@ -64,6 +64,7 @@ export default function ProfielScreen({
   onOpenSettings,
   onOpenSavedScreen,
   onPerceelPress,
+  onOwnPerceelPress,
   onTabPress,
   profileImageSource,
   badgeCounts = {},
@@ -127,7 +128,7 @@ export default function ProfielScreen({
 
         const { data: percelenData, error: percelenError } = await supabase
           .from('percelen')
-          .select('id, owner_id, naam, beschrijving, grootte, adres, plaats, fotos, voorzieningen, status, created_at')
+          .select('id, owner_id, naam, beschrijving, grootte, adres, plaats, fotos, voorzieningen, voorkeur_samenwerking, approximate_lat, approximate_lng, extra_info, status, created_at')
           .eq('owner_id', userId)
           .neq('status', PERCEEL_STATUS_DELETED)
           .order('created_at', { ascending: false });
@@ -688,7 +689,7 @@ export default function ProfielScreen({
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Jouw percelen</Text>
-              <PercelenCarousel percelen={percelen} onPerceelPress={null} />
+              <PercelenCarousel percelen={percelen} onPerceelPress={onOwnPerceelPress} />
             </View>
           </>
         )}
