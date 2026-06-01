@@ -93,72 +93,84 @@ export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplet
   const perceelPhoto = Array.isArray(perceel?.fotos) ? perceel.fotos[0] : null;
 
   async function handleAccept() {
-    setIsProcessing(true);
-    setProcessingAction('accept');
+    showConfirm({
+      title: 'Accepteer aanvraag?',
+      message: 'Weet je zeker dat je deze aanvraag wilt accepteren? De aanvrager wordt hierover geïnformeerd.',
+      confirmLabel: 'Accepteer',
+      cancelLabel: 'Annuleren',
+      onConfirm: async () => {
+        setIsProcessing(true);
+        setProcessingAction('accept');
 
-    const { error } = await supabase
-      .from('aanvragen')
-      .update({
-        status: AANVRAAG_STATUS.ACCEPTED,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', aanvraag.id);
+        const { error } = await supabase
+          .from('aanvragen')
+          .update({
+            status: AANVRAAG_STATUS.ACCEPTED,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', aanvraag.id);
 
-    setIsProcessing(false);
-    setProcessingAction(null);
+        setIsProcessing(false);
+        setProcessingAction(null);
 
-    if (error) {
-      showToast('Aanvraag kon niet worden geaccepteerd. Probeer opnieuw.', 'error');
-      return;
-    }
-
-    if (aanvraag?.id && aanvraag?.sender_id) {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) {
-        console.warn('Failed to load current user for conversation creation', userError);
-      } else {
-        const { error: conversationError } = await createConversationForAanvraag({
-          aanvraagId: aanvraag.id,
-          ownerId: userData?.user?.id,
-          senderId: aanvraag.sender_id,
-        });
-
-        if (conversationError) {
-          console.warn('Failed to create conversation for accepted aanvraag', conversationError);
+        if (error) {
+          showToast('Aanvraag kon niet worden geaccepteerd. Probeer opnieuw.', 'error');
+          return;
         }
-      }
-    }
 
-    showToast('Aanvraag geaccepteerd', 'success');
-    onActionComplete?.();
-    onBack?.();
-    // TODO: send push notification to sender confirming acceptance
+        if (aanvraag?.id && aanvraag?.sender_id) {
+          const { data: userData, error: userError } = await supabase.auth.getUser();
+          if (userError) {
+            console.warn('Failed to load current user for conversation creation', userError);
+          } else {
+            const { error: conversationError } = await createConversationForAanvraag({
+              aanvraagId: aanvraag.id,
+              ownerId: userData?.user?.id,
+              senderId: aanvraag.sender_id,
+            });
+
+            if (conversationError) console.warn('Failed to create conversation for accepted aanvraag', conversationError);
+          }
+        }
+
+        showToast('Aanvraag geaccepteerd', 'success');
+        onActionComplete?.();
+        onBack?.();
+      },
+    });
   }
 
   async function handleDecline() {
-    setIsProcessing(true);
-    setProcessingAction('decline');
+    showConfirm({
+      title: 'Weiger aanvraag?',
+      message: 'Weet je zeker dat je deze aanvraag wilt weigeren? De aanvrager wordt hiervan op de hoogte gesteld.',
+      confirmLabel: 'Weiger',
+      cancelLabel: 'Annuleren',
+      onConfirm: async () => {
+        setIsProcessing(true);
+        setProcessingAction('decline');
 
-    const { error } = await supabase
-      .from('aanvragen')
-      .update({
-        status: AANVRAAG_STATUS.DECLINED,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', aanvraag.id);
+        const { error } = await supabase
+          .from('aanvragen')
+          .update({
+            status: AANVRAAG_STATUS.DECLINED,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', aanvraag.id);
 
-    setIsProcessing(false);
-    setProcessingAction(null);
+        setIsProcessing(false);
+        setProcessingAction(null);
 
-    if (error) {
-      showToast('Aanvraag kon niet worden geweigerd. Probeer opnieuw.', 'error');
-      return;
-    }
+        if (error) {
+          showToast('Aanvraag kon niet worden geweigerd. Probeer opnieuw.', 'error');
+          return;
+        }
 
-    showToast('Aanvraag geweigerd', 'info');
-    onActionComplete?.();
-    onBack?.();
-    // TODO: send push notification to sender with decline + optional reason
+        showToast('Aanvraag geweigerd', 'info');
+        onActionComplete?.();
+        onBack?.();
+      },
+    });
   }
 
   return (

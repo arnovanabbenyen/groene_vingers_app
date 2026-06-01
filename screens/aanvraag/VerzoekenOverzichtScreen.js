@@ -38,37 +38,43 @@ export default function VerzoekenOverzichtScreen({
   async function handleAccept(aanvraagId) {
     const aanvraag = aanvragen.find((item) => item.id === aanvraagId);
 
-    const { error } = await supabase
-      .from('aanvragen')
-      .update({ status: AANVRAAG_STATUS.ACCEPTED, updated_at: new Date().toISOString() })
-      .eq('id', aanvraagId);
+    showConfirm({
+      title: 'Accepteer aanvraag?',
+      message: 'Weet je zeker dat je deze aanvraag wilt accepteren? De aanvrager wordt hierover geïnformeerd.',
+      confirmLabel: 'Accepteer',
+      cancelLabel: 'Annuleren',
+      onConfirm: async () => {
+        const { error } = await supabase
+          .from('aanvragen')
+          .update({ status: AANVRAAG_STATUS.ACCEPTED, updated_at: new Date().toISOString() })
+          .eq('id', aanvraagId);
 
-    if (error) {
-      showToast('Aanvraag kon niet worden geaccepteerd. Probeer opnieuw.', 'error');
-      return;
-    }
-
-    if (aanvraag?.id && aanvraag?.sender_id) {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) {
-        console.warn('Failed to load current user for conversation creation', userError);
-      } else {
-        const { error: conversationError } = await createConversationForAanvraag({
-          aanvraagId: aanvraag.id,
-          ownerId: userData?.user?.id,
-          senderId: aanvraag.sender_id,
-        });
-
-        if (conversationError) {
-          console.warn('Failed to create conversation for accepted aanvraag', conversationError);
+        if (error) {
+          showToast('Aanvraag kon niet worden geaccepteerd. Probeer opnieuw.', 'error');
+          return;
         }
-      }
-    }
 
-    setAanvragen((current) => current.filter((aanvraag) => aanvraag.id !== aanvraagId));
-    onBadgeCountChange?.((current) => Math.max(0, current - 1));
-    onAanvraagActionComplete?.();
-    showToast('Aanvraag geaccepteerd', 'success');
+        if (aanvraag?.id && aanvraag?.sender_id) {
+          const { data: userData, error: userError } = await supabase.auth.getUser();
+          if (userError) {
+            console.warn('Failed to load current user for conversation creation', userError);
+          } else {
+            const { error: conversationError } = await createConversationForAanvraag({
+              aanvraagId: aanvraag.id,
+              ownerId: userData?.user?.id,
+              senderId: aanvraag.sender_id,
+            });
+
+            if (conversationError) console.warn('Failed to create conversation for accepted aanvraag', conversationError);
+          }
+        }
+
+        setAanvragen((current) => current.filter((aanvraag) => aanvraag.id !== aanvraagId));
+        onBadgeCountChange?.((current) => Math.max(0, current - 1));
+        onAanvraagActionComplete?.();
+        showToast('Aanvraag geaccepteerd', 'success');
+      },
+    });
   }
 
   function handleView(aanvraag) {

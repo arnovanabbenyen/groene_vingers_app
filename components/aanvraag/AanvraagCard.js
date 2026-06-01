@@ -101,7 +101,7 @@ function AanvraagCard({ aanvraag, onAccept, onView }) {
           onPress={() => onAccept(aanvraag.id)}
           accessibilityRole="button"
           accessibilityLabel={`Accepteer aanvraag van ${fullName}`}
-          accessibilityHint="Accepteer deze aanvraag"
+          accessibilityHint={`Accepteer de aanvraag van ${fullName}`}
         >
           <CheckIcon size={18} color={COLORS.surface} weight="bold" />
           <Text style={styles.acceptButtonText}>Accepteer</Text>
@@ -112,7 +112,7 @@ function AanvraagCard({ aanvraag, onAccept, onView }) {
           onPress={() => onView(aanvraag)}
           accessibilityRole="button"
           accessibilityLabel={`Bekijk aanvraag van ${fullName}`}
-          accessibilityHint="Bekijk deze aanvraag"
+          accessibilityHint={`Open de detailweergave van de aanvraag van ${fullName}`}
         >
           <EyeIcon size={18} color={COLORS.brand} weight="regular" />
           <Text style={styles.viewButtonText}>Bekijk</Text>
