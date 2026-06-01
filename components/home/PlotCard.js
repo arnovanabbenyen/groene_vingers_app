@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   statusWrapHidden: {
-    backgroundColor: COLORS.negativeSoft,
+    backgroundColor: COLORS.accentSoft,
   },
   statusText: {
     color: COLORS.brand,
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     textTransform: 'lowercase',
   },
   statusTextHidden: {
-    color: COLORS.negative,
+    color: COLORS.textPrimary,
   },
   body: {
     backgroundColor: COLORS.surface,

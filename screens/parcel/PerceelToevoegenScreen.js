@@ -501,9 +501,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {}, ini
 
         if (updateError) throw updateError;
 
-        Alert.alert('Wijzigingen opgeslagen', 'Je perceel is bijgewerkt.', [
-          { text: 'OK', onPress: () => onSaved(savedPerceel || payload) },
-        ]);
+        onSaved(savedPerceel || payload);
       } else {
         const { data: savedPerceel, error: insertError } = await supabase
           .from('percelen')
@@ -513,9 +511,7 @@ export default function PerceelToevoegenScreen({ onBack, onSaved = () => {}, ini
 
         if (insertError) throw insertError;
 
-        Alert.alert('Perceel toegevoegd', 'Je perceel is opgeslagen.', [
-          { text: 'OK', onPress: () => onSaved(savedPerceel || payload) },
-        ]);
+        onSaved(savedPerceel || payload);
       }
     } catch (error) {
       const message = error.message || 'Opslaan mislukt.';

@@ -5,6 +5,8 @@ import { COLORS, FONT_SIZES, FONTS, RADIUS, SIZES, SPACING } from '../../compone
 import BottomNav from '../../components/navigation/BottomNav';
 import PercelenCarousel from '../../components/perceel/PercelenCarousel';
 import { supabase } from '../../services/supabase';
+import { showToast } from '../../components/common/Toast';
+import { showConfirm } from '../../components/common/ConfirmDialog';
 import PerceelToevoegenScreen from '../parcel/PerceelToevoegenScreen';
 import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
 import AanvraagCard from '../../components/aanvraag/AanvraagCard';
@@ -246,7 +248,7 @@ export default function TuineigenaarHomeScreen({
       .eq('id', selectedPerceel.id);
 
     if (error) {
-      Alert.alert('Fout', 'Het perceel kon niet worden verwijderd. Probeer opnieuw.');
+      showToast('Perceel kon niet worden verwijderd. Probeer opnieuw.', 'error');
       return;
     }
 
@@ -254,21 +256,17 @@ export default function TuineigenaarHomeScreen({
     setPerceelMode(null);
     setPerceelRefreshKey((current) => current + 1);
     setActiveTab('start');
-
-    Alert.alert('Perceel verwijderd', 'Het perceel is uit de app gehaald.');
+    showToast('Perceel is verwijderd', 'info');
   }
 
   function handleDeletePerceel() {
     if (!selectedPerceel) return;
-
-    Alert.alert(
-      'Perceel verwijderen?',
-      'Weet je zeker dat je dit perceel wilt verwijderen? Lopende aanvragen blijven bewaard, maar het perceel verdwijnt uit de app.',
-      [
-        { text: 'Annuleren', style: 'cancel' },
-        { text: 'Verwijderen', style: 'destructive', onPress: confirmDeletePerceel },
-      ],
-    );
+    showConfirm({
+      title: 'Perceel verwijderen?',
+      message: 'Lopende aanvragen blijven bewaard, maar het perceel verdwijnt uit de app.',
+      confirmLabel: 'Verwijderen',
+      onConfirm: confirmDeletePerceel,
+    });
   }
 
   async function handleToggleVisibility() {
@@ -283,28 +281,27 @@ export default function TuineigenaarHomeScreen({
       .eq('id', selectedPerceel.id);
 
     if (error) {
-      Alert.alert('Fout', 'De zichtbaarheid kon niet worden bijgewerkt. Probeer opnieuw.');
+      showToast('Zichtbaarheid kon niet worden bijgewerkt. Probeer opnieuw.', 'error');
       return;
     }
 
     setSelectedPerceel({ ...selectedPerceel, status: newStatus });
     setPerceelRefreshKey((current) => current + 1);
-
-    Alert.alert(
-      isHiding ? 'Perceel verborgen' : 'Perceel weer zichtbaar',
-      isHiding
-        ? 'Tuinzoekers kunnen dit perceel niet meer vinden. Lopende aanvragen blijven werken.'
-        : 'Tuinzoekers kunnen dit perceel weer vinden in de app.',
+    showToast(
+      isHiding ? 'Perceel is nu verborgen voor tuinzoekers' : 'Perceel is weer zichtbaar voor tuinzoekers',
+      isHiding ? 'warning' : 'success',
     );
   }
 
   function handlePerceelSaved(savedPerceel) {
+    const isNew = !selectedPerceel;
     if (savedPerceel?.id) {
       setSelectedPerceel(savedPerceel);
     }
 
     setPerceelRefreshKey((current) => current + 1);
     setPerceelMode('view');
+    showToast(isNew ? 'Perceel toegevoegd' : 'Wijzigingen opgeslagen', 'success');
   }
 
   if (perceelMode === 'edit' && selectedPerceel) {

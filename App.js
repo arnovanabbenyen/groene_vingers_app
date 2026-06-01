@@ -42,6 +42,8 @@ import CoverPhotoScreen from './screens/auth/CoverPhotoScreen';
 import BioScreen from './screens/auth/BioScreen';
 import WelcomeScreen from './screens/auth/WelcomeScreen';
 import { supabase } from './services/supabase';
+import { showToast } from './components/common/Toast';
+import { showConfirm } from './components/common/ConfirmDialog';
 
 export default function App() {
   const [notificationsRefreshKey, setNotificationsRefreshKey] = useState(0);
@@ -267,46 +269,40 @@ export default function App() {
       .update({ status: newStatus, updated_at: new Date().toISOString() })
       .eq('id', selectedProfielPerceel.id);
     if (error) {
-      Alert.alert('Fout', 'De zichtbaarheid kon niet worden bijgewerkt. Probeer opnieuw.');
+      showToast('Zichtbaarheid kon niet worden bijgewerkt. Probeer opnieuw.', 'error');
       return;
     }
     setSelectedProfielPerceel((prev) => ({ ...prev, status: newStatus }));
     setProfielRefreshKey((k) => k + 1);
-    Alert.alert(
-      isHiding ? 'Perceel verborgen' : 'Perceel weer zichtbaar',
+    showToast(
       isHiding
-        ? 'Tuinzoekers kunnen dit perceel niet meer vinden. Lopende aanvragen blijven werken.'
-        : 'Tuinzoekers kunnen dit perceel weer vinden in de app.',
+        ? 'Perceel is nu verborgen voor tuinzoekers'
+        : 'Perceel is weer zichtbaar voor tuinzoekers',
+      isHiding ? 'warning' : 'success',
     );
   }
 
   function handleDeleteProfielPerceel() {
     if (!selectedProfielPerceel) return;
-    Alert.alert(
-      'Perceel verwijderen?',
-      'Weet je zeker dat je dit perceel wilt verwijderen? Lopende aanvragen blijven bewaard, maar het perceel verdwijnt uit de app.',
-      [
-        { text: 'Annuleren', style: 'cancel' },
-        {
-          text: 'Verwijderen',
-          style: 'destructive',
-          onPress: async () => {
-            const { error } = await supabase
-              .from('percelen')
-              .update({ status: 'deleted', updated_at: new Date().toISOString() })
-              .eq('id', selectedProfielPerceel.id);
-            if (error) {
-              Alert.alert('Fout', 'Het perceel kon niet worden verwijderd. Probeer opnieuw.');
-              return;
-            }
-            setSelectedProfielPerceel(null);
-            setCurrentScreen('profiel');
-            setProfielRefreshKey((k) => k + 1);
-            Alert.alert('Perceel verwijderd', 'Het perceel is uit de app gehaald.');
-          },
-        },
-      ],
-    );
+    showConfirm({
+      title: 'Perceel verwijderen?',
+      message: 'Lopende aanvragen blijven bewaard, maar het perceel verdwijnt uit de app.',
+      confirmLabel: 'Verwijderen',
+      onConfirm: async () => {
+        const { error } = await supabase
+          .from('percelen')
+          .update({ status: 'deleted', updated_at: new Date().toISOString() })
+          .eq('id', selectedProfielPerceel.id);
+        if (error) {
+          showToast('Perceel kon niet worden verwijderd. Probeer opnieuw.', 'error');
+          return;
+        }
+        setSelectedProfielPerceel(null);
+        setCurrentScreen('profiel');
+        setProfielRefreshKey((k) => k + 1);
+        showToast('Perceel is verwijderd', 'info');
+      },
+    });
   }
 
   function handleOpenConversation(conversation) {
@@ -650,6 +646,7 @@ export default function App() {
               if (saved?.id) setSelectedProfielPerceel(saved);
               setProfielRefreshKey((k) => k + 1);
               setCurrentScreen('profiel-perceel-detail');
+              showToast('Wijzigingen opgeslagen', 'success');
             }}
           />
         ) : currentScreen === 'profiel-perceel-detail' && selectedProfielPerceel ? (
