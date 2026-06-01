@@ -1,47 +1,100 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, Pressable } from 'react-native';
-import { COLORS, FONTS, SPACING, RADIUS } from '../../components/theme/tokens';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { PaperPlaneTiltIcon } from 'phosphor-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Header from '../../components/navigation/Header';
 import AuthButton from '../../components/buttons/AuthButton';
-
-const ILLUSTRATION = 'http://localhost:3845/assets/d047a925a674ca8b2b2b33d446d7564d72c48265.svg';
+import { COLORS, FONT_SIZES, FONTS, SPACING } from '../../components/theme/tokens';
 
 export default function AanvraagBevestigingScreen({ perceel, onBackToListings, onBackToMessages }) {
-  const title = 'Aanvraag verstuurd!\u00A0';
-  const body = `${perceel?.ownerName || 'De eigenaar'} ontvangt jouw aanvraag en neemt doorgaans zo snel mogelijk contact op via de chat.`;
+  const insets = useSafeAreaInsets();
+  const ownerName = perceel?.ownerName || 'De eigenaar';
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text accessibilityRole="header" style={styles.headerTitle}>Aanvraag verstuurd</Text>
-      </View>
+    <View style={styles.screen}>
+      <Header title="Aanvraag verstuurd" />
 
       <View style={styles.content}>
-        <Image source={{ uri: ILLUSTRATION }} style={styles.illustration} resizeMode="contain" />
-
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.body}>{body}</Text>
-
-        <View style={styles.actions}>
-          <AuthButton label="Meer percelen bekijken" onPress={onBackToListings} variant="primary" />
-
-          <Pressable style={styles.secondary} onPress={onBackToMessages} accessibilityRole="button">
-            <Text style={styles.secondaryText}>Bekijk je berichten</Text>
-          </Pressable>
+        <View style={styles.iconCircle}>
+          <PaperPlaneTiltIcon
+            size={52}
+            color={COLORS.brand}
+            weight="regular"
+            accessibilityElementsHidden
+          />
         </View>
+
+        <View style={styles.textBlock}>
+          <Text
+            style={styles.title}
+            accessibilityRole="header"
+            accessibilityLiveRegion="assertive"
+          >
+            Aanvraag verstuurd!
+          </Text>
+          <Text style={styles.body}>
+            {`${ownerName} ontvangt jouw aanvraag en neemt doorgaans zo snel mogelijk contact op via de chat.`}
+          </Text>
+        </View>
+      </View>
+
+      <View style={[styles.actions, { paddingBottom: insets.bottom + SPACING.md }]}>
+        <AuthButton
+          label="Meer percelen bekijken"
+          onPress={onBackToListings}
+          variant="primary"
+        />
+        <AuthButton
+          label="Bekijk je berichten"
+          onPress={onBackToMessages}
+          variant="secondary"
+        />
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { backgroundColor: COLORS.brand, height: 129, justifyContent: 'flex-end', paddingBottom: 12, paddingHorizontal: SPACING.md },
-  headerTitle: { color: COLORS.textInverse, fontFamily: FONTS.displaySemiBold, fontSize: 20, textAlign: 'center' },
-  content: { padding: SPACING.md, alignItems: 'center' },
-  illustration: { width: 90, height: 90, marginTop: 40, marginBottom: SPACING.md },
-  title: { fontFamily: FONTS.displaySemiBold, fontSize: 25, color: COLORS.textPrimary, marginTop: SPACING.md, marginBottom: SPACING.xs, textAlign: 'center' },
-  body: { fontFamily: FONTS.body, fontSize: 16, color: COLORS.textSecondary, textAlign: 'center', width: '90%', marginBottom: SPACING.lg },
-  actions: { width: '100%', gap: SPACING.sm, alignItems: 'center' },
-  secondary: { width: '100%', marginTop: SPACING.sm, height: 53, borderRadius: RADIUS.xl, borderWidth: 2, borderColor: COLORS.brand, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.surface },
-  secondaryText: { fontFamily: FONTS.displayMedium, fontSize: 16, color: COLORS.textPrimary },
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.xl,
+    gap: SPACING.lg,
+  },
+  iconCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: COLORS.surfaceBrand,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textBlock: {
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  title: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.xxl,
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+  },
+  body: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.md,
+    lineHeight: 22,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    maxWidth: 280,
+  },
+  actions: {
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: SPACING.md,
+    gap: SPACING.sm,
+  },
 });
