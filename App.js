@@ -324,12 +324,32 @@ export default function App() {
 
     async function handleUrl(url) {
       if (!url) return;
-      if (!url.includes('access_token') && !url.includes('code=')) return;
-      try {
-        await supabase.auth.exchangeCodeForSession(url);
-        // onAuthStateChange fires SIGNED_IN → sets isLoggedIn(true) automatically
-      } catch (err) {
-        console.warn('Deep link auth exchange failed', err);
+
+      // PKCE flow: Supabase sends a code= query param
+      if (url.includes('code=')) {
+        try {
+          await supabase.auth.exchangeCodeForSession(url);
+        } catch (err) {
+          console.warn('Deep link PKCE exchange failed', err);
+        }
+        return;
+      }
+
+      // Implicit flow (default): Supabase sends access_token + refresh_token in the hash fragment
+      if (url.includes('access_token')) {
+        try {
+          const hashIndex = url.indexOf('#');
+          if (hashIndex === -1) return;
+          const params = new URLSearchParams(url.slice(hashIndex + 1));
+          const access_token = params.get('access_token');
+          const refresh_token = params.get('refresh_token');
+          if (access_token && refresh_token) {
+            await supabase.auth.setSession({ access_token, refresh_token });
+            // onAuthStateChange fires SIGNED_IN → sets isLoggedIn(true) + uploads pending photos
+          }
+        } catch (err) {
+          console.warn('Deep link implicit session failed', err);
+        }
       }
     }
 

@@ -85,6 +85,9 @@ export default function PlansScreen({ onBack, onUpgradeSuccess, onDiscoverPercel
         paymentIntentClientSecret: session.paymentIntentClientSecret,
         allowsDelayedPaymentMethods: false,
         returnURL: Linking.createURL('stripe-redirect'),
+        applePay: {
+          merchantCountryCode: 'BE',
+        },
       });
 
       if (initError) throw new Error(initError.message);

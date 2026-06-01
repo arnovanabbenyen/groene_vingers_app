@@ -190,14 +190,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.screenX,
   },
   logoWrap: {
-    width: 120,
-    height: 120,
+    width: '100%',
     marginBottom: SPACING.xl,
   },
   logo: {
-    width: 120,
-    height: 120,
-    borderRadius: 28,
+    width: '100%',
+    height: 80,
+    resizeMode: 'contain',
   },
   badge: {
     position: 'absolute',
