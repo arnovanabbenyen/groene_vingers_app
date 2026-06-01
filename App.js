@@ -42,6 +42,7 @@ import CoverPhotoScreen from './screens/auth/CoverPhotoScreen';
 import BioScreen from './screens/auth/BioScreen';
 import WelcomeScreen from './screens/auth/WelcomeScreen';
 import { supabase } from './services/supabase';
+import { savePendingPhotos, readPendingPhotos, clearPendingPhotos } from './services/pendingPhotos';
 import { showToast } from './components/common/Toast';
 import { showConfirm } from './components/common/ConfirmDialog';
 
@@ -83,7 +84,6 @@ export default function App() {
   const [selectedProfielPerceel, setSelectedProfielPerceel] = useState(null);
   const [selectedProfielAanvraag, setSelectedProfielAanvraag] = useState(null);
   const homeInitialTabRef = useRef('start');
-  const pendingPhotosRef = useRef(null);
   const { aanvragen: pendingAanvragen } = usePendingAanvragen(aanvragenRefreshKey);
   const { samenwerking: activeSamenwerking, isLoading: isLoadingActiveSamenwerking } =
     useActiveSamenwerking(samenwerkingRefreshKey);
@@ -168,8 +168,8 @@ export default function App() {
           catch (err) { console.warn('Cover photo upload failed:', err); }
         }
       } else if (profilePhotoUri || coverPhotoUri) {
-        // Stash photo URIs — uploaded after email verification creates a session
-        pendingPhotosRef.current = { profilePhotoUri, coverPhotoUri };
+        // Persist photo URIs so they survive a cold start before email verification
+        await savePendingPhotos({ profilePhotoUri, coverPhotoUri, userId });
       }
 
       setScreen('welcome');
@@ -390,7 +390,7 @@ export default function App() {
 
     restoreSession();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN') {
         const user = session?.user;
         const role = user?.user_metadata?.role;
@@ -399,14 +399,20 @@ export default function App() {
         setIsLoggedIn(true);
         setSamenwerkingRefreshKey((k) => k + 1);
 
-        // Upload photos that were skipped during signup (no session yet at that point)
-        if (user?.id && pendingPhotosRef.current) {
-          const { profilePhotoUri: pUri, coverPhotoUri: cUri } = pendingPhotosRef.current;
-          pendingPhotosRef.current = null;
-          if (pUri) uploadPhoto('profile-pfp', user.id, 'avatar', pUri)
-            .catch(err => console.warn('Pending profile photo upload failed:', err));
-          if (cUri) uploadPhoto('profile-covers', user.id, 'cover', cUri)
-            .catch(err => console.warn('Pending cover photo upload failed:', err));
+        // Upload photos deferred from signup (survives cold starts via AsyncStorage)
+        if (user?.id) {
+          const pending = await readPendingPhotos();
+          if (pending?.userId === user.id) {
+            if (pending.profilePhotoUri) {
+              try { await uploadPhoto('profile-pfp', user.id, 'avatar', pending.profilePhotoUri); }
+              catch (err) { console.warn('Deferred avatar upload failed', err); }
+            }
+            if (pending.coverPhotoUri) {
+              try { await uploadPhoto('profile-covers', user.id, 'cover', pending.coverPhotoUri); }
+              catch (err) { console.warn('Deferred cover upload failed', err); }
+            }
+            await clearPendingPhotos();
+          }
         }
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
@@ -647,28 +653,41 @@ export default function App() {
             onSkipReview={() => setCurrentScreen('home')}
           />
         ) : currentScreen === 'samenwerking-detail' && detailSamenwerking ? (
-          <ParcelDetailScreen
-            perceel={detailSamenwerking.percelen || detailSamenwerking.perceel}
-            isOwner={selectedRole === 'tuineigenaar'}
-            samenwerking={selectedRole === 'tuineigenaar' ? detailSamenwerking : null}
-            onBack={() => { setDetailSamenwerking(null); setCurrentScreen('profiel'); }}
-            onOpenConversation={(samenwerkingOrConv) => {
-              if (samenwerkingOrConv?.conversation?.id) {
-                handleOpenConversation({
-                  id: samenwerkingOrConv.conversation.id,
-                  aanvraag_id: samenwerkingOrConv.id,
-                  otherUser: samenwerkingOrConv.senderProfile,
-                });
-              } else {
-                handleOpenConversation(samenwerkingOrConv);
-              }
-            }}
-            onEndSamenwerking={(enriched) => {
-              setSelectedSamenwerking(enriched);
-              setEndingMode('initiator');
-              setCurrentScreen('eind-samenwerking');
-            }}
-          />
+          selectedRole === 'tuinzoeker' ? (
+            <SamenwerkingDetailScreen
+              samenwerking={detailSamenwerking}
+              onBack={() => { setDetailSamenwerking(null); setCurrentScreen('profiel'); }}
+              onOpenConversation={handleOpenConversation}
+              onEndSamenwerking={(enriched) => {
+                setSelectedSamenwerking(enriched);
+                setEndingMode('initiator');
+                setCurrentScreen('eind-samenwerking');
+              }}
+            />
+          ) : (
+            <ParcelDetailScreen
+              perceel={detailSamenwerking.percelen || detailSamenwerking.perceel}
+              isOwner={true}
+              samenwerking={{ ...detailSamenwerking, percelen: detailSamenwerking.percelen ?? detailSamenwerking.perceel ?? null }}
+              onBack={() => { setDetailSamenwerking(null); setCurrentScreen('profiel'); }}
+              onOpenConversation={(samenwerkingOrConv) => {
+                if (samenwerkingOrConv?.conversation?.id) {
+                  handleOpenConversation({
+                    id: samenwerkingOrConv.conversation.id,
+                    aanvraag_id: samenwerkingOrConv.id,
+                    otherUser: samenwerkingOrConv.senderProfile,
+                  });
+                } else {
+                  handleOpenConversation(samenwerkingOrConv);
+                }
+              }}
+              onEndSamenwerking={(enriched) => {
+                setSelectedSamenwerking(enriched);
+                setEndingMode('initiator');
+                setCurrentScreen('eind-samenwerking');
+              }}
+            />
+          )
         ) : currentScreen === 'profiel-perceel-edit' && selectedProfielPerceel ? (
           <PerceelToevoegenScreen
             initialPerceel={selectedProfielPerceel}
@@ -743,6 +762,7 @@ export default function App() {
             onOpenProfiel={() => setCurrentScreen('profiel')}
             onEndSamenwerking={(samenwerking) => {
               setSelectedSamenwerking(samenwerking);
+              setEndingMode('initiator');
               setCurrentScreen('eind-samenwerking');
             }}
           />
