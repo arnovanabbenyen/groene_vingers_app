@@ -16,6 +16,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.arnovan.groenevingers",
+      "entitlements": {
+        "com.apple.developer.in-app-payments": [
+          "merchant.com.arnovan.groenevingers.app"
+        ]
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Groene Vingers gebruikt je camera om foto's van je perceel te maken.",
@@ -57,7 +62,7 @@
       [
         "@stripe/stripe-react-native",
         {
-          "merchantIdentifier": "merchant.com.arnovan.groenevingers",
+          "merchantIdentifier": "merchant.com.arnovan.groenevingers.app",
           "enableGooglePay": false
         }
       ],

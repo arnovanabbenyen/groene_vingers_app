@@ -15,7 +15,7 @@ export default function AppProviders({ children }) {
   return (
     <StripeProvider
       publishableKey={process.env.EXPO_PUBLIC_STRIPE_KEY}
-      merchantIdentifier="merchant.com.arnovan.groenevingers"
+      merchantIdentifier="merchant.com.arnovan.groenevingers.app"
     >
       <SafeAreaProvider>
         <ToastProvider>
