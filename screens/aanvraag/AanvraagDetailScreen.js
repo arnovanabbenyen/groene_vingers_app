@@ -26,6 +26,7 @@ const VOORZIENING_ICONS = {
   gereedschap: ToolboxIcon,
   materiaal: ToolboxIcon,
   tools: ToolboxIcon,
+  compost: LeafIcon,
   opslag: ArchiveIcon,
   parkeergelegenheid: CarIcon,
   toilet: ToiletIcon,
@@ -301,35 +302,14 @@ export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplet
       </ScrollView>
 
       <View style={[styles.actionBar, { paddingBottom: insets.bottom + 16 }]}>
-        <Pressable
-          style={[styles.buttonBase, styles.primaryButton, isProcessing && processingAction === 'accept' && styles.buttonDisabled]}
-          onPress={handleAccept}
-          disabled={isProcessing}
-          accessibilityRole="button"
-          accessibilityLabel="Aanvraag accepteren"
-          accessibilityState={{ disabled: isProcessing }}
-        >
-          {isProcessing && processingAction === 'accept' ? (
-            <ActivityIndicator color={COLORS.surface} />
-          ) : (
-            <Text style={styles.primaryButtonText}>Accepteer verzoek</Text>
-          )}
-        </Pressable>
-
-        <Pressable
-          style={[styles.buttonBase, styles.secondaryButton, isProcessing && processingAction === 'decline' && styles.buttonDisabled]}
-          onPress={handleDecline}
-          disabled={isProcessing}
-          accessibilityRole="button"
-          accessibilityLabel="Aanvraag weigeren"
-          accessibilityState={{ disabled: isProcessing }}
-        >
-          {isProcessing && processingAction === 'decline' ? (
-            <ActivityIndicator color={COLORS.brand} />
-          ) : (
-            <Text style={styles.secondaryButtonText}>Weiger verzoek</Text>
-          )}
-        </Pressable>
+        <RequestActions
+          onPrimary={handleAccept}
+          onSecondary={handleDecline}
+          primaryLabel="Accepteer verzoek"
+          secondaryLabel="Weiger verzoek"
+          primaryLoading={isProcessing && processingAction === 'accept'}
+          secondaryLoading={isProcessing && processingAction === 'decline'}
+        />
       </View>
     </View>
   );

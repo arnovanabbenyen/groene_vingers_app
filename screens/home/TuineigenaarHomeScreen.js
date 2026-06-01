@@ -155,6 +155,7 @@ export default function TuineigenaarHomeScreen({
         }
       } catch (e) {
         console.warn('loadDashboardData error', e);
+        showToast('Kan geen verbinding maken met de server. Controleer je internetverbinding en probeer het opnieuw.', 'error');
       }
     }
 

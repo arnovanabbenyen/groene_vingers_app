@@ -8,6 +8,7 @@ import {
   StarIcon,
   UserCircleIcon,
 } from 'phosphor-react-native';
+import RequestActions from './RequestActions';
 import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 
 export function normalizeSize(size) {
@@ -95,29 +96,15 @@ function AanvraagCard({ aanvraag, onAccept, onView }) {
         <Text style={styles.gardenSize}>{size}</Text>
       </View>
 
-      <View style={styles.actionRow}>
-        <Pressable
-          style={[styles.actionButton, styles.acceptButton]}
-          onPress={() => onAccept(aanvraag.id)}
-          accessibilityRole="button"
-          accessibilityLabel={`Accepteer aanvraag van ${fullName}`}
-          accessibilityHint={`Accepteer de aanvraag van ${fullName}`}
-        >
-          <CheckIcon size={18} color={COLORS.surface} weight="bold" />
-          <Text style={styles.acceptButtonText}>Accepteer</Text>
-        </Pressable>
-
-        <Pressable
-          style={[styles.actionButton, styles.viewButton]}
-          onPress={() => onView(aanvraag)}
-          accessibilityRole="button"
-          accessibilityLabel={`Bekijk aanvraag van ${fullName}`}
-          accessibilityHint={`Open de detailweergave van de aanvraag van ${fullName}`}
-        >
-          <EyeIcon size={18} color={COLORS.brand} weight="regular" />
-          <Text style={styles.viewButtonText}>Bekijk</Text>
-        </Pressable>
-      </View>
+      <RequestActions
+        onPrimary={() => onAccept(aanvraag.id)}
+        onSecondary={() => onView(aanvraag)}
+        primaryLabel="Accepteer"
+        secondaryLabel="Bekijk"
+        primaryAccessibilityLabel={`Accepteer aanvraag van ${fullName}`}
+        secondaryAccessibilityLabel={`Bekijk aanvraag van ${fullName}`}
+        style={styles.actionRow}
+      />
     </TouchableOpacity>
   );
 }
