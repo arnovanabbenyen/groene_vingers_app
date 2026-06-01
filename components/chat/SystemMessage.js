@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { CheckCircleIcon, HandshakeIcon, ProhibitIcon, XCircleIcon } from 'phosphor-react-native';
-import { COLORS, FONTS, RADIUS } from '../theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
 export default function SystemMessage({ message, aanvraag, isOwner, onConfirm, onDecline }) {
   if (message.type === 'system_samenwerking_proposed') {
@@ -20,10 +20,20 @@ export default function SystemMessage({ message, aanvraag, isOwner, onConfirm, o
         </Text>
         {canAct && (
           <View style={styles.actions}>
-            <Pressable style={styles.btnPrimary} onPress={onConfirm}>
+            <Pressable
+              style={({ pressed }) => [styles.btnPrimary, pressed && styles.btnPressed]}
+              onPress={onConfirm}
+              accessibilityRole="button"
+              accessibilityLabel="Samenwerking bevestigen"
+            >
               <Text style={styles.btnPrimaryText}>Bevestigen</Text>
             </Pressable>
-            <Pressable style={styles.btnSecondary} onPress={onDecline}>
+            <Pressable
+              style={({ pressed }) => [styles.btnSecondary, pressed && styles.btnPressed]}
+              onPress={onDecline}
+              accessibilityRole="button"
+              accessibilityLabel="Voorstel afwijzen"
+            >
               <Text style={styles.btnSecondaryText}>Niet nu</Text>
             </Pressable>
           </View>
@@ -85,59 +95,59 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     maxWidth: '85%',
     borderRadius: RADIUS.sm,
-    padding: 14,
-    marginVertical: 8,
-    gap: 8,
+    padding: SPACING.md,
+    marginVertical: SPACING.sm,
+    gap: SPACING.sm,
   },
   proposedBubble: {
-    backgroundColor: '#F5F1E8',
+    backgroundColor: COLORS.accentSoft,
   },
   confirmedBubble: {
-    backgroundColor: '#EEF3E8',
+    backgroundColor: COLORS.surfaceBrand,
   },
   cancelledBubble: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.surfaceMuted,
   },
   endedBubble: {
-    backgroundColor: '#FCEBEB',
-  },
-  titleNegative: {
-    color: COLORS.negative,
+    backgroundColor: COLORS.negativeSoft,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: SPACING.xs,
   },
   title: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     color: COLORS.brand,
   },
   titleMuted: {
     color: COLORS.textSecondary,
   },
+  titleNegative: {
+    color: COLORS.negative,
+  },
   body: {
     fontFamily: FONTS.body,
-    fontSize: 13,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textPrimary,
     lineHeight: 18,
   },
   actions: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
+    gap: SPACING.sm,
+    marginTop: SPACING.xs,
   },
   btnPrimary: {
     flex: 1,
     backgroundColor: COLORS.accent,
     borderRadius: RADIUS.sm,
-    paddingVertical: 10,
+    paddingVertical: SPACING.sm + 2,
     alignItems: 'center',
   },
   btnPrimaryText: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textPrimary,
   },
   btnSecondary: {
@@ -145,17 +155,20 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: COLORS.brand,
     borderRadius: RADIUS.sm,
-    paddingVertical: 10,
+    paddingVertical: SPACING.sm + 2,
     alignItems: 'center',
   },
   btnSecondaryText: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     color: COLORS.brand,
+  },
+  btnPressed: {
+    opacity: 0.75,
   },
   waiting: {
     fontFamily: FONTS.body,
-    fontSize: 12,
+    fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
     textAlign: 'center',
   },

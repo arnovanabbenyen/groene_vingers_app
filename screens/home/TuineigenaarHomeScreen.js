@@ -376,11 +376,20 @@ export default function TuineigenaarHomeScreen({
   }
 
   if (currentScreen === 'conversation-detail' && selectedConversation) {
+    if (senderProfileId) {
+      return (
+        <ProfielScreen
+          profileUserId={senderProfileId}
+          onBack={() => setSenderProfileId(null)}
+        />
+      );
+    }
     return (
       <ConversationDetailScreen
         conversation={selectedConversation}
-        onBack={onCloseConversation}
-        onConfirmSamenwerking={onCloseConversation}
+        onBack={() => { setSenderProfileId(null); onCloseConversation?.(); }}
+        onConfirmSamenwerking={() => { setSenderProfileId(null); onCloseConversation?.(); }}
+        onViewProfile={(userId) => { if (userId) setSenderProfileId(userId); }}
       />
     );
   }

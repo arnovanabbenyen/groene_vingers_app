@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   FlatList,
   Image,
@@ -13,7 +12,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import {
@@ -22,7 +20,6 @@ import {
   HandshakeIcon,
   ImageIcon,
   LockSimpleIcon,
-  MicrophoneIcon,
   PaperPlaneRightIcon,
   XCircleIcon,
   XIcon,
@@ -37,10 +34,15 @@ import {
   cancelSamenwerkingProposal,
 } from '../../services/samenwerkingProposal';
 import SystemMessage from '../../components/chat/SystemMessage';
-import { COLORS, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
+import ChatAvatar from '../../components/chat/ChatAvatar';
+import { showToast } from '../../components/common/Toast';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
 const SCREEN_WIDTH = Dimensions.get('window').width;
+const MESSAGE_AVATAR_SIZE = 40;
+const INPUT_PILL_BG = 'rgba(87, 98, 56, 0.05)';
+const TIMESTAMP_COLOR = 'rgba(0,0,0,0.45)';
 
 function formatMessageTime(timestamp) {
   if (!timestamp) return '';
@@ -60,9 +62,9 @@ function ImageGrid({ urls, onPress }) {
 
   if (total === 1) {
     return (
-      <TouchableOpacity onPress={() => onPress(urls[0], urls)} activeOpacity={0.85}>
+      <Pressable onPress={() => onPress(urls[0], urls)}>
         <Image source={{ uri: urls[0] }} style={styles.chatImageSingle} resizeMode="cover" />
-      </TouchableOpacity>
+      </Pressable>
     );
   }
 
@@ -73,9 +75,9 @@ function ImageGrid({ urls, onPress }) {
     return (
       <View style={styles.imageGrid2}>
         {displayUrls.map((url, i) => (
-          <TouchableOpacity key={i} onPress={() => onPress(url, urls)} activeOpacity={0.85}>
+          <Pressable key={i} onPress={() => onPress(url, urls)}>
             <Image source={{ uri: url }} style={styles.chatImageHalf} resizeMode="cover" />
-          </TouchableOpacity>
+          </Pressable>
         ))}
       </View>
     );
@@ -84,14 +86,14 @@ function ImageGrid({ urls, onPress }) {
   return (
     <View style={styles.imageGrid}>
       {displayUrls.map((url, i) => (
-        <TouchableOpacity key={i} style={styles.imageGridCell} onPress={() => onPress(url, urls)} activeOpacity={0.85}>
+        <Pressable key={i} style={styles.imageGridCell} onPress={() => onPress(url, urls)}>
           <Image source={{ uri: url }} style={styles.chatImageTile} resizeMode="cover" />
           {i === 3 && hiddenCount > 0 && (
             <View style={styles.imageGridOverlay}>
               <Text style={styles.imageGridOverlayText}>+{hiddenCount}</Text>
             </View>
           )}
-        </TouchableOpacity>
+        </Pressable>
       ))}
     </View>
   );
@@ -108,7 +110,7 @@ function SystemMessageHeader() {
   );
 }
 
-export default function ConversationDetailScreen({ conversation, onBack, onConfirmSamenwerking }) {
+export default function ConversationDetailScreen({ conversation, onBack, onConfirmSamenwerking, onViewProfile }) {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef(null);
 
@@ -124,11 +126,9 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
   const [isProposing, setIsProposing] = useState(false);
   const [isBannerDismissed, setIsBannerDismissed] = useState(true);
 
-  // Derived
   const aanvraagStatus = aanvraag?.status ?? null;
   const isOwner = !!currentUserId && currentUserId === aanvraag?.percelen?.owner_id;
   const isEnded = aanvraagStatus === AANVRAAG_STATUS.ENDED;
-  const userMessageCount = messages.filter((m) => m.type === 'user' || !m.type).length;
 
   const baseConditions =
     isOwner &&
@@ -144,7 +144,6 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
     setPreviewIndex(idx >= 0 ? idx : 0);
   }
 
-  // ── Data loaders (also called from handlers to refresh) ───────────────────
   async function loadMessages() {
     const { data } = await supabase
       .from('messages')
@@ -164,14 +163,12 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
     setAanvraag(data || null);
   }
 
-  // ── Initial load ──────────────────────────────────────────────────────────
   useEffect(() => {
     let mounted = true;
 
     async function initialize() {
       const { data: userData } = await supabase.auth.getUser();
       if (mounted) setCurrentUserId(userData?.user?.id || null);
-
       await Promise.all([loadMessages(), loadAanvraag()]);
       if (mounted) setIsLoadingMessages(false);
     }
@@ -180,7 +177,6 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
     return () => { mounted = false; };
   }, [conversation.id]);
 
-  // ── Realtime new messages ─────────────────────────────────────────────────
   useEffect(() => {
     if (!conversation?.id) return;
 
@@ -188,78 +184,54 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
       .channel(`messages:${conversation.id}`)
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversation.id}`,
-        },
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversation.id}` },
         (payload) => {
           setMessages((current) => {
-            const exists = current.some((m) => m.id === payload.new.id);
-            if (exists) return current;
+            if (current.some((m) => m.id === payload.new.id)) return current;
             return [...current, payload.new];
           });
         }
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [conversation.id]);
 
-  // ── Scroll to bottom on new message ──────────────────────────────────────
   useEffect(() => {
     if (messages.length > 0) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     }
   }, [messages.length]);
 
-  // ── Mark incoming messages as read ───────────────────────────────────────
   useEffect(() => {
     async function markAsRead() {
       if (!currentUserId || messages.length === 0) return;
-
-      const unreadFromOther = messages.filter(
-        (m) => m.sender_id !== currentUserId && !m.read_at && !m._optimistic
-      );
-
-      if (unreadFromOther.length === 0) return;
-
-      const unreadIds = unreadFromOther.map((m) => m.id);
+      const unread = messages.filter((m) => m.sender_id !== currentUserId && !m.read_at && !m._optimistic);
+      if (unread.length === 0) return;
       await supabase
         .from('messages')
         .update({ read_at: new Date().toISOString() })
-        .in('id', unreadIds);
+        .in('id', unread.map((m) => m.id));
     }
-
     markAsRead();
   }, [messages, currentUserId]);
 
-  // ── Grouping metadata ─────────────────────────────────────────────────────
   const messageGroups = useMemo(() => {
     return messages.map((msg, index) => {
       const prev = messages[index - 1];
       const next = messages[index + 1];
-
       const isFirstInGroup =
         !prev ||
         prev.sender_id !== msg.sender_id ||
         new Date(msg.created_at) - new Date(prev.created_at) > FIVE_MINUTES_MS;
-
       const isLastInGroup =
         !next ||
         next.sender_id !== msg.sender_id ||
         new Date(next.created_at) - new Date(msg.created_at) > FIVE_MINUTES_MS;
-
       return { ...msg, isFirstInGroup, isLastInGroup };
     });
   }, [messages]);
 
-  // ── Send ──────────────────────────────────────────────────────────────────
   async function handleSend() {
     const trimmed = messageInput.trim();
     if ((!trimmed && pendingImages.length === 0) || isSending || !currentUserId) return;
@@ -272,60 +244,61 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
 
     if (imagesToSend.length > 0) {
       const tempId = `temp-img-${Date.now()}`;
-      const optimistic = {
-        id: tempId,
-        conversation_id: conversation.id,
-        sender_id: currentUserId,
-        content: null,
-        media_url: null,
-        media_urls: imagesToSend.map((a) => a.uri),
-        media_type: 'image/jpeg',
-        created_at: new Date().toISOString(),
-        read_at: null,
-        _optimistic: true,
-        type: 'user',
-      };
-      setMessages((current) => [...current, optimistic]);
+      setMessages((current) => [
+        ...current,
+        {
+          id: tempId,
+          conversation_id: conversation.id,
+          sender_id: currentUserId,
+          content: null,
+          media_url: null,
+          media_urls: imagesToSend.map((a) => a.uri),
+          media_type: 'image/jpeg',
+          created_at: new Date().toISOString(),
+          read_at: null,
+          _optimistic: true,
+          type: 'user',
+        },
+      ]);
 
       try {
         const uploads = await Promise.all(
           imagesToSend.map((asset) => uploadChatImage(currentUserId, asset.uri))
         );
-        const publicUrls = uploads.map((u) => u.publicUrl);
-
         const { data, error } = await supabase
           .from('messages')
           .insert({
             conversation_id: conversation.id,
             sender_id: currentUserId,
             content: null,
-            media_urls: publicUrls,
+            media_urls: uploads.map((u) => u.publicUrl),
             media_type: 'image/jpeg',
           })
           .select('id, conversation_id, sender_id, content, created_at, read_at, media_url, media_urls, media_type, type')
           .single();
-
         if (error) throw error;
         setMessages((current) => current.map((m) => (m.id === tempId ? data : m)));
       } catch {
         setMessages((current) => current.filter((m) => m.id !== tempId));
-        Alert.alert('Fout', 'De afbeeldingen konden niet worden verzonden.');
+        showToast("Foto's konden niet worden verzonden.", 'error');
       }
     }
 
     if (textToSend) {
       const tempId = `temp-${Date.now()}`;
-      const optimistic = {
-        id: tempId,
-        conversation_id: conversation.id,
-        sender_id: currentUserId,
-        content: textToSend,
-        created_at: new Date().toISOString(),
-        read_at: null,
-        _optimistic: true,
-        type: 'user',
-      };
-      setMessages((current) => [...current, optimistic]);
+      setMessages((current) => [
+        ...current,
+        {
+          id: tempId,
+          conversation_id: conversation.id,
+          sender_id: currentUserId,
+          content: textToSend,
+          created_at: new Date().toISOString(),
+          read_at: null,
+          _optimistic: true,
+          type: 'user',
+        },
+      ]);
 
       const { data, error } = await supabase
         .from('messages')
@@ -336,7 +309,7 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
       if (error) {
         setMessages((current) => current.filter((m) => m.id !== tempId));
         setMessageInput(textToSend);
-        Alert.alert('Fout', 'Het bericht kon niet worden verzonden. Probeer opnieuw.');
+        showToast('Bericht kon niet worden verzonden. Probeer opnieuw.', 'error');
       } else {
         setMessages((current) => current.map((m) => (m.id === tempId ? data : m)));
       }
@@ -355,7 +328,6 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
     if (assets.length) setPendingImages((current) => [...current, ...assets]);
   }
 
-  // ── Samenwerking handlers ─────────────────────────────────────────────────
   async function handleProposeSamenwerking() {
     if (!aanvraag?.id || !conversation.id || !currentUserId) return;
     setIsProposing(true);
@@ -363,7 +335,7 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
       await proposeSamenwerking(aanvraag.id, conversation.id, currentUserId);
       await Promise.all([loadMessages(), loadAanvraag()]);
     } catch (err) {
-      Alert.alert('Er ging iets mis', err.message);
+      showToast(err.message || 'Er ging iets mis.', 'error');
     } finally {
       setIsProposing(false);
     }
@@ -376,7 +348,7 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
       await Promise.all([loadMessages(), loadAanvraag()]);
       onConfirmSamenwerking?.();
     } catch (err) {
-      Alert.alert('Er ging iets mis', err.message);
+      showToast(err.message || 'Er ging iets mis.', 'error');
     }
   }
 
@@ -386,19 +358,13 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
       await cancelSamenwerkingProposal(aanvraag.id, conversation.id, currentUserId);
       await Promise.all([loadMessages(), loadAanvraag()]);
     } catch (err) {
-      Alert.alert('Er ging iets mis', err.message);
+      showToast(err.message || 'Er ging iets mis.', 'error');
     }
   }
 
-  // ── Derived display values ────────────────────────────────────────────────
   const otherUser = conversation?.otherUser;
-  const displayName =
-    [otherUser?.first_name, otherUser?.last_name].filter(Boolean).join(' ').trim() || 'Gesprek';
-  const avatarSource = otherUser?.avatar_url
-    ? { uri: otherUser.avatar_url }
-    : require('../../images/tuinzoeker_pfp.png');
+  const displayName = [otherUser?.first_name, otherUser?.last_name].filter(Boolean).join(' ').trim() || 'Gesprek';
 
-  // ── Message renderer ──────────────────────────────────────────────────────
   function renderItem({ item: msg }) {
     if (msg.type && msg.type !== 'user') {
       return (
@@ -413,7 +379,7 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
     }
 
     const isOwn = msg.sender_id === currentUserId;
-    const bottomMargin = msg.isLastInGroup ? 16 : 6;
+    const bottomMargin = msg.isLastInGroup ? SPACING.md : SPACING.xs + 2;
     const imageUrls = msg.media_urls?.length > 0
       ? msg.media_urls
       : (msg.media_url ? [msg.media_url] : []);
@@ -445,11 +411,10 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
     return (
       <View style={[styles.otherRow, { marginBottom: bottomMargin }]}>
         {msg.isFirstInGroup ? (
-          <Image source={avatarSource} style={styles.messageAvatar} />
+          <ChatAvatar avatarUrl={otherUser?.avatar_url} size={MESSAGE_AVATAR_SIZE} />
         ) : (
           <View style={styles.messageAvatarSpacer} />
         )}
-
         <View style={styles.otherColumn}>
           {msg.isFirstInGroup && (
             <View style={styles.otherHeader}>
@@ -474,47 +439,44 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
     );
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.root}
       keyboardVerticalOffset={0}
     >
-      {/* Green header band */}
       <SafeAreaView edges={['top']} style={styles.headerSafe}>
         <View style={styles.headerRow}>
-          <TouchableOpacity
-            style={styles.backButton}
+          <Pressable
+            style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
             onPress={onBack}
             accessibilityRole="button"
             accessibilityLabel="Terug naar berichtenoverzicht"
           >
-            <ArrowLeftIcon size={20} color={COLORS.surface} weight="regular" />
+            <ArrowLeftIcon size={20} color={COLORS.textInverse} weight="regular" />
             <Text style={styles.backText}>Terug</Text>
-          </TouchableOpacity>
+          </Pressable>
 
-          <View style={styles.headerCenter}>
-            <View style={styles.headerAvatarWrap}>
-              <Image source={avatarSource} style={styles.headerAvatar} />
-            </View>
-            <View style={styles.headerNameCol}>
-              <Text style={styles.headerName} numberOfLines={1}>
-                {displayName}
-              </Text>
-              <Text style={styles.headerStatus}>offline</Text>
-            </View>
-          </View>
+          <Pressable
+            style={({ pressed }) => [styles.headerCenter, pressed && styles.headerCenterPressed]}
+            onPress={() => onViewProfile?.(otherUser?.id)}
+            disabled={!onViewProfile || !otherUser?.id}
+            accessibilityRole="button"
+            accessibilityLabel={`Bekijk profiel van ${displayName}`}
+          >
+            <ChatAvatar avatarUrl={otherUser?.avatar_url} size={36} />
+            <Text style={styles.headerName} numberOfLines={1}>{displayName}</Text>
+          </Pressable>
 
           <View style={styles.headerRight}>
             {shouldShowHeaderProposeButton && (
               <Pressable
-                style={styles.headerProposeButton}
+                style={({ pressed }) => [styles.headerProposeButton, pressed && styles.headerProposeButtonPressed]}
                 onPress={() => setIsBannerDismissed(false)}
                 accessibilityRole="button"
                 accessibilityLabel="Toon samenwerking voorstel"
               >
-                <HandshakeIcon size={16} color={COLORS.surface} weight="regular" />
+                <HandshakeIcon size={16} color={COLORS.textInverse} weight="regular" />
                 <Text style={styles.headerProposeButtonText}>Voorstel</Text>
               </Pressable>
             )}
@@ -522,7 +484,6 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
         </View>
       </SafeAreaView>
 
-      {/* Propose banner — owner only, when status=accepted and no proposal pending */}
       {!isLoadingMessages && shouldShowProposeBanner && (
         <View style={styles.proposeBanner}>
           <View style={styles.proposeBannerContent}>
@@ -541,13 +502,16 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
             onPress={() => setIsBannerDismissed(true)}
             accessibilityRole="button"
             accessibilityLabel="Banner sluiten"
+            hitSlop={8}
           >
             <XIcon size={14} color={COLORS.textSecondary} weight="bold" />
           </Pressable>
           <Pressable
-            style={[styles.proposeBannerButton, isProposing && { opacity: 0.6 }]}
+            style={({ pressed }) => [styles.proposeBannerButton, (isProposing || pressed) && styles.proposeBannerButtonPressed]}
             onPress={handleProposeSamenwerking}
             disabled={isProposing}
+            accessibilityRole="button"
+            accessibilityLabel="Samenwerking voorstellen"
           >
             <Text style={styles.proposeBannerButtonText}>
               {isProposing ? 'Bezig...' : 'Stel voor'}
@@ -556,7 +520,6 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
         </View>
       )}
 
-      {/* Messages list */}
       {isLoadingMessages ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="small" color={COLORS.brand} />
@@ -578,19 +541,18 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
         />
       )}
 
-      {/* Full-screen image gallery */}
       {previewUrls && (
         <Modal visible transparent animationType="fade" onRequestClose={() => setPreviewUrls(null)}>
           <View style={styles.previewOverlay}>
-            <View style={[styles.previewHeader, { paddingTop: Math.max(insets.top, 16) }]}>
-              <TouchableOpacity
+            <View style={[styles.previewHeader, { paddingTop: Math.max(insets.top, SPACING.md) }]}>
+              <Pressable
                 style={styles.previewCloseBtn}
                 onPress={() => setPreviewUrls(null)}
                 accessibilityRole="button"
                 accessibilityLabel="Sluiten"
               >
-                <XIcon size={20} color="#FFFFFF" weight="bold" />
-              </TouchableOpacity>
+                <XIcon size={20} color={COLORS.textInverse} weight="bold" />
+              </Pressable>
               {previewUrls.length > 1 && (
                 <Text style={styles.previewCounter}>{previewIndex + 1} / {previewUrls.length}</Text>
               )}
@@ -608,20 +570,15 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
                   <Image source={{ uri: url }} style={styles.previewImage} resizeMode="contain" />
                 </View>
               )}
-              getItemLayout={(_, index) => ({
-                length: SCREEN_WIDTH,
-                offset: SCREEN_WIDTH * index,
-                index,
-              })}
+              getItemLayout={(_, index) => ({ length: SCREEN_WIDTH, offset: SCREEN_WIDTH * index, index })}
               showsHorizontalScrollIndicator={false}
               onMomentumScrollEnd={(e) => {
-                const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-                setPreviewIndex(index);
+                setPreviewIndex(Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH));
               }}
             />
 
             {previewUrls.length > 1 && (
-              <View style={[styles.previewDots, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+              <View style={[styles.previewDots, { paddingBottom: Math.max(insets.bottom, SPACING.lg) }]}>
                 {previewUrls.map((_, i) => (
                   <View key={i} style={[styles.previewDot, i === previewIndex && styles.previewDotActive]} />
                 ))}
@@ -631,10 +588,9 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
         </Modal>
       )}
 
-      {/* Sticky input bar — locked when samenwerking is ended */}
       {isEnded ? (
         <View
-          style={[styles.lockedBar, { paddingBottom: Math.max(insets.bottom - 8, 10) }]}
+          style={[styles.lockedBar, { paddingBottom: Math.max(insets.bottom - SPACING.sm, SPACING.sm + 2) }]}
           accessible
           accessibilityLabel="Samenwerking beëindigd. Je kunt geen berichten meer versturen."
           accessibilityRole="text"
@@ -645,7 +601,7 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
           </Text>
         </View>
       ) : (
-        <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom - 8, 4) }]}>
+        <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom - SPACING.sm, SPACING.xs) }]}>
           {pendingImages.length > 0 && (
             <ScrollView
               horizontal
@@ -656,14 +612,14 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
               {pendingImages.map((asset, index) => (
                 <View key={`${asset.uri}-${index}`} style={styles.pendingThumbWrap}>
                   <Image source={{ uri: asset.uri }} style={styles.pendingThumb} resizeMode="cover" />
-                  <TouchableOpacity
+                  <Pressable
                     style={styles.pendingThumbRemove}
                     onPress={() => setPendingImages((current) => current.filter((_, i) => i !== index))}
                     accessibilityRole="button"
                     accessibilityLabel="Afbeelding verwijderen"
                   >
                     <XCircleIcon size={20} color="rgba(0,0,0,0.72)" weight="fill" />
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
               ))}
             </ScrollView>
@@ -671,15 +627,15 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
 
           <View style={styles.inputPill}>
             <View style={styles.inputPillLeft}>
-              <TouchableOpacity
-                style={styles.cameraBtn}
+              <Pressable
+                style={({ pressed }) => [styles.cameraBtn, pressed && styles.cameraBtnPressed]}
                 onPress={handlePickFromCamera}
                 disabled={isSending}
                 accessibilityRole="button"
                 accessibilityLabel="Foto maken"
               >
-                <CameraIcon size={16} color={COLORS.surface} weight="regular" />
-              </TouchableOpacity>
+                <CameraIcon size={16} color={COLORS.textInverse} weight="regular" />
+              </Pressable>
 
               <TextInput
                 style={styles.textInput}
@@ -694,35 +650,28 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
             </View>
 
             {(messageInput.trim().length > 0 || pendingImages.length > 0) ? (
-              <TouchableOpacity
+              <Pressable
                 onPress={handleSend}
                 disabled={isSending}
                 accessibilityRole="button"
                 accessibilityLabel="Bericht verzenden"
+                hitSlop={SPACING.sm}
               >
                 {isSending
                   ? <ActivityIndicator size="small" color={COLORS.brand} />
                   : <PaperPlaneRightIcon size={22} color={COLORS.brand} weight="fill" />
                 }
-              </TouchableOpacity>
+              </Pressable>
             ) : (
-              <View style={styles.iconsRight}>
-                <TouchableOpacity
-                  onPress={() => Alert.alert('Spraakbericht', 'Spraakberichten zijn niet beschikbaar.')}
-                  accessibilityRole="button"
-                  accessibilityLabel="Spraakbericht opnemen"
-                >
-                  <MicrophoneIcon size={22} color={COLORS.textPrimary} weight="regular" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handlePickFromGallery}
-                  disabled={isSending}
-                  accessibilityRole="button"
-                  accessibilityLabel="Foto uit galerij kiezen"
-                >
-                  <ImageIcon size={22} color={COLORS.textPrimary} weight="regular" />
-                </TouchableOpacity>
-              </View>
+              <Pressable
+                onPress={handlePickFromGallery}
+                disabled={isSending}
+                accessibilityRole="button"
+                accessibilityLabel="Foto uit galerij kiezen"
+                hitSlop={SPACING.sm}
+              >
+                <ImageIcon size={22} color={COLORS.textSecondary} weight="regular" />
+              </Pressable>
             )}
           </View>
         </View>
@@ -731,15 +680,11 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
   );
 }
 
-const MESSAGE_AVATAR_SIZE = 40;
-
 const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: COLORS.surface,
   },
-
-  // ── Header ────────────────────────────────────────────────────────────────
   headerSafe: {
     backgroundColor: COLORS.brand,
   },
@@ -748,52 +693,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SPACING.screenX,
     minHeight: 60,
-    paddingVertical: 12,
+    paddingVertical: SPACING.sm + 4,
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: SPACING.xs,
     minWidth: 72,
   },
+  backButtonPressed: {
+    opacity: 0.7,
+  },
   backText: {
-    color: COLORS.surface,
+    color: COLORS.textInverse,
     fontFamily: FONTS.bodyMedium,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
   },
   headerCenter: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    paddingHorizontal: 8,
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.sm,
   },
-  headerAvatarWrap: {
-    width: 36,
-    height: 36,
-  },
-  headerAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.surfaceMuted,
-  },
-  headerNameCol: {
-    flexShrink: 1,
-    gap: 1,
+  headerCenterPressed: {
+    opacity: 0.7,
   },
   headerName: {
-    color: COLORS.surface,
+    color: COLORS.textInverse,
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 17,
+    fontSize: FONT_SIZES.lg,
     maxWidth: 160,
-  },
-  headerStatus: {
-    color: COLORS.surface,
-    fontFamily: FONTS.body,
-    fontSize: 13,
-    opacity: 0.85,
+    flexShrink: 1,
   },
   headerRight: {
     minWidth: 72,
@@ -803,82 +735,79 @@ const styles = StyleSheet.create({
   headerProposeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    gap: SPACING.xs,
+    backgroundColor: COLORS.overlayLight,
+    borderRadius: RADIUS.lg,
+    paddingHorizontal: SPACING.sm + 2,
+    paddingVertical: SPACING.xs + 2,
     minHeight: 32,
+  },
+  headerProposeButtonPressed: {
+    opacity: 0.75,
   },
   headerProposeButtonText: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 12,
-    color: COLORS.surface,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textInverse,
   },
-
-  // ── Propose banner ────────────────────────────────────────────────────────
   proposeBanner: {
     marginHorizontal: SPACING.screenX,
-    marginTop: 12,
-    marginBottom: 4,
-    backgroundColor: '#FFF8E1',
+    marginTop: SPACING.sm + 4,
+    marginBottom: SPACING.xs,
+    backgroundColor: COLORS.accentSoft,
     borderRadius: RADIUS.sm,
-    padding: 14,
-    gap: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    padding: SPACING.md - 2,
+    gap: SPACING.sm + 2,
   },
   proposeBannerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: SPACING.sm + 2,
   },
   proposeBannerIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(87,98,56,0.1)',
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.brandOverlay,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
   proposeBannerTextWrap: {
     flex: 1,
-    gap: 2,
+    gap: SPACING.xxs,
   },
   proposeBannerTitle: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textPrimary,
   },
   proposeBannerSubtitle: {
     fontFamily: FONTS.body,
-    fontSize: 12,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
     lineHeight: 16,
   },
   proposeBannerButton: {
     backgroundColor: COLORS.accent,
     borderRadius: RADIUS.sm,
-    paddingVertical: 10,
+    paddingVertical: SPACING.sm + 2,
     alignItems: 'center',
+  },
+  proposeBannerButtonPressed: {
+    opacity: 0.75,
   },
   proposeBannerButtonText: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textPrimary,
   },
   proposeBannerDismiss: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    padding: 4,
+    top: SPACING.sm,
+    right: SPACING.sm,
+    padding: SPACING.xs,
   },
-
-  // ── Messages list ─────────────────────────────────────────────────────────
   loadingWrap: {
     flex: 1,
     alignItems: 'center',
@@ -890,67 +819,54 @@ const styles = StyleSheet.create({
   },
   messagesContent: {
     paddingHorizontal: SPACING.screenX,
-    paddingVertical: 16,
+    paddingVertical: SPACING.md,
   },
-
-  // System intro pill (ListHeaderComponent)
   systemContainer: {
     alignSelf: 'center',
-    backgroundColor: '#F0F0F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: COLORS.surfaceMuted,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm + 4,
     maxWidth: 320,
-    marginBottom: 16,
+    marginBottom: SPACING.md,
   },
   systemText: {
     fontFamily: FONTS.body,
-    fontSize: 13,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textPrimary,
     textAlign: 'center',
     lineHeight: 18,
   },
-
-  // Own messages (right-aligned, green)
   ownGroup: {
     alignItems: 'flex-end',
   },
   ownTimestamp: {
     fontFamily: FONTS.body,
-    fontSize: 12,
-    color: 'rgba(0,0,0,0.5)',
+    fontSize: FONT_SIZES.xs,
+    color: TIMESTAMP_COLOR,
     alignSelf: 'flex-end',
-    marginBottom: 4,
+    marginBottom: SPACING.xs,
   },
   ownBubble: {
     backgroundColor: COLORS.brand,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingHorizontal: SPACING.sm + 2,
+    paddingVertical: SPACING.sm + 2,
     maxWidth: '75%',
-    borderTopLeftRadius: 10,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
+    borderTopLeftRadius: RADIUS.md,
+    borderBottomLeftRadius: RADIUS.md,
+    borderBottomRightRadius: RADIUS.md,
     borderTopRightRadius: 2,
   },
   ownBubbleText: {
     fontFamily: FONTS.body,
-    fontSize: 15,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.textInverse,
-    lineHeight: 20,
+    lineHeight: 22,
   },
-
-  // Other messages (left-aligned, gray)
   otherRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
-  },
-  messageAvatar: {
-    width: MESSAGE_AVATAR_SIZE,
-    height: MESSAGE_AVATAR_SIZE,
-    borderRadius: MESSAGE_AVATAR_SIZE / 2,
-    backgroundColor: COLORS.surfaceMuted,
-    flexShrink: 0,
+    gap: SPACING.sm,
   },
   messageAvatarSpacer: {
     width: MESSAGE_AVATAR_SIZE,
@@ -959,7 +875,7 @@ const styles = StyleSheet.create({
   otherColumn: {
     flex: 1,
     alignItems: 'flex-start',
-    gap: 8,
+    gap: SPACING.sm,
     maxWidth: '75%',
   },
   otherHeader: {
@@ -970,51 +886,47 @@ const styles = StyleSheet.create({
   },
   otherName: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 13,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textPrimary,
     flexShrink: 1,
   },
   otherTimestamp: {
     fontFamily: FONTS.body,
-    fontSize: 12,
-    color: 'rgba(0,0,0,0.5)',
-    marginLeft: 8,
+    fontSize: FONT_SIZES.xs,
+    color: TIMESTAMP_COLOR,
+    marginLeft: SPACING.sm,
     flexShrink: 0,
   },
   otherBubble: {
-    backgroundColor: '#EFEFEF',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    borderTopRightRadius: 10,
-    borderBottomRightRadius: 10,
-    borderBottomLeftRadius: 10,
+    backgroundColor: COLORS.surfaceMuted,
+    paddingHorizontal: SPACING.sm + 2,
+    paddingVertical: SPACING.sm + 2,
+    borderTopRightRadius: RADIUS.md,
+    borderBottomRightRadius: RADIUS.md,
+    borderBottomLeftRadius: RADIUS.md,
     borderTopLeftRadius: 2,
   },
   otherBubbleText: {
     fontFamily: FONTS.body,
-    fontSize: 15,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.textPrimary,
-    lineHeight: 20,
+    lineHeight: 22,
   },
-
-  // Image bubbles
   ownImageBubble: {
     maxWidth: '75%',
-    borderTopLeftRadius: 10,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
+    borderTopLeftRadius: RADIUS.md,
+    borderBottomLeftRadius: RADIUS.md,
+    borderBottomRightRadius: RADIUS.md,
     borderTopRightRadius: 2,
     overflow: 'hidden',
   },
   otherImageBubble: {
-    borderTopRightRadius: 10,
-    borderBottomRightRadius: 10,
-    borderBottomLeftRadius: 10,
+    borderTopRightRadius: RADIUS.md,
+    borderBottomRightRadius: RADIUS.md,
+    borderBottomLeftRadius: RADIUS.md,
     borderTopLeftRadius: 2,
     overflow: 'hidden',
   },
-
-  // ImageGrid
   chatImageSingle: {
     width: 200,
     height: 150,
@@ -1047,18 +959,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   imageGridOverlayText: {
-    color: '#FFFFFF',
+    color: COLORS.textInverse,
     fontSize: 22,
     fontFamily: FONTS.displayBold,
   },
-
-  // Pending images
   pendingStrip: {
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
   },
   pendingStripContent: {
-    gap: 8,
-    paddingHorizontal: 2,
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.xxs,
   },
   pendingThumbWrap: {
     position: 'relative',
@@ -1068,38 +978,36 @@ const styles = StyleSheet.create({
   pendingThumb: {
     width: 64,
     height: 64,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
   },
   pendingThumbRemove: {
     position: 'absolute',
-    top: -6,
-    right: -6,
+    top: -(SPACING.xs + 2),
+    right: -(SPACING.xs + 2),
   },
-
-  // Full-screen gallery
   previewOverlay: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#000',
   },
   previewHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: SPACING.md,
+    paddingBottom: SPACING.sm + 4,
   },
   previewCloseBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.overlayLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   previewCounter: {
-    color: '#FFFFFF',
+    color: COLORS.textInverse,
     fontFamily: FONTS.bodyMedium,
-    fontSize: 15,
+    fontSize: FONT_SIZES.md,
   },
   previewHeaderSpacer: {
     width: 36,
@@ -1117,89 +1025,80 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
-    paddingTop: 12,
+    gap: SPACING.xs + 2,
+    paddingTop: SPACING.sm + 4,
   },
   previewDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: SPACING.xs + 2,
+    height: SPACING.xs + 2,
+    borderRadius: RADIUS.pill,
     backgroundColor: 'rgba(255,255,255,0.35)',
   },
   previewDotActive: {
-    backgroundColor: '#FFFFFF',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    backgroundColor: COLORS.textInverse,
+    width: SPACING.sm,
+    height: SPACING.sm,
   },
-
-  // ── Locked bar (samenwerking ended) ──────────────────────────────────────
   lockedBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: SPACING.sm,
     paddingHorizontal: SPACING.screenX,
-    paddingTop: 14,
+    paddingTop: SPACING.md - 2,
     backgroundColor: COLORS.negativeSoft,
     borderTopWidth: 1,
     borderTopColor: 'rgba(213,60,62,0.2)',
   },
   lockedText: {
     fontFamily: FONTS.body,
-    fontSize: 13,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.negative,
     textAlign: 'center',
     flexShrink: 1,
     lineHeight: 18,
   },
-
-  // ── Input bar ─────────────────────────────────────────────────────────────
   inputBar: {
     backgroundColor: COLORS.surface,
     paddingHorizontal: SPACING.screenX,
-    paddingTop: 8,
+    paddingTop: SPACING.sm,
   },
   inputPill: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(87, 98, 56, 0.05)',
-    borderRadius: 64,
+    backgroundColor: INPUT_PILL_BG,
+    borderRadius: RADIUS.pill,
     borderWidth: 1,
     borderColor: COLORS.border,
-    paddingHorizontal: 9,
-    paddingVertical: 8,
+    paddingHorizontal: SPACING.xs + 5,
+    paddingVertical: SPACING.sm,
   },
   inputPillLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: SPACING.sm,
     flex: 1,
     minWidth: 0,
   },
   cameraBtn: {
     width: 30,
     height: 30,
-    borderRadius: 15,
+    borderRadius: RADIUS.pill,
     backgroundColor: COLORS.brand,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
+  cameraBtnPressed: {
+    opacity: 0.75,
+  },
   textInput: {
     flex: 1,
     fontFamily: FONTS.body,
-    fontSize: 15,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.textPrimary,
     maxHeight: 100,
     paddingVertical: 0,
-  },
-  iconsRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    flexShrink: 0,
-    paddingLeft: 8,
   },
 });

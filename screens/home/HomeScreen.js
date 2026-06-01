@@ -13,6 +13,7 @@ import HomeSectionCta from '../../components/home/HomeSectionCta';
 import PlotCard from '../../components/home/PlotCard';
 import BerichtenOverzichtScreen from '../berichten/BerichtenOverzichtScreen';
 import ConversationDetailScreen from '../berichten/ConversationDetailScreen';
+import ProfielScreen from '../profile/ProfielScreen';
 import PlansScreen from '../plans/PlansScreen';
 import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
 import GeenToegangScreen from '../aanvraag/GeenToegangScreen';
@@ -64,6 +65,7 @@ function navReducer(state, action) {
 export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConversation, selectedConversation: appSelectedConversation = null, onCloseConversation, onConfirmSamenwerking, unreadNotificationsCount = 0, onOpenNotifications, onOpenProfiel, onOpenSaved }) {
   const [activeTab, setActiveTab] = useState(() => getInitialTab?.() ?? 'start');
   const [selectedConversation, setSelectedConversation] = useState(null);
+  const [conversationProfileId, setConversationProfileId] = useState(null);
   const [activeDot, setActiveDot] = useState(0);
   const [activeDotAanvragen, setActiveDotAanvragen] = useState(0);
   const [dataRefreshKey, setDataRefreshKey] = useState(0);
@@ -193,18 +195,29 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
 
   const activeConversation = selectedConversation || appSelectedConversation;
   if (activeConversation) {
+    if (conversationProfileId) {
+      return (
+        <ProfielScreen
+          profileUserId={conversationProfileId}
+          onBack={() => setConversationProfileId(null)}
+        />
+      );
+    }
     return (
       <ConversationDetailScreen
         conversation={activeConversation}
         onBack={() => {
+          setConversationProfileId(null);
           setSelectedConversation(null);
           onCloseConversation?.();
         }}
         onConfirmSamenwerking={() => {
+          setConversationProfileId(null);
           setSelectedConversation(null);
           onCloseConversation?.();
           onConfirmSamenwerking?.();
         }}
+        onViewProfile={(userId) => { if (userId) setConversationProfileId(userId); }}
       />
     );
   }
