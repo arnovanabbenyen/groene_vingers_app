@@ -328,14 +328,14 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
           <View style={styles.actionButtons}>
             <AuthButton
               label="Bewerken"
-              variant="secondary"
+              variant="primary"
               icon={PencilSimpleIcon}
               onPress={() => setIsEditing(true)}
               accessibilityLabel="Log bewerken"
             />
             <AuthButton
               label="Verwijderen"
-              variant="danger"
+              variant="tertiary"
               icon={TrashIcon}
               onPress={handleDelete}
               loading={isDeleting}

@@ -13,17 +13,19 @@ export default function AuthButton({
 }) {
   const isPrimary = variant === 'primary';
   const isDanger = variant === 'danger';
+  const isTertiary = variant === 'tertiary';
   const isDisabled = disabled || loading;
 
-  const iconColor = isPrimary || isDanger ? COLORS.textInverse : COLORS.brand;
+  const iconColor = isPrimary || isDanger ? COLORS.textInverse : isTertiary ? COLORS.negative : COLORS.brand;
 
   function getButtonStyle(pressed) {
-    if (isPrimary) return [styles.buttonPrimary, pressed && styles.buttonPrimaryPressed];
-    if (isDanger)  return [styles.buttonDanger,  pressed && styles.buttonDangerPressed];
+    if (isPrimary)  return [styles.buttonPrimary,   pressed && styles.buttonPrimaryPressed];
+    if (isDanger)   return [styles.buttonDanger,    pressed && styles.buttonDangerPressed];
+    if (isTertiary) return [styles.buttonTertiary,  pressed && styles.buttonTertiaryPressed];
     return [styles.buttonSecondary, pressed && styles.buttonSecondaryPressed];
   }
 
-  const textStyle = isPrimary || isDanger ? styles.buttonTextInverse : styles.buttonTextBrand;
+  const textStyle = isPrimary || isDanger ? styles.buttonTextInverse : isTertiary ? styles.buttonTextNegative : styles.buttonTextBrand;
 
   return (
     <Pressable
@@ -82,6 +84,10 @@ const styles = StyleSheet.create({
   buttonDangerPressed: {
     opacity: 0.85,
   },
+  buttonTertiary: {},
+  buttonTertiaryPressed: {
+    opacity: 0.6,
+  },
   buttonDisabled: {
     opacity: 0.5,
   },
@@ -95,6 +101,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: FONTS.displaySemiBold,
     color: COLORS.brand,
+    textAlign: 'center',
+  },
+  buttonTextNegative: {
+    fontSize: 16,
+    fontFamily: FONTS.displaySemiBold,
+    color: COLORS.negative,
     textAlign: 'center',
   },
 });
