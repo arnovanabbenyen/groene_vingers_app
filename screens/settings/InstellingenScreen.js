@@ -11,6 +11,7 @@ import {
 import * as Linking from 'expo-linking';
 import { CaretRightIcon, SignOutIcon, StarIcon, TrashSimpleIcon } from 'phosphor-react-native';
 import Header from '../../components/navigation/Header';
+import { showConfirm } from '../../components/common/ConfirmDialog';
 import SettingsRow from '../../components/settings/SettingsRow';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
 import { supabase } from '../../services/supabase';
@@ -66,58 +67,48 @@ export default function InstellingenScreen({
   const showSubscriptionSection = role === 'tuinzoeker';
 
   async function handleLogout() {
-    Alert.alert(
-      'Uitloggen',
-      'Weet je zeker dat je wilt uitloggen?',
-      [
-        { text: 'Annuleren', style: 'cancel' },
-        {
-          text: 'Uitloggen',
-          style: 'destructive',
-          onPress: async () => {
-            try { await supabase?.auth.signOut(); } catch (e) { console.warn('signOut error', e); }
-            onLogout?.();
-          },
-        },
-      ],
-    );
+    showConfirm({
+      title: 'Uitloggen',
+      message: 'Weet je zeker dat je wilt uitloggen?',
+      confirmLabel: 'Uitloggen',
+      cancelLabel: 'Annuleren',
+      onConfirm: async () => {
+        try { await supabase?.auth.signOut(); } catch (e) { console.warn('signOut error', e); }
+        onLogout?.();
+      },
+    });
   }
 
   async function handleDeleteAccount() {
-    Alert.alert(
-      'Account verwijderen?',
-      'Je account wordt verwijderd. Je gegevens blijven 30 dagen bewaard voor het geval je terug wilt komen. Daarna worden ze definitief verwijderd. Lopende samenwerkingen blijven actief voor de andere partij.',
-      [
-        { text: 'Annuleren', style: 'cancel' },
-        {
-          text: 'Verwijderen',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { data: sessionData } = await supabase.auth.getSession();
-              const userId = sessionData?.session?.user?.id;
-              if (!userId) return;
+    showConfirm({
+      title: 'Account verwijderen?',
+      message: 'Je account wordt verwijderd. Je gegevens blijven 30 dagen bewaard voor het geval je terug wilt komen. Daarna worden ze definitief verwijderd. Lopende samenwerkingen blijven actief voor de andere partij.',
+      confirmLabel: 'Verwijderen',
+      cancelLabel: 'Annuleren',
+      onConfirm: async () => {
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const userId = sessionData?.session?.user?.id;
+          if (!userId) return;
 
-              await supabase
-                .from('profiles')
-                .update({ deleted_at: new Date().toISOString(), first_name: 'Verwijderd', last_name: 'Account' })
-                .eq('id', userId);
+          await supabase
+            .from('profiles')
+            .update({ deleted_at: new Date().toISOString(), first_name: 'Verwijderd', last_name: 'Account' })
+            .eq('id', userId);
 
-              await supabase
-                .from('percelen')
-                .update({ status: 'deleted' })
-                .eq('owner_id', userId);
+          await supabase
+            .from('percelen')
+            .update({ status: 'deleted' })
+            .eq('owner_id', userId);
 
-              await supabase?.auth.signOut();
-              onLogout?.();
-            } catch (e) {
-              console.warn('Delete account error', e);
-              Alert.alert('Fout', 'Account kon niet worden verwijderd. Probeer opnieuw.');
-            }
-          },
-        },
-      ],
-    );
+          await supabase?.auth.signOut();
+          onLogout?.();
+        } catch (e) {
+          console.warn('Delete account error', e);
+          Alert.alert('Fout', 'Account kon niet worden verwijderd. Probeer opnieuw.');
+        }
+      },
+    });
   }
 
   async function handleOpenSubscription() {
