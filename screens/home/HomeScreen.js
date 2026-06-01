@@ -21,6 +21,7 @@ import AanvraagBevestigingScreen from '../aanvraag/AanvraagBevestigingScreen';
 import LogboekScreen from '../loggen/LogboekScreen';
 import KaartScreen from '../kaart/KaartScreen';
 import { MagnifyingGlassIcon } from 'phosphor-react-native';
+import EmptyState from '../../components/common/EmptyState';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 import { PLOT_CARD } from '../../components/home/PlotCard';
 
@@ -61,6 +62,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
   const [activeTab, setActiveTab] = useState(() => getInitialTab?.() ?? 'start');
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [activeDot, setActiveDot] = useState(0);
+  const [activeDotAanvragen, setActiveDotAanvragen] = useState(0);
   const [dataRefreshKey, setDataRefreshKey] = useState(0);
   const [autoFocusKaartSearch, setAutoFocusKaartSearch] = useState(false);
   const [navState, navDispatch] = useReducer(navReducer, initialNavState);
@@ -91,6 +93,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
   }, [percelen, aanvragen]);
 
   const visibleDotIndex = Math.max(0, Math.min(filteredPlots.length - 1, activeDot));
+  const visibleDotAanvraagIndex = Math.max(0, Math.min(aanvragen.length - 1, activeDotAanvragen));
 
   if (navState.type === 'request') {
     const perceelToRequest = navState.payload;
@@ -263,6 +266,10 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
                   showsHorizontalScrollIndicator={false}
                   style={styles.plotsScrollView}
                   contentContainerStyle={styles.plotsScroller}
+                  onMomentumScrollEnd={(event) => {
+                    const nextDot = Math.round(event.nativeEvent.contentOffset.x / (PLOT_CARD.cardWidth + PLOT_CARD.carouselGap));
+                    setActiveDotAanvragen(Math.max(0, Math.min(aanvragen.length - 1, nextDot)));
+                  }}
                 >
                   {aanvragen.map((aanvraag) => {
                     const perceel = aanvraag.perceel;
@@ -284,6 +291,30 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
                     );
                   })}
                 </ScrollView>
+
+                {aanvragen.length > 1 ? (
+                  <View
+                    style={styles.dotRow}
+                    accessibilityRole="adjustable"
+                    accessibilityLabel="Aanvragen carrousel"
+                    accessibilityValue={{
+                      min: 1,
+                      max: aanvragen.length,
+                      now: visibleDotAanvraagIndex + 1,
+                      text: `Aanvraag ${visibleDotAanvraagIndex + 1} van ${aanvragen.length}`,
+                    }}
+                    accessibilityLiveRegion="polite"
+                  >
+                    {aanvragen.map((aanvraag, index) => (
+                      <View
+                        key={`dot-aanvraag-${aanvraag.id}`}
+                        style={[styles.dot, index === visibleDotAanvraagIndex && styles.dotActive]}
+                        accessibilityElementsHidden
+                        importantForAccessibility="no"
+                      />
+                    ))}
+                  </View>
+                ) : null}
               </View>
             )}
 
@@ -315,11 +346,12 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
               )}
 
               {!isLoadingPercelen && filteredPlots.length === 0 ? (
-                <View style={styles.emptyState} accessible accessibilityRole="text">
-                  <MagnifyingGlassIcon size={40} color={COLORS.brand} weight="regular" />
-                  <Text style={styles.emptyTitle}>Geen percelen beschikbaar</Text>
-                  <Text style={styles.emptySubtext}>Er zijn momenteel geen percelen beschikbaar.</Text>
-                </View>
+                <EmptyState
+                  compact
+                  icon={MagnifyingGlassIcon}
+                  title="Geen percelen beschikbaar"
+                  body="Er zijn momenteel geen percelen beschikbaar in jouw buurt."
+                />
               ) : null}
 
               {!isLoadingPercelen && filteredPlots.length > 0 ? (
@@ -442,25 +474,6 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bodyMedium,
     fontSize: FONT_SIZES.xs,
     lineHeight: 14,
-  },
-  emptyState: {
-    paddingVertical: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  emptyTitle: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-  },
-  emptySubtext: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
-    textAlign: 'center',
   },
   bottomNav: {
     position: 'absolute',
