@@ -323,6 +323,24 @@ export default function App() {
     async function handleUrl(url) {
       if (!url) return;
 
+      // TokenHash flow: direct mobile deep link (groenevingers://verify?token_hash=XXX&type=signup)
+      if (url.includes('token_hash=')) {
+        try {
+          const queryIndex = url.indexOf('?');
+          const params = new URLSearchParams(queryIndex !== -1 ? url.slice(queryIndex + 1) : url);
+          const token_hash = params.get('token_hash');
+          const type = params.get('type') || 'email';
+          if (token_hash) {
+            const { error } = await supabase.auth.verifyOtp({ token_hash, type });
+            if (error) console.warn('verifyOtp failed', error);
+            // onAuthStateChange fires SIGNED_IN → sets isLoggedIn(true) + uploads pending photos
+          }
+        } catch (err) {
+          console.warn('Deep link token_hash verification failed', err);
+        }
+        return;
+      }
+
       // PKCE flow: Supabase sends a code= query param
       if (url.includes('code=')) {
         try {
