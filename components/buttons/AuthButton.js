@@ -14,18 +14,20 @@ export default function AuthButton({
   const isPrimary = variant === 'primary';
   const isDanger = variant === 'danger';
   const isTertiary = variant === 'tertiary';
+  const isSecondaryDanger = variant === 'secondaryDanger';
   const isDisabled = disabled || loading;
 
-  const iconColor = isPrimary || isDanger ? COLORS.textInverse : isTertiary ? COLORS.negative : COLORS.brand;
+  const iconColor = isPrimary || isDanger ? COLORS.textInverse : isTertiary || isSecondaryDanger ? COLORS.negative : COLORS.brand;
 
   function getButtonStyle(pressed) {
-    if (isPrimary)  return [styles.buttonPrimary,   pressed && styles.buttonPrimaryPressed];
-    if (isDanger)   return [styles.buttonDanger,    pressed && styles.buttonDangerPressed];
-    if (isTertiary) return [styles.buttonTertiary,  pressed && styles.buttonTertiaryPressed];
+    if (isPrimary)        return [styles.buttonPrimary,        pressed && styles.buttonPrimaryPressed];
+    if (isDanger)         return [styles.buttonDanger,         pressed && styles.buttonDangerPressed];
+    if (isTertiary)       return [styles.buttonTertiary,       pressed && styles.buttonTertiaryPressed];
+    if (isSecondaryDanger) return [styles.buttonSecondaryDanger, pressed && styles.buttonSecondaryDangerPressed];
     return [styles.buttonSecondary, pressed && styles.buttonSecondaryPressed];
   }
 
-  const textStyle = isPrimary || isDanger ? styles.buttonTextInverse : isTertiary ? styles.buttonTextNegative : styles.buttonTextBrand;
+  const textStyle = isPrimary || isDanger ? styles.buttonTextInverse : isTertiary || isSecondaryDanger ? styles.buttonTextNegative : styles.buttonTextBrand;
 
   return (
     <Pressable
@@ -87,6 +89,14 @@ const styles = StyleSheet.create({
   buttonTertiary: {},
   buttonTertiaryPressed: {
     opacity: 0.6,
+  },
+  buttonSecondaryDanger: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 2,
+    borderColor: COLORS.negative,
+  },
+  buttonSecondaryDangerPressed: {
+    opacity: 0.85,
   },
   buttonDisabled: {
     opacity: 0.5,
