@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EnvelopeSimple, LockKey } from 'phosphor-react-native';
-import { COLORS, FONTS, SPACING } from '../../components/theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, SPACING } from '../../components/theme/tokens';
 import AuthButton from '../../components/buttons/AuthButton';
 import AuthTextField from '../../components/auth/AuthTextField';
 import AuthCheckbox from '../../components/auth/AuthCheckbox';
@@ -181,7 +181,7 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin, init
             accessibilityLabel="Woonplaats"
             accessibilityHint="Selecteer je woonplaats uit de lijst"
           />
-          {errors.plaats ? <FieldError message={errors.plaats} /> : null}
+          {errors.plaats ? <View style={styles.fieldError}><FieldError message={errors.plaats} /></View> : null}
 
           <AuthTextField
             ref={emailRef}
@@ -201,7 +201,7 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin, init
             onSubmitEditing={() => passwordRef.current?.focus()}
             accessibilityLabel="E-mailadres"
           />
-          {errors.email ? <FieldError message={errors.email} /> : null}
+          {errors.email ? <View style={styles.fieldError}><FieldError message={errors.email} /></View> : null}
 
           <AuthTextField
             ref={passwordRef}
@@ -221,7 +221,7 @@ export default function AccountDetailsScreen({ onBack, onContinue, onLogin, init
             accessibilityHint="Minimaal 8 tekens, een hoofdletter, een cijfer en een speciaal teken"
           />
           <PasswordStrengthBar strength={strength} />
-          {errors.password ? <FieldError message={errors.password} /> : null}
+          {errors.password ? <View style={styles.fieldError}><FieldError message={errors.password} /></View> : null}
 
           <AuthCheckbox
             checked={values.acceptedTerms}
@@ -283,19 +283,20 @@ const styles = StyleSheet.create({
   scroll:     { flex: 1 },
   scrollContent: {
     paddingHorizontal: SPACING.screenX,
-    paddingTop: 20,
-    paddingBottom: 24,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.lg,
   },
-  title:    { fontFamily: FONTS.displaySemiBold, fontSize: 20, color: COLORS.textPrimary, marginBottom: 4 },
-  subtitle: { fontFamily: FONTS.body, fontSize: 12.8, lineHeight: 18, color: COLORS.textSecondary, marginBottom: 24 },
+  title:    { fontFamily: FONTS.displaySemiBold, fontSize: FONT_SIZES.xl, color: COLORS.textPrimary, marginBottom: SPACING.sm },
+  subtitle: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, lineHeight: 18, color: COLORS.textSecondary, marginBottom: SPACING.lg },
   row:      { flexDirection: 'row', gap: 12 },
+  fieldError: { marginBottom: SPACING.sm },
   termsLink: { fontFamily: FONTS.bodyMedium, color: COLORS.textPrimary, textDecorationLine: 'underline' },
   footer: {
     paddingHorizontal: SPACING.screenX,
-    paddingTop: 12,
+    paddingTop: SPACING.md,
     backgroundColor: COLORS.background,
   },
-  loginRow:  { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12 },
-  loginText: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.textPrimary },
-  loginLink: { fontFamily: FONTS.displaySemiBold, fontSize: 14, color: COLORS.textPrimary },
+  loginRow:  { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: SPACING.sm },
+  loginText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textPrimary },
+  loginLink: { fontFamily: FONTS.displaySemiBold, fontSize: FONT_SIZES.md, color: COLORS.textPrimary },
 });

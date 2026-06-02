@@ -138,15 +138,16 @@ export default LocationAutocompleteField;
 const styles = StyleSheet.create({
   wrap: {
     zIndex: 1,
+    marginBottom: 14,
   },
   label: {
-    fontFamily: FONTS.bodyMedium,
+    fontFamily: FONTS.body,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textPrimary,
-    marginBottom: SPACING.xs,
+    marginBottom: SPACING.sm,
   },
   inputShell: {
-    height: 48,
+    height: 44,
     borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: COLORS.border,

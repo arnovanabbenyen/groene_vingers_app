@@ -3,7 +3,8 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import RoleCard from '../../components/auth/RoleCard';
 import { ROLES } from '../../components/auth/roles.config';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACING } from '../../components/theme/tokens';
+import AuthButton from '../../components/buttons/AuthButton';
+import { COLORS, FONTS, FONT_SIZES, SPACING } from '../../components/theme/tokens';
 
 export default function RoleSelectionScreen({ onContinue, onLogin }) {
   const insets = useSafeAreaInsets();
@@ -36,17 +37,13 @@ export default function RoleSelectionScreen({ onContinue, onLogin }) {
       </View>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
-        <Pressable
-          onPress={() => canContinue && onContinue?.(selectedRoleId)}
+        <AuthButton
+          label="Volgende"
+          onPress={() => onContinue?.(selectedRoleId)}
+          variant="primary"
           disabled={!canContinue}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !canContinue }}
-          accessibilityLabel="Volgende"
           accessibilityHint={!canContinue ? 'Kies eerst een rol om door te gaan' : undefined}
-          style={[styles.button, !canContinue && styles.buttonDisabled]}
-        >
-          <Text style={[styles.buttonText, !canContinue && styles.buttonTextDisabled]}>Volgende</Text>
-        </Pressable>
+        />
 
         <View style={styles.loginRow}>
           <Text style={styles.loginText}>Al een account? </Text>
@@ -90,23 +87,6 @@ const styles = StyleSheet.create({
   footer: {
     paddingTop: 12,
     gap: 12,
-  },
-  button: {
-    backgroundColor: COLORS.brand,
-    borderRadius: RADIUS.xl,
-    paddingVertical: SPACING.md,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    backgroundColor: COLORS.surfaceMuted,
-  },
-  buttonText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.textInverse,
-  },
-  buttonTextDisabled: {
-    color: COLORS.textSecondary,
   },
   loginRow: {
     flexDirection: 'row',
