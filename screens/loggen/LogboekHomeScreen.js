@@ -404,6 +404,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.dividerSoft,
     ...SHADOWS.card,
   },
   progressCard: {
@@ -449,6 +451,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.dividerSoft,
     padding: SPACING.md,
     gap: SPACING.sm,
     alignItems: 'flex-start',
