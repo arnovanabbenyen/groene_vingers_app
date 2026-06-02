@@ -447,15 +447,51 @@ export default function App() {
         if (user?.id) {
           const pending = await readPendingPhotos();
           if (pending?.userId === user.id) {
+            // Wait for session to fully propagate (max 2 seconds, polling every 200ms).
+            // Storage RLS needs auth.uid() to match user.id.
+            let activeSession = null;
+            for (let attempt = 0; attempt < 10; attempt++) {
+              const { data } = await supabase.auth.getSession();
+              if (data?.session?.user?.id === user.id) {
+                activeSession = data.session;
+                break;
+              }
+              await new Promise((r) => setTimeout(r, 200));
+            }
+
+            if (!activeSession) {
+              console.warn('Pending photos: session never propagated for user', user.id);
+              // Don't clear pending — try again on next SIGNED_IN
+              return;
+            }
+
+            // Session is now active and matches the user. Safe to upload.
+            let uploadSucceeded = false;
             if (pending.profilePhotoUri) {
-              try { await uploadPhoto('profile-pfp', user.id, 'avatar', pending.profilePhotoUri); }
-              catch (err) { console.warn('Deferred avatar upload failed', err); }
+              try {
+                await uploadPhoto('profile-pfp', user.id, 'avatar', pending.profilePhotoUri);
+                uploadSucceeded = true;
+                console.log('Deferred avatar uploaded successfully');
+              } catch (err) {
+                console.warn('Deferred avatar upload failed:', err.message);
+              }
             }
             if (pending.coverPhotoUri) {
-              try { await uploadPhoto('profile-covers', user.id, 'cover', pending.coverPhotoUri); }
-              catch (err) { console.warn('Deferred cover upload failed', err); }
+              try {
+                await uploadPhoto('profile-covers', user.id, 'cover', pending.coverPhotoUri);
+                uploadSucceeded = true;
+                console.log('Deferred cover uploaded successfully');
+              } catch (err) {
+                console.warn('Deferred cover upload failed:', err.message);
+              }
             }
-            await clearPendingPhotos();
+
+            // Only clear if at least one upload succeeded — keeps pending for retry on next login.
+            if (uploadSucceeded || (!pending.profilePhotoUri && !pending.coverPhotoUri)) {
+              await clearPendingPhotos();
+            } else {
+              console.warn('Pending photos: all uploads failed, keeping in AsyncStorage for retry');
+            }
           }
         }
       } else if (event === 'SIGNED_OUT') {
