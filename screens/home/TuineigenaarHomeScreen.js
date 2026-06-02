@@ -385,10 +385,17 @@ export default function TuineigenaarHomeScreen({
 
   if (currentScreen === 'conversation-detail' && selectedConversation) {
     if (senderProfileId) {
+      const matchingSamenwerking = samenwerkingen.find(
+        (s) => s.id === selectedConversation.aanvraag_id,
+      );
       return (
         <ProfielScreen
           profileUserId={senderProfileId}
           onBack={() => setSenderProfileId(null)}
+          onStopSamenwerking={matchingSamenwerking ? () => onEndSamenwerking?.({
+            ...matchingSamenwerking,
+            conversationId: matchingSamenwerking.conversation?.id ?? selectedConversation.id,
+          }) : undefined}
         />
       );
     }
