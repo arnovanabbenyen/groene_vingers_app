@@ -334,6 +334,10 @@ export default function App() {
       .eq('id', aanvraagId)
       .maybeSingle();
     if (!data) return;
+    if (['accepted', 'declined', 'cancelled'].includes(data.status)) {
+      showToast('Deze aanvraag is niet meer beschikbaar.', 'info');
+      return;
+    }
     const { data: sender } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, avatar_url')
@@ -775,6 +779,7 @@ export default function App() {
           <MeldingenScreen
             role={selectedRole}
             onBack={() => {
+              setHomeTabRequest(null);
               setCurrentScreen('home');
               setNotificationsRefreshKey((k) => k + 1);
             }}
