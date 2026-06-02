@@ -77,6 +77,10 @@ export default function ParcelDetailScreen({
       ? perceel.extraInfo
       : [];
   const ownerId = perceel.owner_id || perceel.ownerId;
+  const samenwerkingPartner = samenwerking
+    ? (isOwner ? samenwerking.senderProfile : (samenwerking.ownerProfile || ownerProfile))
+    : null;
+  const samenwerkingPartnerFallback = isOwner ? 'Tuinzoeker' : 'Tuineigenaar';
 
   useEffect(() => {
     let mounted = true;
@@ -307,8 +311,8 @@ export default function ParcelDetailScreen({
               <View style={styles.samenwerkingPersonRow}>
                 <Image
                   source={
-                    samenwerking.senderProfile?.avatar_url
-                      ? { uri: samenwerking.senderProfile.avatar_url }
+                    samenwerkingPartner?.avatar_url
+                      ? { uri: samenwerkingPartner.avatar_url }
                       : FALLBACK_AVATAR
                   }
                   style={styles.samenwerkingAvatar}
@@ -316,8 +320,8 @@ export default function ParcelDetailScreen({
                 />
                 <View style={styles.samenwerkingPersonText}>
                   <Text style={styles.samenwerkingName} numberOfLines={1}>
-                    {[samenwerking.senderProfile?.first_name, samenwerking.senderProfile?.last_name]
-                      .filter(Boolean).join(' ').trim() || 'Tuinzoeker'}
+                    {[samenwerkingPartner?.first_name, samenwerkingPartner?.last_name]
+                      .filter(Boolean).join(' ').trim() || samenwerkingPartnerFallback}
                   </Text>
                   {samenwerking.confirmed_at ? (
                     <Text style={styles.samenwerkingDate}>

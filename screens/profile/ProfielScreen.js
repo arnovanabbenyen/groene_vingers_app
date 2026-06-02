@@ -74,6 +74,7 @@ export default function ProfielScreen({
   onAanvraagPerceelPress,
   onOtherPerceelPress,
   onStopSamenwerking,
+  onSamenwerkingPerceelPress,
 }) {
   const insets = useSafeAreaInsets();
   const [profile, setProfile] = useState(null);
@@ -471,7 +472,13 @@ export default function ProfielScreen({
                   <View style={styles.aanvraagCardWrap}>
                     <PlotCard
                       plot={mapPerceelToPlot(activeSamenwerking.percelen)}
-                      onPress={() => onOpenSamenwerking?.(activeSamenwerking)}
+                      onPress={() => {
+                        if (onSamenwerkingPerceelPress) {
+                          onSamenwerkingPerceelPress(activeSamenwerking);
+                        } else {
+                          onOpenSamenwerking?.(activeSamenwerking);
+                        }
+                      }}
                       isFavorited={false}
                       showFavoriteButton={false}
                     />

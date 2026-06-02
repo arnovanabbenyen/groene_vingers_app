@@ -13,7 +13,24 @@ export async function getActiveSamenwerking(userId) {
     .limit(1)
     .maybeSingle();
 
-  return { data: data || null, error: error || null };
+  if (error || !data) return { data: data || null, error: error || null };
+
+  const ownerId = data.percelen?.owner_id;
+  const [ownerResult, convResult] = await Promise.all([
+    ownerId
+      ? supabase.from('profiles').select('id, first_name, last_name, avatar_url').eq('id', ownerId).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase.from('conversations').select('id, aanvraag_id').eq('aanvraag_id', data.id).maybeSingle(),
+  ]);
+
+  return {
+    data: {
+      ...data,
+      ownerProfile: ownerResult.data || null,
+      conversation: convResult.data || null,
+    },
+    error: null,
+  };
 }
 
 export async function getLogboekEntries(aanvraagId, limit = 20) {

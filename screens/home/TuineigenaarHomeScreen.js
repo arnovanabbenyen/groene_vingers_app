@@ -230,6 +230,9 @@ export default function TuineigenaarHomeScreen({
 
   function handleSamenwerkingOpenConversation(samenwerking) {
     if (!samenwerking.conversation?.id) return;
+    setPerceelMode(null);
+    setSelectedSamenwerking(null);
+    setSelectedPerceel(null);
     onOpenConversation?.({
       id: samenwerking.conversation.id,
       aanvraag_id: samenwerking.id,
@@ -497,11 +500,16 @@ export default function TuineigenaarHomeScreen({
                   if (!perceel) return null;
                   const plot = mapPerceelToPlot(perceel);
                   return (
-                    <PlotCard
-                      key={samenwerking.id}
-                      plot={plot}
-                      onPress={() => handleSamenwerkingPress(samenwerking)}
-                    />
+                    <View key={samenwerking.id} style={styles.samenwerkingCardWrap}>
+                      <PlotCard
+                        plot={plot}
+                        onPress={() => handleSamenwerkingPress(samenwerking)}
+                        showFavoriteButton={false}
+                      />
+                      <View style={styles.samenwerkingChip}>
+                        <Text style={styles.samenwerkingChipText}>Samenwerking actief</Text>
+                      </View>
+                    </View>
                   );
                 })}
               </ScrollView>
@@ -635,6 +643,25 @@ const styles = StyleSheet.create({
   },
   samenwerkingSection: {
     gap: SPACING.sm,
+  },
+  samenwerkingCardWrap: {
+    position: 'relative',
+  },
+  samenwerkingChip: {
+    position: 'absolute',
+    top: PLOT_CARD.cardPadding + PLOT_CARD.badgeInset,
+    left: PLOT_CARD.cardPadding + PLOT_CARD.badgeInset,
+    backgroundColor: COLORS.brand,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    zIndex: 10,
+  },
+  samenwerkingChipText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.surface,
+    lineHeight: 14,
   },
   samenwerkingScroll: {
     marginHorizontal: -SPACING.screenX,

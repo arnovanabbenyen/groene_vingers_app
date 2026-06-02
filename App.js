@@ -775,6 +775,10 @@ export default function App() {
             badgeCounts={{ berichten: unreadMessagesCount }}
             unreadNotificationsCount={unreadNotificationsCount}
             onOpenSamenwerking={(s) => { setDetailSamenwerking(s); setCurrentScreen('samenwerking-detail'); }}
+            onSamenwerkingPerceelPress={(s) => {
+              setSelectedSamenwerking(s);
+              setCurrentScreen('profiel-samenwerking-perceel-detail');
+            }}
           />
         ) : currentScreen === 'meldingen' ? (
           <MeldingenScreen
@@ -963,6 +967,35 @@ export default function App() {
                   }
                 },
               });
+            }}
+          />
+        ) : currentScreen === 'profiel-samenwerking-perceel-detail' && selectedSamenwerking ? (
+          <ParcelDetailScreen
+            perceel={selectedSamenwerking.percelen || {}}
+            onBack={() => {
+              setSelectedSamenwerking(null);
+              setCurrentScreen('profiel');
+            }}
+            samenwerking={selectedSamenwerking}
+            onOpenConversation={(s) => {
+              const conv = s?.conversation;
+              if (conv?.id) {
+                handleOpenConversation({
+                  id: conv.id,
+                  aanvraag_id: s.id,
+                  owner_id: s.percelen?.owner_id,
+                  sender_id: s.sender_id,
+                  otherUser: s.ownerProfile || null,
+                });
+              }
+            }}
+            onEndSamenwerking={(s) => {
+              setSelectedSamenwerking({
+                ...s,
+                conversationId: s.conversation?.id,
+              });
+              setEndingMode('initiator');
+              setCurrentScreen('eind-samenwerking');
             }}
           />
         ) : selectedRole === 'tuineigenaar' ? (
