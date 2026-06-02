@@ -14,6 +14,12 @@ export function useMapPercelen() {
         return;
       }
 
+      const { data: confirmedAanvragen } = await supabase
+        .from('aanvragen')
+        .select('perceel_id')
+        .eq('status', 'confirmed');
+      const confirmedIds = new Set((confirmedAanvragen || []).map((a) => a.perceel_id));
+
       // Try with approximate coords (requires migration to be applied)
       const { data, error } = await supabase
         .from('percelen')
@@ -32,7 +38,7 @@ export function useMapPercelen() {
             .eq('status', 'active');
           if (mounted) {
             const unique = [...new Map((fallback || []).map(p => [p.id, p])).values()];
-            setPercelen(unique);
+            setPercelen(unique.filter((p) => !confirmedIds.has(p.id)));
             setIsLoading(false);
           }
         } else {
@@ -44,7 +50,7 @@ export function useMapPercelen() {
 
       if (mounted) {
         const unique = [...new Map((data || []).map(p => [p.id, p])).values()];
-        setPercelen(unique);
+        setPercelen(unique.filter((p) => !confirmedIds.has(p.id)));
         setIsLoading(false);
       }
     }
