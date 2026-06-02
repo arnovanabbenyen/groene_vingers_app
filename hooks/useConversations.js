@@ -36,16 +36,38 @@ export function useConversations(refreshKey = 0) {
 
         const { data: rawConversations, error: convError } = await supabase
           .from('conversations')
-          .select('id, aanvraag_id, owner_id, sender_id, created_at, last_message_at, aanvragen(status)')
+          .select('id, aanvraag_id, owner_id, sender_id, created_at, last_message_at')
           .or(`owner_id.eq.${verifiedUserId},sender_id.eq.${verifiedUserId}`)
           .order('last_message_at', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false });
 
         if (convError) throw convError;
 
-        // Hide conversations whose linked samenwerking is ended.
+        // Fetch aanvraag statuses in a separate query — embedded joins can silently return
+        // null under certain RLS configurations, which would cause hidden conversations to
+        // remain visible. A direct .in() query is simpler and more reliable.
+        const allAanvraagIds = (rawConversations || []).map((c) => c.aanvraag_id).filter(Boolean);
+        let aanvraagStatusById = {};
+        if (allAanvraagIds.length > 0) {
+          const { data: aanvragenData } = await supabase
+            .from('aanvragen')
+            .select('id, status')
+            .in('id', allAanvraagIds);
+          aanvraagStatusById = (aanvragenData || []).reduce((acc, a) => {
+            acc[a.id] = a.status;
+            return acc;
+          }, {});
+        }
+
+        // Attach the status so isConversationVisible can read conversation.aanvragen.status,
+        // then filter out conversations with hidden statuses.
+        const conversationsWithStatus = (rawConversations || []).map((c) => ({
+          ...c,
+          aanvragen: { status: aanvraagStatusById[c.aanvraag_id] ?? null },
+        }));
+
         // No data is deleted — this is a client-side filter only.
-        const conversationsData = (rawConversations || []).filter(isConversationVisible);
+        const conversationsData = conversationsWithStatus.filter(isConversationVisible);
         const otherUserIds = [...new Set(
           conversationsData.map((conversation) => (
             conversation.owner_id === verifiedUserId ? conversation.sender_id : conversation.owner_id

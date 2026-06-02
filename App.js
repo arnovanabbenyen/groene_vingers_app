@@ -100,6 +100,7 @@ export default function App() {
     setCurrentScreen('home');
     setSelectedAanvraag(null);
     setSelectedAanvraagSource('home');
+    setHomeTabRequest(null);
   }
 
   async function uploadPhoto(bucket, userId, filename, localUri) {
@@ -385,12 +386,20 @@ export default function App() {
     if (!supabase || !conversationId) return;
     const { data: conv } = await supabase
       .from('conversations')
-      .select('id, aanvraag_id, owner_id, sender_id, created_at, last_message_at, aanvragen(status)')
+      .select('id, aanvraag_id, owner_id, sender_id, created_at, last_message_at')
       .eq('id', conversationId)
       .maybeSingle();
-    if (['cancelled', 'declined', 'ended'].includes(conv?.aanvragen?.status)) {
-      showToast('Dit gesprek is niet meer beschikbaar.', 'info');
-      return;
+    if (!conv) return;
+    if (conv.aanvraag_id) {
+      const { data: aanvraag } = await supabase
+        .from('aanvragen')
+        .select('status')
+        .eq('id', conv.aanvraag_id)
+        .maybeSingle();
+      if (['cancelled', 'declined', 'ended'].includes(aanvraag?.status)) {
+        showToast('Dit gesprek is niet meer beschikbaar.', 'info');
+        return;
+      }
     }
     await enrichAndOpenConversation(conv);
   }
@@ -593,6 +602,7 @@ export default function App() {
         setCurrentScreen('home');
         setSelectedAanvraag(null);
         setSelectedAanvraagSource('home');
+        setHomeTabRequest(null);
       }
     });
 
