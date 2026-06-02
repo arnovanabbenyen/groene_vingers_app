@@ -15,6 +15,7 @@ const AuthTextArea = React.forwardRef(function AuthTextArea(
     autoCapitalize = 'sentences',
     editable = true,
     error = false,
+    onFocus,
     onBlur,
     accessibilityLabel,
     accessibilityHint,
@@ -61,6 +62,7 @@ const AuthTextArea = React.forwardRef(function AuthTextArea(
           ref={ref}
           value={value}
           onChangeText={handleChange}
+          onFocus={onFocus}
           onBlur={onBlur}
           placeholder={placeholder}
           multiline
