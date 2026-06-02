@@ -25,7 +25,7 @@ const PERCEEL_STATUS = {
 const AANVRAAG_STATUS_LABEL = {
   pending: 'Aanvraag in behandeling',
   accepted: 'Aanvraag geaccepteerd',
-  confirmed: 'Samenwerking bevestigd',
+  confirmed: 'Samenwerking actief',
 };
 
 const FALLBACK_AVATAR = require('../../images/tuinzoeker_pfp.png');
@@ -212,7 +212,7 @@ export default function ParcelDetailScreen({
           </View>
         ) : null}
 
-        {!isOwner && existingAanvraag ? (
+        {!isOwner && existingAanvraag && !samenwerking ? (
           <View style={styles.aanvraagStatusBanner}>
             <ClockClockwiseIcon size={16} color={COLORS.textPrimary} weight="regular" accessibilityElementsHidden />
             <Text style={styles.hiddenBannerText}>
