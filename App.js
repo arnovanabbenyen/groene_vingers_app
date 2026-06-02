@@ -73,6 +73,7 @@ export default function App() {
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [conversationsRefreshKey, setConversationsRefreshKey] = useState(0);
   const [selectedConversation, setSelectedConversation] = useState(null);
+  const [homeTabRequest, setHomeTabRequest] = useState(null);
   const [profielRefreshKey, setProfielRefreshKey] = useState(0);
   const [profielBewerkenSource, setProfielBewerkenSource] = useState('profiel');
   const [selectedSavedPerceel, setSelectedSavedPerceel] = useState(null);
@@ -312,13 +313,15 @@ export default function App() {
   }
 
   function handleOpenConversation(conversation) {
+    setHomeTabRequest(null);
     setSelectedConversation(conversation);
     setCurrentScreen('conversation-detail');
   }
 
   function handleCloseConversation() {
     setSelectedConversation(null);
-    setCurrentScreen('berichten');
+    setCurrentScreen('home');
+    setHomeTabRequest('berichten');
     setConversationsRefreshKey((current) => current + 1);
   }
 
@@ -340,28 +343,56 @@ export default function App() {
     setCurrentScreen('aanvraag-detail');
   }
 
+  async function enrichAndOpenConversation(conv) {
+    if (!conv) return;
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+    const otherUserId = conv.owner_id === userId ? conv.sender_id : conv.owner_id;
+    let otherUser = null;
+    if (otherUserId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, avatar_url')
+        .eq('id', otherUserId)
+        .maybeSingle();
+      otherUser = profile || null;
+    }
+    setHomeTabRequest(null);
+    setSelectedConversation({ ...conv, otherUser });
+    setCurrentScreen('home');
+  }
+
   async function handleNotificationNavigateToAanvraagConversation(aanvraagId) {
     if (!supabase || !aanvraagId) return;
+    const { data: aanvraag } = await supabase
+      .from('aanvragen')
+      .select('status')
+      .eq('id', aanvraagId)
+      .maybeSingle();
+    if (['cancelled', 'declined', 'ended'].includes(aanvraag?.status)) {
+      showToast('Dit gesprek is niet meer beschikbaar.', 'info');
+      return;
+    }
     const { data: conv } = await supabase
       .from('conversations')
-      .select('id, aanvraag_id')
+      .select('id, aanvraag_id, owner_id, sender_id, created_at, last_message_at')
       .eq('aanvraag_id', aanvraagId)
       .maybeSingle();
-    if (!conv) return;
-    setSelectedConversation(conv);
-    setCurrentScreen('conversation-detail');
+    await enrichAndOpenConversation(conv);
   }
 
   async function handleNotificationNavigateToConversation(conversationId) {
     if (!supabase || !conversationId) return;
     const { data: conv } = await supabase
       .from('conversations')
-      .select('id, aanvraag_id')
+      .select('id, aanvraag_id, owner_id, sender_id, created_at, last_message_at, aanvragen(status)')
       .eq('id', conversationId)
       .maybeSingle();
-    if (!conv) return;
-    setSelectedConversation(conv);
-    setCurrentScreen('conversation-detail');
+    if (['cancelled', 'declined', 'ended'].includes(conv?.aanvragen?.status)) {
+      showToast('Dit gesprek is niet meer beschikbaar.', 'info');
+      return;
+    }
+    await enrichAndOpenConversation(conv);
   }
 
   async function handleNotificationNavigateToAanvraagPerceel(aanvraagId) {
@@ -960,6 +991,7 @@ export default function App() {
         ) : (
           <HomeScreen
             getInitialTab={() => { const t = homeInitialTabRef.current; homeInitialTabRef.current = 'start'; return t; }}
+            requestedTab={homeTabRequest}
             onLogout={handleLogout}
             badgeCounts={{ berichten: unreadMessagesCount }}
             onOpenConversation={handleOpenConversation}
@@ -967,7 +999,7 @@ export default function App() {
             onCloseConversation={handleCloseConversation}
             onConfirmSamenwerking={() => setSamenwerkingRefreshKey((k) => k + 1)}
             unreadNotificationsCount={unreadNotificationsCount}
-            onOpenNotifications={() => setCurrentScreen('meldingen')}
+            onOpenNotifications={() => { setHomeTabRequest(null); setCurrentScreen('meldingen'); }}
             onOpenProfiel={() => setCurrentScreen('profiel')}
             onOpenSaved={() => { setOpgeslagenSource('home'); setCurrentScreen('opgeslagen'); }}
           />

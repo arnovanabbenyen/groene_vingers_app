@@ -1,4 +1,4 @@
-import { useMemo, useReducer, useState } from 'react';
+import { useEffect, useMemo, useReducer, useState } from 'react';
 import { useFavorites } from '../../hooks/useFavorites';
 import { usePercelen } from '../../hooks/usePercelen';
 import { useMyAanvragen } from '../../hooks/useMyAanvragen';
@@ -66,9 +66,13 @@ function navReducer(state, action) {
   }
 }
 
-export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConversation, selectedConversation: appSelectedConversation = null, onCloseConversation, onConfirmSamenwerking, unreadNotificationsCount = 0, onOpenNotifications, onOpenProfiel, onOpenSaved, onEndSamenwerking }) {
+export default function HomeScreen({ getInitialTab, requestedTab, badgeCounts = {}, onOpenConversation, selectedConversation: appSelectedConversation = null, onCloseConversation, onConfirmSamenwerking, unreadNotificationsCount = 0, onOpenNotifications, onOpenProfiel, onOpenSaved, onEndSamenwerking }) {
   const [activeTab, setActiveTab] = useState(() => getInitialTab?.() ?? 'start');
   const [selectedConversation, setSelectedConversation] = useState(null);
+
+  useEffect(() => {
+    if (requestedTab) setActiveTab(requestedTab);
+  }, [requestedTab]);
   const [conversationProfileId, setConversationProfileId] = useState(null);
   const [activeDot, setActiveDot] = useState(0);
   const [activeDotAanvragen, setActiveDotAanvragen] = useState(0);
