@@ -485,7 +485,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
                 />
               ) : null}
 
-              {!isLoadingPercelen && filteredPlots.length > 0 ? (
+              {!isLoadingPercelen && filteredPlots.length > 1 ? (
                 <View
                   style={styles.dotRow}
                   accessibilityRole="adjustable"
