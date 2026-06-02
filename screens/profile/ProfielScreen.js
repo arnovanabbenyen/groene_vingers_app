@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   GearSixIcon,
   HeartIcon,
@@ -19,6 +19,7 @@ import {
   StarIcon,
 } from 'phosphor-react-native';
 import Header from '../../components/navigation/Header';
+import AuthButton from '../../components/buttons/AuthButton';
 import { useSavedPercelen } from '../../hooks/useSavedPercelen';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../../components/theme/tokens';
 import BottomNav from '../../components/navigation/BottomNav';
@@ -72,7 +73,9 @@ export default function ProfielScreen({
   onBack,
   onAanvraagPerceelPress,
   onOtherPerceelPress,
+  onStopSamenwerking,
 }) {
+  const insets = useSafeAreaInsets();
   const [profile, setProfile] = useState(null);
   const [percelen, setPercelen] = useState([]);
   const [samenwerkingen, setSamenwerkingen] = useState([]);
@@ -320,6 +323,17 @@ export default function ProfielScreen({
             </View>
           ) : null}
         </ScrollView>
+
+        {onStopSamenwerking ? (
+          <View style={[styles.stopFooter, { paddingBottom: Math.max(insets.bottom, SPACING.md) }]}>
+            <AuthButton
+              label="Samenwerking stoppen"
+              variant="secondaryDanger"
+              onPress={onStopSamenwerking}
+              accessibilityLabel="Samenwerking stoppen"
+            />
+          </View>
+        ) : null}
       </View>
     );
   }
@@ -746,6 +760,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.xl,
     paddingBottom: SPACING.xl,
+  },
+  stopFooter: {
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: SPACING.md,
+    backgroundColor: COLORS.background,
   },
   // Cover + avatar
   coverContainer: {

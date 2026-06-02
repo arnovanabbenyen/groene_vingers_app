@@ -227,6 +227,9 @@ export default function HomeScreen({ getInitialTab, requestedTab, badgeCounts = 
   const activeConversation = selectedConversation || appSelectedConversation;
   if (activeConversation) {
     if (conversationProfileId) {
+      const matchingSamenwerking = confirmedSamenwerkingen.find(
+        (s) => s.id === activeConversation.aanvraag_id,
+      );
       return (
         <ProfielScreen
           profileUserId={conversationProfileId}
@@ -235,6 +238,11 @@ export default function HomeScreen({ getInitialTab, requestedTab, badgeCounts = 
             setConversationProfileId(null);
             navDispatch({ type: 'OPEN_PLOT', plot: mapPerceelToPlot(perceel) });
           }}
+          onStopSamenwerking={matchingSamenwerking ? () => onEndSamenwerking?.({
+            ...matchingSamenwerking,
+            ownerProfile: matchingSamenwerking.owner ?? null,
+            conversationId: activeConversation.id,
+          }) : undefined}
         />
       );
     }

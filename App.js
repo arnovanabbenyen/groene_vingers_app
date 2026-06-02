@@ -1009,6 +1009,11 @@ export default function App() {
             onOpenMonth={() => setCurrentScreen('log-month')}
             onOpenOpvolgingen={() => setCurrentScreen('opvolgingen')}
             requestedTab={homeTabRequest}
+            onEndSamenwerking={(enriched) => {
+              setSelectedSamenwerking(enriched);
+              setEndingMode('initiator');
+              setCurrentScreen('eind-samenwerking');
+            }}
           />
         ) : (
           <HomeScreen
