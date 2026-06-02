@@ -322,6 +322,60 @@ export default function App() {
     setConversationsRefreshKey((current) => current + 1);
   }
 
+  async function handleNotificationNavigateToAanvraag(aanvraagId) {
+    if (!supabase || !aanvraagId) return;
+    const { data } = await supabase
+      .from('aanvragen')
+      .select('id, sender_id, motivation, availability, start_date, status, type_samenwerking, created_at, perceel:percelen!inner(id, naam, grootte, plaats, voorzieningen, fotos, owner_id)')
+      .eq('id', aanvraagId)
+      .maybeSingle();
+    if (!data) return;
+    const { data: sender } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, avatar_url')
+      .eq('id', data.sender_id)
+      .maybeSingle();
+    setSelectedAanvraag({ ...data, sender: sender || null });
+    setSelectedAanvraagSource('meldingen');
+    setCurrentScreen('aanvraag-detail');
+  }
+
+  async function handleNotificationNavigateToAanvraagConversation(aanvraagId) {
+    if (!supabase || !aanvraagId) return;
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('id, aanvraag_id')
+      .eq('aanvraag_id', aanvraagId)
+      .maybeSingle();
+    if (!conv) return;
+    setSelectedConversation(conv);
+    setCurrentScreen('conversation-detail');
+  }
+
+  async function handleNotificationNavigateToConversation(conversationId) {
+    if (!supabase || !conversationId) return;
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('id, aanvraag_id')
+      .eq('id', conversationId)
+      .maybeSingle();
+    if (!conv) return;
+    setSelectedConversation(conv);
+    setCurrentScreen('conversation-detail');
+  }
+
+  async function handleNotificationNavigateToAanvraagPerceel(aanvraagId) {
+    if (!supabase || !aanvraagId) return;
+    const { data } = await supabase
+      .from('aanvragen')
+      .select('percelen(id, owner_id, naam, beschrijving, grootte, adres, plaats, fotos, voorzieningen, voorkeur_samenwerking, approximate_lat, approximate_lng, lat, lng, extra_info, status, created_at)')
+      .eq('id', aanvraagId)
+      .maybeSingle();
+    if (!data?.percelen) return;
+    setSelectedProfielPerceel(data.percelen);
+    setCurrentScreen('profiel-perceel-detail');
+  }
+
 
   // Handle deep links (groenevingers://) that carry auth callbacks from email confirmation
   useEffect(() => {
@@ -683,18 +737,10 @@ export default function App() {
               setCurrentScreen('home');
               setNotificationsRefreshKey((k) => k + 1);
             }}
-            onNavigateToHome={() => {
-              setCurrentScreen('home');
-              setNotificationsRefreshKey((k) => k + 1);
-            }}
-            onNavigateToAanvraag={() => {
-              setCurrentScreen('home');
-              setNotificationsRefreshKey((k) => k + 1);
-            }}
-            onNavigateToConversation={() => {
-              setCurrentScreen('home');
-              setNotificationsRefreshKey((k) => k + 1);
-            }}
+            onNavigateToAanvraag={handleNotificationNavigateToAanvraag}
+            onNavigateToAanvraagConversation={handleNotificationNavigateToAanvraagConversation}
+            onNavigateToAanvraagPerceel={handleNotificationNavigateToAanvraagPerceel}
+            onNavigateToConversation={handleNotificationNavigateToConversation}
             onNavigateToBeeindigd={(aanvraagId) => {
               setBeeindigdAanvraagId(aanvraagId);
               setCurrentScreen('samenwerking-beeindigd');
