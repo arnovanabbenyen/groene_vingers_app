@@ -9,6 +9,7 @@ import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../.
 export default function LogboekScreen({
   onTabPress,
   profileImageSource,
+  profileInitials,
   badgeCounts = {},
   onNavigateToKaart,
 }) {
@@ -53,6 +54,7 @@ export default function LogboekScreen({
         activeKey="loggen"
         onTabPress={onTabPress}
         profileImageSource={profileImageSource}
+        profileInitials={profileInitials}
         badgeCounts={badgeCounts}
       />
     </View>

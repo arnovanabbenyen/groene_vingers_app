@@ -7,9 +7,8 @@ import {
   PlusCircleIcon,
 } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 
-const DEFAULT_PROFILE_IMAGE = require('../../images/tuinzoeker_pfp.png');
 const NAV_ICON_SIZE = 26;
 
 const ICON_MAP = {
@@ -36,20 +35,31 @@ const TUINEIGENAAR_ITEMS = [
   { key: 'profiel',   label: 'Profiel',   type: 'avatar' },
 ];
 
-function NavIcon({ item, isActive, profileImageSource }) {
+function NavIcon({ item, isActive, profileImageSource, profileInitials }) {
   const color = isActive ? COLORS.brand : COLORS.textSecondary;
 
   if (item.type === 'avatar') {
-    const source = typeof profileImageSource === 'string'
-      ? { uri: profileImageSource }
-      : (profileImageSource ?? DEFAULT_PROFILE_IMAGE);
+    if (profileImageSource) {
+      const source = typeof profileImageSource === 'string'
+        ? { uri: profileImageSource }
+        : profileImageSource;
+      return (
+        <Image
+          source={source}
+          style={[styles.avatar, isActive && styles.avatarActive]}
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+        />
+      );
+    }
     return (
-      <Image
-        source={source}
-        style={[styles.avatar, isActive && styles.avatarActive]}
+      <View
+        style={[styles.avatar, styles.avatarPlaceholder, isActive && styles.avatarActive]}
         accessibilityElementsHidden
         importantForAccessibility="no"
-      />
+      >
+        <Text style={styles.avatarInitialsText}>{profileInitials || '?'}</Text>
+      </View>
     );
   }
 
@@ -77,6 +87,7 @@ export default function BottomNav({
   activeKey = 'start',
   onTabPress,
   profileImageSource,
+  profileInitials,
   style,
   role = 'tuinzoeker',
   badgeCounts = {},
@@ -109,7 +120,7 @@ export default function BottomNav({
             <View style={[styles.indicator, isActive && styles.indicatorActive]} />
             <View style={styles.iconLabelWrap}>
               <View style={styles.iconWrap}>
-                <NavIcon item={item} isActive={isActive} profileImageSource={profileImageSource} />
+                <NavIcon item={item} isActive={isActive} profileImageSource={profileImageSource} profileInitials={profileInitials} />
                 {badgeCount > 0 && <Badge count={badgeCount} />}
               </View>
               <Text style={[styles.label, isActive && styles.labelActive]}>
@@ -174,6 +185,17 @@ const styles = StyleSheet.create({
   avatarActive: {
     borderWidth: 2,
     borderColor: COLORS.brand,
+  },
+  avatarPlaceholder: {
+    backgroundColor: COLORS.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitialsText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textPrimary,
+    includeFontPadding: false,
   },
   badge: {
     position: 'absolute',

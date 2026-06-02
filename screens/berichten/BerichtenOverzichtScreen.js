@@ -121,6 +121,7 @@ function ConversationRow({ conversation, onPress }) {
 export default function BerichtenOverzichtScreen({
   onTabPress,
   profileImageSource,
+  profileInitials,
   badgeCounts = {},
   onOpenConversation,
   role = 'tuinzoeker',
@@ -248,6 +249,7 @@ export default function BerichtenOverzichtScreen({
         activeKey="berichten"
         onTabPress={onTabPress}
         profileImageSource={profileImageSource}
+        profileInitials={profileInitials}
         badgeCounts={badgeCounts}
         role={role}
       />

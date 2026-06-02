@@ -698,6 +698,7 @@ export default function ProfielScreen({
         onTabPress={onTabPress}
         role={role}
         profileImageSource={avatarSource}
+        profileInitials={[profile?.first_name, profile?.last_name].filter(Boolean).map((n) => n[0]).join('').toUpperCase() || '?'}
         badgeCounts={badgeCounts}
       />
     </View>

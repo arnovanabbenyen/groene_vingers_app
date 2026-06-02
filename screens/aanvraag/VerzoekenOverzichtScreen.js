@@ -15,6 +15,7 @@ import { showToast } from '../../components/common/Toast';
 export default function VerzoekenOverzichtScreen({
   onTabPress,
   profileImageSource,
+  profileInitials,
   badgeCounts = {},
   onBadgeCountChange,
   onViewAanvraag,
@@ -135,6 +136,7 @@ return (
         onTabPress={onTabPress}
         role="tuineigenaar"
         profileImageSource={profileImageSource}
+        profileInitials={profileInitials}
         badgeCounts={badgeCounts}
       />
     </View>

@@ -74,6 +74,7 @@ function toPlotShape(perceel) {
 export default function KaartScreen({
   onTabPress,
   profileImageSource,
+  profileInitials,
   badgeCounts = {},
   onOpenPerceel,
   autoFocusSearch = false,
@@ -408,6 +409,7 @@ export default function KaartScreen({
         activeKey="kaart"
         onTabPress={onTabPress}
         profileImageSource={profileImageSource}
+        profileInitials={profileInitials}
         badgeCounts={badgeCounts}
       />
 

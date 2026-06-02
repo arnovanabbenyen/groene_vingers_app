@@ -47,6 +47,7 @@ export default function LogboekHomeScreen({
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [selectedPerceel, setSelectedPerceel] = useState(null);
   const [profileImageSource, setProfileImageSource] = useState(null);
+  const [profileInitials, setProfileInitials] = useState('?');
 
   const [entries, setEntries] = useState([]);
   const [weeklyProgress, setWeeklyProgress] = useState(null);
@@ -73,7 +74,7 @@ export default function LogboekHomeScreen({
           getLogboekEntries(aanvraagId),
           userId ? getWeeklyProgress(userId) : Promise.resolve({ data: null }),
           userId
-            ? supabase.from('profiles').select('avatar_url').eq('id', userId).maybeSingle()
+            ? supabase.from('profiles').select('avatar_url, first_name, last_name').eq('id', userId).maybeSingle()
             : Promise.resolve({ data: null }),
         ]);
 
@@ -82,6 +83,12 @@ export default function LogboekHomeScreen({
           setWeeklyProgress(progressResult.data || null);
           if (profileResult.data?.avatar_url) {
             setProfileImageSource(profileResult.data.avatar_url);
+          }
+          const p = profileResult.data;
+          if (p) {
+            setProfileInitials(
+              [p.first_name, p.last_name].filter(Boolean).map((n) => n[0]).join('').toUpperCase() || '?'
+            );
           }
           setIsLoadingData(false);
         }
@@ -135,6 +142,7 @@ export default function LogboekHomeScreen({
       <KaartScreen
         onTabPress={handleTabPress}
         profileImageSource={profileImageSource}
+        profileInitials={profileInitials}
         badgeCounts={badgeCounts}
         onOpenPerceel={(plot) => setSelectedPerceel(plot)}
       />
@@ -146,6 +154,7 @@ export default function LogboekHomeScreen({
       <BerichtenOverzichtScreen
         onTabPress={handleTabPress}
         profileImageSource={profileImageSource}
+        profileInitials={profileInitials}
         badgeCounts={badgeCounts}
         onOpenConversation={(conv) => {
           setSelectedConversation(conv);
@@ -316,6 +325,7 @@ export default function LogboekHomeScreen({
         activeKey={activeTab}
         onTabPress={handleTabPress}
         profileImageSource={profileImageSource}
+        profileInitials={profileInitials}
         badgeCounts={badgeCounts}
       />
     </View>

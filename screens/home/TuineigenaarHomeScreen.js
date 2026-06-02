@@ -401,6 +401,7 @@ export default function TuineigenaarHomeScreen({
       <BerichtenOverzichtScreen
         onTabPress={handleTabPress}
         profileImageSource={profileImageSource}
+        profileInitials={[profile?.first_name, profile?.last_name].filter(Boolean).map((n) => n[0]).join('').toUpperCase() || '?'}
         badgeCounts={badgeCounts}
         onOpenConversation={onOpenConversation}
         role="tuineigenaar"
@@ -413,6 +414,7 @@ export default function TuineigenaarHomeScreen({
       <VerzoekenOverzichtScreen
         onTabPress={handleTabPress}
         profileImageSource={profileImageSource}
+        profileInitials={[profile?.first_name, profile?.last_name].filter(Boolean).map((n) => n[0]).join('').toUpperCase() || '?'}
         badgeCounts={badgeCounts}
         onBadgeCountChange={onBadgeCountChange}
         onViewAanvraag={(aanvraag) => onViewAanvraag?.(aanvraag, 'verzoeken')}
@@ -436,6 +438,7 @@ export default function TuineigenaarHomeScreen({
           onTabPress={handleTabPress}
           role="tuineigenaar"
           profileImageSource={profileImageSource}
+          profileInitials={[profile?.first_name, profile?.last_name].filter(Boolean).map((n) => n[0]).join('').toUpperCase() || '?'}
           badgeCounts={badgeCounts}
         />
       </View>
@@ -587,6 +590,7 @@ export default function TuineigenaarHomeScreen({
         onTabPress={handleTabPress}
         role="tuineigenaar"
         profileImageSource={profileImageSource}
+        profileInitials={[profile?.first_name, profile?.last_name].filter(Boolean).map((n) => n[0]).join('').toUpperCase() || '?'}
         badgeCounts={badgeCounts}
       />
     </View>

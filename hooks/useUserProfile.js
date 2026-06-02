@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 
-const FALLBACK_AVATAR = require('../images/tuinzoeker_pfp.png');
-
 export function useUserProfile(refreshKey = 0) {
   const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [plaats, setPlaats] = useState('');
   const [plan, setPlan] = useState('free');
-  const [avatarSource, setAvatarSource] = useState(FALLBACK_AVATAR);
+  const [avatarSource, setAvatarSource] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -29,7 +28,7 @@ export function useUserProfile(refreshKey = 0) {
 
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('first_name, plaats, plan, avatar_url')
+          .select('first_name, last_name, plaats, plan, avatar_url')
           .eq('id', user.id)
           .single();
 
@@ -37,6 +36,7 @@ export function useUserProfile(refreshKey = 0) {
 
         if (mounted) {
           if (profile?.first_name) setFirstName(profile.first_name);
+          if (profile?.last_name) setLastName(profile.last_name);
           if (profile?.plaats) setPlaats(profile.plaats);
           if (profile?.plan) setPlan(profile.plan);
           if (profile?.avatar_url) setAvatarSource(profile.avatar_url);
@@ -59,5 +59,11 @@ export function useUserProfile(refreshKey = 0) {
     return () => { mounted = false; };
   }, [refreshKey]);
 
-  return { firstName, plaats, plan, avatarSource, isLoading };
+  const initials = [firstName, lastName]
+    .filter(Boolean)
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase() || '?';
+
+  return { firstName, lastName, plaats, plan, avatarSource, initials, isLoading };
 }

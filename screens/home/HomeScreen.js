@@ -80,7 +80,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
   const { isFavorite, toggleFavorite } = useFavorites();
   const { percelen, isLoading: isLoadingPercelen } = usePercelen(dataRefreshKey);
   const { aanvragen } = useMyAanvragen(dataRefreshKey);
-  const { firstName, plaats, plan, avatarSource } = useUserProfile(dataRefreshKey);
+  const { firstName, plaats, plan, avatarSource, initials } = useUserProfile(dataRefreshKey);
 
   const userPlan = plan || 'free';
 
@@ -254,6 +254,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
       <KaartScreen
         onTabPress={(item) => { setAutoFocusKaartSearch(false); handleTabPress(item); }}
         profileImageSource={avatarSource}
+        profileInitials={initials}
         badgeCounts={badgeCounts}
         onOpenPerceel={(plot) => navDispatch({ type: 'OPEN_PLOT', plot })}
         autoFocusSearch={autoFocusKaartSearch}
@@ -266,6 +267,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
       <LogboekScreen
         onTabPress={handleTabPress}
         profileImageSource={avatarSource}
+        profileInitials={initials}
         badgeCounts={badgeCounts}
         onNavigateToKaart={() => setActiveTab('kaart')}
       />
@@ -277,6 +279,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
       <BerichtenOverzichtScreen
         onTabPress={handleTabPress}
         profileImageSource={avatarSource}
+        profileInitials={initials}
         badgeCounts={badgeCounts}
         onOpenConversation={(conversation) => {
           setSelectedConversation(conversation);
@@ -513,6 +516,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
           activeKey={activeTab}
           onTabPress={handleTabPress}
           profileImageSource={avatarSource}
+          profileInitials={initials}
           badgeCounts={badgeCounts}
           style={styles.bottomNav}
         />
