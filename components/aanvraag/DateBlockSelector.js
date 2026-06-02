@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AuthButton from '../buttons/AuthButton';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
 export default function DateBlockSelector({ value, onChange, minimumDate, maximumDate, accessibilityLabel = 'Datum' }) {
@@ -98,14 +99,11 @@ export default function DateBlockSelector({ value, onChange, minimumDate, maximu
             locale="nl-BE"
           />
           <View style={styles.doneWrap}>
-            <Pressable
-              style={styles.doneBtn}
+            <AuthButton
+              label="Klaar"
               onPress={close}
-              accessibilityRole="button"
               accessibilityLabel="Datum bevestigen"
-            >
-              <Text style={styles.doneBtnText}>Klaar</Text>
-            </Pressable>
+            />
           </View>
         </Animated.View>
       </Modal>
@@ -173,18 +171,5 @@ const styles = StyleSheet.create({
   },
   doneWrap: {
     paddingTop: SPACING.md,
-  },
-  doneBtn: {
-    backgroundColor: COLORS.brand,
-    borderRadius: RADIUS.pill,
-    paddingVertical: SPACING.sm,
-    alignItems: 'center',
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  doneBtnText: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textInverse,
   },
 });
