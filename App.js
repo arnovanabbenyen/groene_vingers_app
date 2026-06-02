@@ -768,6 +768,7 @@ export default function App() {
             onTabPress={(item) => {
               if (item.key === 'profiel') return;
               homeInitialTabRef.current = item.key;
+              setHomeTabRequest(null);
               setCurrentScreen('home');
             }}
             profileImageSource={null}
@@ -794,7 +795,7 @@ export default function App() {
           />
         ) : currentScreen === 'log-month' ? (
           <LogboekMonthScreen
-            onBack={() => setCurrentScreen('home')}
+            onBack={() => { setHomeTabRequest(null); setCurrentScreen('home'); }}
             onOpenLogDetail={(logId) => {
               setSelectedLogId(logId);
               setCurrentScreen('log-detail');
@@ -805,10 +806,12 @@ export default function App() {
             logId={selectedLogId}
             onBack={() => {
               setSelectedLogId(null);
+              setHomeTabRequest(null);
               setCurrentScreen('home');
             }}
             onDeleted={() => {
               setSelectedLogId(null);
+              setHomeTabRequest(null);
               setSamenwerkingRefreshKey((k) => k + 1);
               setCurrentScreen('home');
             }}
@@ -820,7 +823,7 @@ export default function App() {
           <OpvolgingenScreen
             aanvraagId={activeSamenwerking?.id}
             refreshKey={opvolgingRefreshKey}
-            onBack={() => setCurrentScreen('home')}
+            onBack={() => { setHomeTabRequest(null); setCurrentScreen('home'); }}
             onNieuweOpvolging={() => setCurrentScreen('nieuwe-opvolging')}
           />
         ) : currentScreen === 'nieuwe-opvolging' ? (
@@ -834,8 +837,9 @@ export default function App() {
           />
         ) : currentScreen === 'weekly-goal' ? (
           <WeeklyGoalScreen
-            onBack={() => setCurrentScreen(weeklyGoalSource)}
+            onBack={() => { setHomeTabRequest(null); setCurrentScreen(weeklyGoalSource); }}
             onSaved={() => {
+              setHomeTabRequest(null);
               setSamenwerkingRefreshKey((k) => k + 1);
               setCurrentScreen(weeklyGoalSource);
             }}
@@ -990,6 +994,7 @@ export default function App() {
           <LogboekHomeScreen
             samenwerking={activeSamenwerking}
             samenwerkingRefreshKey={samenwerkingRefreshKey}
+            getInitialTab={() => { const t = homeInitialTabRef.current; homeInitialTabRef.current = 'start'; return t; }}
             badgeCounts={{ berichten: unreadMessagesCount }}
             onOpenConversation={handleOpenConversation}
             selectedConversation={selectedConversation}
@@ -1003,6 +1008,7 @@ export default function App() {
             onOpenLogDetail={(logId) => { setSelectedLogId(logId); setCurrentScreen('log-detail'); }}
             onOpenMonth={() => setCurrentScreen('log-month')}
             onOpenOpvolgingen={() => setCurrentScreen('opvolgingen')}
+            requestedTab={homeTabRequest}
           />
         ) : (
           <HomeScreen

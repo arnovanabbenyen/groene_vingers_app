@@ -42,8 +42,14 @@ export default function LogboekHomeScreen({
   onOpenMonth,
   onOpenOpvolgingen,
   samenwerkingRefreshKey = 0,
+  getInitialTab,
+  requestedTab,
 }) {
-  const [activeTab, setActiveTab] = useState('start');
+  const [activeTab, setActiveTab] = useState(() => getInitialTab?.() ?? 'start');
+
+  useEffect(() => {
+    if (requestedTab) setActiveTab(requestedTab);
+  }, [requestedTab]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [selectedPerceel, setSelectedPerceel] = useState(null);
   const [profileImageSource, setProfileImageSource] = useState(null);
