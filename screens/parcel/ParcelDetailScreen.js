@@ -549,6 +549,8 @@ const styles = StyleSheet.create({
   aanvraagStatusBanner: {
     backgroundColor: COLORS.accentSoft,
     borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     marginBottom: SPACING.md,
