@@ -32,6 +32,11 @@ import WachtwoordWijzigenScreen from './screens/settings/WachtwoordWijzigenScree
 import { usePendingAanvragen } from './hooks/usePendingAanvragen';
 import { useNotifications } from './hooks/useNotifications';
 import { useActiveSamenwerking } from './hooks/useActiveSamenwerking';
+import { useFavorites } from './hooks/useFavorites';
+import { useUserProfile } from './hooks/useUserProfile';
+import AanvraagDoenScreen from './screens/aanvraag/AanvraagDoenScreen';
+import GeenToegangScreen from './screens/aanvraag/GeenToegangScreen';
+import AanvraagBevestigingScreen from './screens/aanvraag/AanvraagBevestigingScreen';
 import OnboardingContainer from './screens/auth/OnboardingContainer';
 import RoleSelectionScreen from './screens/auth/RoleSelectionScreen';
 import AccountDetailsScreen from './screens/auth/AccountDetailsScreen';
@@ -47,6 +52,8 @@ import { showConfirm } from './components/common/ConfirmDialog';
 export default function App() {
   const [notificationsRefreshKey, setNotificationsRefreshKey] = useState(0);
   const { unreadCount: unreadNotificationsCount } = useNotifications(notificationsRefreshKey);
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const { plan: userPlan } = useUserProfile();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [screen, setScreen] = useState('intro');
   const [selectedRole, setSelectedRole] = useState('tuinzoeker');
@@ -518,7 +525,35 @@ export default function App() {
   return (
     <AppProviders>
       {isLoggedIn ? (
-        currentScreen === 'opgeslagen-detail' ? (
+        currentScreen === 'opgeslagen-aanvraag-bevestigd' ? (
+          <AanvraagBevestigingScreen
+            perceel={selectedSavedPerceel}
+            onBackToListings={() => setCurrentScreen('opgeslagen')}
+            onBackToMessages={() => setCurrentScreen('home')}
+          />
+        ) : currentScreen === 'opgeslagen-aanvraag' ? (
+          <AanvraagDoenScreen
+            perceel={selectedSavedPerceel}
+            onBack={() => setCurrentScreen('opgeslagen-detail')}
+            onContinue={(res) => {
+              if (res?.success) {
+                setCurrentScreen('opgeslagen-aanvraag-bevestigd');
+              } else {
+                setCurrentScreen('opgeslagen-detail');
+              }
+            }}
+          />
+        ) : currentScreen === 'opgeslagen-geen-toegang' ? (
+          <GeenToegangScreen
+            onBack={() => setCurrentScreen('opgeslagen-detail')}
+            onUpgrade={() => setCurrentScreen('opgeslagen-plans')}
+          />
+        ) : currentScreen === 'opgeslagen-plans' ? (
+          <PlansScreen
+            onBack={() => setCurrentScreen('opgeslagen-geen-toegang')}
+            onUpgradeSuccess={() => setCurrentScreen('opgeslagen-aanvraag')}
+          />
+        ) : currentScreen === 'opgeslagen-detail' ? (
           <ParcelDetailScreen
             perceel={selectedSavedPerceel || {}}
             onBack={() => {
@@ -526,6 +561,15 @@ export default function App() {
               setSelectedSavedPerceel(null);
             }}
             showFavoriteButton
+            isFavorited={isFavorite(selectedSavedPerceel?.id)}
+            onToggleFavorite={() => toggleFavorite(selectedSavedPerceel?.id)}
+            onRequest={() => {
+              if (userPlan === 'pro') {
+                setCurrentScreen('opgeslagen-aanvraag');
+              } else {
+                setCurrentScreen('opgeslagen-geen-toegang');
+              }
+            }}
             onCancelAanvraag={(aanvraagId) => {
               showConfirm({
                 title: 'Aanvraag annuleren',

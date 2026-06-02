@@ -108,6 +108,8 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.screenX,
     marginBottom: SPACING.md,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.dividerSoft,
     ...SHADOWS.card,
   },
   pressed: { opacity: 0.85 },

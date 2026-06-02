@@ -472,10 +472,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.xs,
-    backgroundColor: COLORS.surfaceBrand,
+    backgroundColor: COLORS.accentSoft,
     borderRadius: RADIUS.sm,
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
   },
   locationNoticeText: {
     flex: 1,
