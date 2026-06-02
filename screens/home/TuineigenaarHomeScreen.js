@@ -49,8 +49,13 @@ export default function TuineigenaarHomeScreen({
   onOpenProfiel,
   onEndSamenwerking,
   getInitialTab,
+  requestedTab,
 }) {
   const [activeTab, setActiveTab] = useState(() => getInitialTab?.() ?? 'start');
+
+  useEffect(() => {
+    if (requestedTab) setActiveTab(requestedTab);
+  }, [requestedTab]);
   const [profileImageSource, setProfileImageSource] = useState(null);
   const [profile, setProfile] = useState(null);
   const [plaats, setPlaats] = useState('');

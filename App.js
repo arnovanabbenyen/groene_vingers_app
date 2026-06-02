@@ -360,7 +360,7 @@ export default function App() {
     }
     setHomeTabRequest(null);
     setSelectedConversation({ ...conv, otherUser });
-    setCurrentScreen('home');
+    setCurrentScreen('conversation-detail');
   }
 
   async function handleNotificationNavigateToAanvraagConversation(aanvraagId) {
@@ -974,6 +974,7 @@ export default function App() {
             unreadNotificationsCount={unreadNotificationsCount}
             onOpenNotifications={() => setCurrentScreen('meldingen')}
             onOpenProfiel={() => setCurrentScreen('profiel')}
+            requestedTab={homeTabRequest}
             onEndSamenwerking={(samenwerking) => {
               setSelectedSamenwerking(samenwerking);
               setEndingMode('initiator');
