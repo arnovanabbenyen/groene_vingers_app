@@ -687,7 +687,18 @@ export default function ProfielScreen({
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Jouw percelen</Text>
-              <PercelenCarousel percelen={percelen} onPerceelPress={onOwnPerceelPress} />
+              {isLoadingProfile ? (
+                <ActivityIndicator size="small" color={COLORS.brand} />
+              ) : percelen.length === 0 ? (
+                <EmptyState
+                  compact
+                  icon={LeafIcon}
+                  title="Nog geen percelen"
+                  body="Voeg je eerste perceel toe om aanvragen te ontvangen."
+                />
+              ) : (
+                <PercelenCarousel percelen={percelen} onPerceelPress={onOwnPerceelPress} />
+              )}
             </View>
           </>
         )}

@@ -4,8 +4,8 @@ import { BellIcon, MapPinIcon } from 'phosphor-react-native';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
 export default function TuineigenaarHeader({
-  location = 'Locatie',
-  firstName = 'Arno',
+  location = '',
+  firstName = '',
   onOpenNotifications,
   unreadNotificationsCount = 0,
 }) {

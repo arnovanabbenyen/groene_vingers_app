@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { HandshakeIcon, EnvelopeOpenIcon, CalendarIcon, LeafIcon, PlusCircleIcon } from 'phosphor-react-native';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 import BottomNav from '../../components/navigation/BottomNav';
@@ -25,7 +25,6 @@ import TuineigenaarHeader from '../../components/home/TuineigenaarHeader';
 import DashboardSection from '../../components/common/DashboardSection';
 import DashboardEmptyState from '../../components/home/DashboardEmptyState';
 
-const PROFILE_IMAGE = require('../../images/tuineigenaar_pfp.png');
 const PERCEEL_STATUS = {
   ACTIVE: 'active',
   HIDDEN: 'hidden',
@@ -52,8 +51,9 @@ export default function TuineigenaarHomeScreen({
   getInitialTab,
 }) {
   const [activeTab, setActiveTab] = useState(() => getInitialTab?.() ?? 'start');
-  const [profileImageSource, setProfileImageSource] = useState(PROFILE_IMAGE);
+  const [profileImageSource, setProfileImageSource] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [plaats, setPlaats] = useState('');
   const [percelen, setPercelen] = useState([]);
   const [selectedPerceel, setSelectedPerceel] = useState(null);
   const [perceelMode, setPerceelMode] = useState(null);
@@ -92,7 +92,7 @@ export default function TuineigenaarHomeScreen({
 
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('id, first_name, last_name, avatar_url')
+          .select('id, first_name, last_name, avatar_url, plaats')
           .eq('id', userId)
           .maybeSingle();
 
@@ -103,6 +103,7 @@ export default function TuineigenaarHomeScreen({
         if (mounted) {
           setProfile(profileData || null);
           setCurrentUserId(userId);
+          if (profileData?.plaats) setPlaats(profileData.plaats);
         }
         if (mounted && profileData?.avatar_url) setProfileImageSource(profileData.avatar_url);
 
@@ -448,8 +449,8 @@ export default function TuineigenaarHomeScreen({
   return (
     <View style={styles.container}>
       <TuineigenaarHeader
-        location="Kessel-Lo"
-        firstName={profile?.first_name || 'Arno'}
+        location={plaats}
+        firstName={profile?.first_name || ''}
         onOpenNotifications={onOpenNotifications}
         unreadNotificationsCount={unreadNotificationsCount}
       />
@@ -576,11 +577,18 @@ export default function TuineigenaarHomeScreen({
             </Pressable>
           )}
         >
-          <PercelenCarousel
-            percelen={(percelen || []).filter((perceel) => perceel.status !== PERCEEL_STATUS.DELETED)}
-            onAddPress={() => setActiveTab('perceel')}
-            onPerceelPress={handlePerceelPress}
-          />
+          {(percelen || []).filter((p) => p.status !== PERCEEL_STATUS.DELETED).length === 0 ? (
+            <DashboardEmptyState
+              icon={LeafIcon}
+              title="Nog geen percelen"
+              body="Voeg je eerste perceel toe om aanvragen te ontvangen."
+            />
+          ) : (
+            <PercelenCarousel
+              percelen={(percelen || []).filter((p) => p.status !== PERCEEL_STATUS.DELETED)}
+              onPerceelPress={handlePerceelPress}
+            />
+          )}
         </DashboardSection>
 
       </ScrollView>
