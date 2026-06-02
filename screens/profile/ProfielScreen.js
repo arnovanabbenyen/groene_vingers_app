@@ -72,6 +72,7 @@ export default function ProfielScreen({
   profileUserId = null,
   onBack,
   onAanvraagPerceelPress,
+  onOtherPerceelPress,
 }) {
   const [profile, setProfile] = useState(null);
   const [percelen, setPercelen] = useState([]);
@@ -315,7 +316,7 @@ export default function ProfielScreen({
               {isLoadingProfile ? (
                 <ActivityIndicator size="small" color={COLORS.brand} />
               ) : (
-                <PercelenCarousel percelen={percelen} />
+                <PercelenCarousel percelen={percelen} onPerceelPress={onOtherPerceelPress} />
               )}
             </View>
           ) : null}

@@ -68,6 +68,10 @@ function toPlotShape(perceel) {
     approximate_lng: perceel.approximate_lng,
     ownerId: perceel.owner_id,
     owner_id: perceel.owner_id,
+    extraInfo: perceel.extra_info || [],
+    extra_info: perceel.extra_info || [],
+    lat: perceel.lat || null,
+    lng: perceel.lng || null,
   };
 }
 

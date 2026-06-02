@@ -227,6 +227,10 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
         <ProfielScreen
           profileUserId={conversationProfileId}
           onBack={() => setConversationProfileId(null)}
+          onOtherPerceelPress={(perceel) => {
+            setConversationProfileId(null);
+            navDispatch({ type: 'OPEN_PLOT', plot: mapPerceelToPlot(perceel) });
+          }}
         />
       );
     }

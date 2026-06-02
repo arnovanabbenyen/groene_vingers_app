@@ -10,6 +10,7 @@ import ParcelOwnerCard from '../../components/parcel/ParcelOwnerCard';
 import ParcelLocationMap from '../../components/parcel/ParcelLocationMap';
 import ProfielScreen from '../profile/ProfielScreen';
 import { supabase } from '../../services/supabase';
+import { useFavorites } from '../../hooks/useFavorites';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -54,10 +55,12 @@ export default function ParcelDetailScreen({
   onCancelAanvraag,
 }) {
   const insets = useSafeAreaInsets();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [ownerProfile, setOwnerProfile] = useState(null);
   const [existingAanvraag, setExistingAanvraag] = useState(null);
   const [confirmedConversation, setConfirmedConversation] = useState(null);
   const [showOwnerProfile, setShowOwnerProfile] = useState(false);
+  const [ownerPerceelDetail, setOwnerPerceelDetail] = useState(null);
   const handleAanvraag = onAanvraag || onRequest || (() => {});
   const perceelStatus = perceel.status || PERCEEL_STATUS.ACTIVE;
   const hiddenBannerVisible = isOwner && perceelStatus === PERCEEL_STATUS.HIDDEN;
@@ -143,11 +146,24 @@ export default function ParcelDetailScreen({
     ? new Date(ownerProfile.created_at).getFullYear()
     : null;
 
+  if (ownerPerceelDetail) {
+    return (
+      <ParcelDetailScreen
+        perceel={ownerPerceelDetail}
+        onBack={() => { setOwnerPerceelDetail(null); setShowOwnerProfile(true); }}
+        showFavoriteButton
+        isFavorited={isFavorite(ownerPerceelDetail?.id)}
+        onToggleFavorite={() => toggleFavorite(ownerPerceelDetail?.id)}
+      />
+    );
+  }
+
   if (showOwnerProfile && ownerId) {
     return (
       <ProfielScreen
         profileUserId={ownerId}
         onBack={() => setShowOwnerProfile(false)}
+        onOtherPerceelPress={(p) => { setShowOwnerProfile(false); setOwnerPerceelDetail(p); }}
       />
     );
   }

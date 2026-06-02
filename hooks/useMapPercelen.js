@@ -17,7 +17,7 @@ export function useMapPercelen() {
       // Try with approximate coords (requires migration to be applied)
       const { data, error } = await supabase
         .from('percelen')
-        .select('id, naam, beschrijving, plaats, adres, grootte, fotos, voorzieningen, voorkeur_samenwerking, approximate_lat, approximate_lng, owner_id')
+        .select('id, naam, beschrijving, plaats, adres, grootte, fotos, voorzieningen, voorkeur_samenwerking, extra_info, approximate_lat, approximate_lng, lat, lng, owner_id')
         .eq('status', 'active')
         .not('approximate_lat', 'is', null);
 
@@ -28,7 +28,7 @@ export function useMapPercelen() {
           console.info('useMapPercelen: approximate_lat column not found — apply the migration in Supabase to enable map pins.');
           const { data: fallback } = await supabase
             .from('percelen')
-            .select('id, naam, beschrijving, plaats, adres, grootte, fotos, voorzieningen, owner_id')
+            .select('id, naam, beschrijving, plaats, adres, grootte, fotos, voorzieningen, extra_info, lat, lng, owner_id')
             .eq('status', 'active');
           if (mounted) {
             const unique = [...new Map((fallback || []).map(p => [p.id, p])).values()];
