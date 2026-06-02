@@ -285,10 +285,10 @@ export default function KaartScreen({
                 onPress={() => handlePinPress(perceel)}
                 tracksViewChanges={trackingMarkerId === perceel.id}
                 anchor={{ x: 0.5, y: 0.5 }}
-                accessibilityLabel={`${perceel.naam}${requestStatus ? ', aangevraagd' : ''}`}
+                accessibilityLabel={`${perceel.naam}${requestStatus === 'accepted' ? ', geaccepteerd' : requestStatus ? ', aangevraagd' : ''}`}
                 accessibilityRole="button"
               >
-                <MapMarker selected={isSelected} requested={Boolean(requestStatus)} />
+                <MapMarker selected={isSelected} requestStatus={requestStatus ?? null} />
               </Marker>
             );
           })}

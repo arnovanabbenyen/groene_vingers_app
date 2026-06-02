@@ -34,9 +34,9 @@ export const AANVRAAG_STATUS_META = {
     accessibleLabel: 'Je hebt een aanvraag verstuurd',
   },
   [AANVRAAG_STATUS.ACCEPTED]: {
-    label: 'In behandeling',
+    label: 'Geaccepteerd',
     tone: 'accepted',
-    accessibleLabel: 'Je aanvraag is door de eigenaar bekeken',
+    accessibleLabel: 'Je aanvraag is geaccepteerd',
   },
   [AANVRAAG_STATUS.CONFIRMED]: {
     label: 'Bevestigd',
