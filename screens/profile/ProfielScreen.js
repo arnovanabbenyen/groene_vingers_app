@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  ArrowRightIcon,
   GearSixIcon,
   HeartIcon,
   LeafIcon,
@@ -552,12 +551,6 @@ export default function ProfielScreen({
                     accessibilityHint="Opent het overzicht van al je opgeslagen percelen"
                   >
                     <Text style={styles.allesBekijkenText}>Alles bekijken</Text>
-                    <ArrowRightIcon
-                      size={13}
-                      color={COLORS.brand}
-                      weight="bold"
-                      accessibilityElementsHidden
-                    />
                   </Pressable>
                 )}
               </View>
@@ -854,13 +847,11 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   allesBekijkenBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-    backgroundColor: COLORS.surfaceBrand,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 6,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1.5,
+    borderColor: COLORS.brand,
   },
   allesBekijkenBtnPressed: {
     opacity: 0.75,
