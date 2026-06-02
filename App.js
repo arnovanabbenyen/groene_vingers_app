@@ -842,6 +842,9 @@ export default function App() {
               setCurrentScreen('profiel');
               setSelectedProfielAanvraag(null);
             }}
+            showFavoriteButton
+            isFavorited={isFavorite(selectedProfielAanvraag.perceel?.id)}
+            onToggleFavorite={() => toggleFavorite(selectedProfielAanvraag.perceel?.id)}
             onCancelAanvraag={(aanvraagId) => {
               showConfirm({
                 title: 'Aanvraag annuleren',

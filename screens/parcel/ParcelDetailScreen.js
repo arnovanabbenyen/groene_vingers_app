@@ -154,6 +154,29 @@ export default function ParcelDetailScreen({
         showFavoriteButton
         isFavorited={isFavorite(ownerPerceelDetail?.id)}
         onToggleFavorite={() => toggleFavorite(ownerPerceelDetail?.id)}
+        onCancelAanvraag={(aanvraagId) => {
+          Alert.alert(
+            'Aanvraag annuleren',
+            'Weet je zeker dat je deze aanvraag wilt annuleren?',
+            [
+              { text: 'Terug', style: 'cancel' },
+              {
+                text: 'Annuleer aanvraag',
+                style: 'destructive',
+                onPress: async () => {
+                  const { error } = await supabase
+                    .from('aanvragen')
+                    .update({ status: 'cancelled' })
+                    .eq('id', aanvraagId);
+                  if (!error) {
+                    setOwnerPerceelDetail(null);
+                    setShowOwnerProfile(true);
+                  }
+                },
+              },
+            ],
+          );
+        }}
       />
     );
   }
@@ -542,6 +565,9 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: RADIUS.sm,
+    borderWidth: 1.5,
+    borderColor: COLORS.negative,
   },
   cancelAanvraagButtonText: {
     color: COLORS.negative,
