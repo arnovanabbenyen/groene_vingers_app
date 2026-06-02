@@ -128,6 +128,13 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
   const aanvraagStatus = aanvraag?.status ?? null;
   const isOwner = !!currentUserId && currentUserId === aanvraag?.percelen?.owner_id;
   const isEnded = aanvraagStatus === AANVRAAG_STATUS.ENDED;
+  const isLocked = isEnded || aanvraagStatus === AANVRAAG_STATUS.CANCELLED || aanvraagStatus === AANVRAAG_STATUS.DECLINED;
+
+  const lockedText = aanvraagStatus === AANVRAAG_STATUS.CANCELLED
+    ? 'Aanvraag ingetrokken — dit gesprek is gesloten.'
+    : aanvraagStatus === AANVRAAG_STATUS.DECLINED
+      ? 'Aanvraag afgewezen — dit gesprek is gesloten.'
+      : 'Samenwerking beëindigd — berichten versturen is niet meer mogelijk.';
 
   const baseConditions =
     isOwner &&
@@ -588,17 +595,15 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
         </Modal>
       )}
 
-      {isEnded ? (
+      {isLocked ? (
         <View
           style={[styles.lockedBar, { paddingBottom: Math.max(insets.bottom - SPACING.sm, SPACING.sm + 2) }]}
           accessible
-          accessibilityLabel="Samenwerking beëindigd. Je kunt geen berichten meer versturen."
+          accessibilityLabel={lockedText}
           accessibilityRole="text"
         >
           <LockSimpleIcon size={16} color={COLORS.negative} weight="fill" />
-          <Text style={styles.lockedText}>
-            Samenwerking beëindigd — berichten versturen is niet meer mogelijk.
-          </Text>
+          <Text style={styles.lockedText}>{lockedText}</Text>
         </View>
       ) : (
         <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom - SPACING.sm, SPACING.xs) }]}>
