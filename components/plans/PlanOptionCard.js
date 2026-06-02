@@ -1,8 +1,7 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { LeafIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Leaf.js';
-import { TreeEvergreenIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/TreeEvergreen.js';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { LeafIcon, TreeIcon } from 'phosphor-react-native';
 import PlanFeatureItem from './PlanFeatureItem';
-import { COLORS, FONTS, RADIUS, SPACING } from '../theme/tokens';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 
 export default function PlanOptionCard({
   variant,
@@ -14,16 +13,29 @@ export default function PlanOptionCard({
   buttonVariant,
   features,
   onPress,
+  isLoading = false,
+  disabled = false,
 }) {
   const isPro = variant === 'pro';
+  const isButtonDisabled = disabled || isLoading;
 
   return (
-    <View style={[styles.card, isPro ? styles.cardPro : styles.cardFree]}>
-      <View style={styles.iconWrap}>
-        {isPro ? (
-          <TreeEvergreenIcon size={34} color={COLORS.textPrimary} weight="regular" />
-        ) : (
-          <LeafIcon size={34} color={COLORS.textPrimary} weight="regular" />
+    <View
+      style={[styles.card, isPro && styles.cardPro]}
+      accessibilityRole="none"
+    >
+      <View style={styles.cardHeader}>
+        <View style={styles.iconWrap}>
+          {isPro ? (
+            <TreeIcon size={30} color={COLORS.brand} weight="regular" />
+          ) : (
+            <LeafIcon size={30} color={COLORS.textSecondary} weight="regular" />
+          )}
+        </View>
+        {isPro && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>Aanbevolen</Text>
+          </View>
         )}
       </View>
 
@@ -31,26 +43,39 @@ export default function PlanOptionCard({
 
       <View style={styles.priceRow}>
         <Text style={styles.price}>{price}</Text>
-        <Text style={styles.priceSuffix}>{priceSuffix}</Text>
+        <Text style={styles.priceSuffix}> {priceSuffix}</Text>
       </View>
 
       {note ? <Text style={styles.note}>{note}</Text> : null}
 
       <Pressable
-        style={[
+        style={({ pressed }) => [
           styles.button,
           buttonVariant === 'solid' ? styles.buttonSolid : styles.buttonOutline,
+          pressed && !isButtonDisabled && !!onPress && styles.buttonPressed,
+          isButtonDisabled && styles.buttonDisabled,
         ]}
         onPress={onPress}
+        disabled={isButtonDisabled}
+        accessibilityRole="button"
+        accessibilityLabel={buttonLabel}
+        accessibilityState={{ disabled: isButtonDisabled || !onPress, busy: isLoading }}
       >
-        <Text
-          style={[
-            styles.buttonText,
-            buttonVariant === 'solid' ? styles.buttonTextSolid : styles.buttonTextOutline,
-          ]}
-        >
-          {buttonLabel}
-        </Text>
+        {isLoading ? (
+          <ActivityIndicator
+            size="small"
+            color={buttonVariant === 'solid' ? COLORS.textInverse : COLORS.brand}
+          />
+        ) : (
+          <Text
+            style={[
+              styles.buttonText,
+              buttonVariant === 'solid' ? styles.buttonTextSolid : styles.buttonTextOutline,
+            ]}
+          >
+            {buttonLabel}
+          </Text>
+        )}
       </Pressable>
 
       <View style={styles.divider} />
@@ -73,65 +98,71 @@ export default function PlanOptionCard({
 const styles = StyleSheet.create({
   card: {
     width: '100%',
-    borderRadius: RADIUS.sm,
+    borderRadius: RADIUS.lg,
     backgroundColor: COLORS.surface,
-    paddingHorizontal: 22,
-    paddingTop: 16,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 2,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.lg,
+    ...SHADOWS.card,
   },
   cardPro: {
-    height: 407,
+    borderWidth: 1.5,
+    borderColor: COLORS.brand,
   },
-  cardFree: {
-    height: 433,
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.xs,
   },
-  iconWrap: {
-    marginTop: 1,
-    marginBottom: 1,
+  iconWrap: {},
+  badge: {
+    backgroundColor: COLORS.brand,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    borderRadius: RADIUS.pill,
+  },
+  badgeText: {
+    color: COLORS.textInverse,
+    fontSize: FONT_SIZES.xxs,
+    lineHeight: 14,
+    fontFamily: FONTS.bodyMedium,
   },
   planTitle: {
     color: COLORS.textPrimary,
-    fontSize: 16,
-    lineHeight: 16,
-    fontFamily: FONTS.displayMedium,
-    fontWeight: '500',
+    fontSize: FONT_SIZES.lg,
+    lineHeight: 22,
+    fontFamily: FONTS.displaySemiBold,
   },
   priceRow: {
-    marginTop: 8,
+    marginTop: SPACING.sm,
     flexDirection: 'row',
     alignItems: 'baseline',
   },
   price: {
     color: COLORS.textPrimary,
-    fontSize: 25,
-    lineHeight: 25,
+    fontSize: FONT_SIZES.xxxl,
+    lineHeight: 30,
     fontFamily: FONTS.displaySemiBold,
-    fontWeight: '600',
   },
   priceSuffix: {
-    color: COLORS.textPrimary,
-    fontSize: 12.8,
-    lineHeight: 13,
+    color: COLORS.textSecondary,
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 18,
     fontFamily: FONTS.body,
-    fontWeight: '400',
-    marginLeft: 4,
+    marginLeft: SPACING.xs,
   },
   note: {
-    color: COLORS.textPrimary,
-    fontSize: 12.8,
-    lineHeight: 13,
+    color: COLORS.textSecondary,
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 18,
     fontFamily: FONTS.body,
-    fontWeight: '400',
-    marginTop: 10,
+    marginTop: SPACING.sm,
   },
   button: {
-    marginTop: 36,
-    height: 53,
-    borderRadius: RADIUS.xl,
+    marginTop: SPACING.xl,
+    height: 44,
+    borderRadius: RADIUS.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -139,37 +170,43 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.brand,
   },
   buttonOutline: {
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: COLORS.brand,
     backgroundColor: COLORS.surface,
   },
+  buttonPressed: {
+    opacity: 0.82,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
   buttonText: {
-    fontSize: 16,
-    lineHeight: 16,
-    fontFamily: FONTS.displayMedium,
-    fontWeight: '500',
+    fontSize: FONT_SIZES.lg,
+    lineHeight: 20,
+    fontFamily: FONTS.displaySemiBold,
   },
   buttonTextSolid: {
     color: COLORS.textInverse,
   },
   buttonTextOutline: {
-    color: COLORS.textPrimary,
+    color: COLORS.brand,
   },
   divider: {
-    marginTop: 32,
+    marginTop: SPACING.xl,
     height: 1,
     backgroundColor: COLORS.dividerSoft,
   },
   sectionLabel: {
-    marginTop: 28,
-    color: COLORS.textPrimary,
-    fontSize: 12.8,
-    lineHeight: 13,
-    fontFamily: FONTS.body,
-    fontWeight: '400',
+    marginTop: SPACING.lg,
+    color: COLORS.textSecondary,
+    fontSize: FONT_SIZES.xs,
+    lineHeight: 16,
+    fontFamily: FONTS.bodyMedium,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
   featuresList: {
-    marginTop: 17,
+    marginTop: SPACING.md,
     gap: SPACING.md,
   },
 });

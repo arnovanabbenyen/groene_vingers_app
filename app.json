@@ -1,8 +1,9 @@
 {
   "expo": {
-    "name": "mobile-app",
-    "slug": "mobile-app",
+    "name": "Groene Vingers",
+    "slug": "groene-vingers",
     "version": "1.0.0",
+    "scheme": "groenevingers",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -13,17 +14,59 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.arnovan.groenevingers",
+      "entitlements": {
+        "com.apple.developer.in-app-payments": [
+          "merchant.com.arnovan.groenevingers.app"
+        ]
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Groene Vingers gebruikt je camera om foto's van je perceel te maken.",
+        "NSPhotoLibraryUsageDescription": "Groene Vingers heeft toegang tot je foto's nodig om perceelfoto's en profielfoto's te kunnen kiezen.",
+        "NSLocationWhenInUseUsageDescription": "Groene Vingers gebruikt je locatie om percelen in jouw buurt te tonen."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.arnovan.groenevingers"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3070b3ab-76a9-441b-8ccd-fc602f871aae"
+      }
+    },
+    "plugins": [
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Groene Vingers heeft toegang tot je foto's nodig om afbeeldingen te kunnen delen in gesprekken.",
+          "cameraPermission": "Groene Vingers gebruikt je camera om foto's te maken voor je gesprekken."
+        }
+      ],
+      "expo-location",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.arnovan.groenevingers.app",
+          "enableGooglePay": false
+        }
+      ],
+      "expo-font"
+    ]
   }
 }

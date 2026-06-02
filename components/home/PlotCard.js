@@ -1,61 +1,165 @@
-import { ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
-import { HeartIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Heart.js';
-import { DropIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Drop.js';
-import { MapPinIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/MapPin.js';
-import { MapTrifoldIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/MapTrifold.js';
-import { ShovelIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Shovel.js';
-import { StarIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Star.js';
-import { COLORS, FONTS, LAYOUT, RADIUS, SHADOWS, SIZES } from '../theme/tokens';
+import { Fragment, useState } from 'react';
+import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { LeafIcon, MapPinIcon } from 'phosphor-react-native';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
+import FavoriteHeartButton from '../parcel/FavoriteHeartButton';
+import RequestStatusBadge from '../parcel/RequestStatusBadge';
+import AmenityIcon from '../kaart/AmenityIcon';
 
-export default function PlotCard({ plot, onPress }) {
-  const imageSource = typeof plot.image === 'string' ? { uri: plot.image } : plot.image;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+export const PLOT_CARD = {
+  cardWidth: SCREEN_WIDTH - SPACING.screenX * 2,
+  imageHeight: 185,
+  carouselGap: SPACING.sm,
+  cardPadding: 8,  // retained for HomeScreen statusChip positioning: top/left = cardPadding + badgeInset
+  badgeInset: 8,   // retained for HomeScreen statusChip positioning
+};
+
+function PlotCardBadges({
+  location,
+  isFavorited,
+  onToggleFavorite,
+  showFavoriteButton,
+  statusLabel,
+  statusTone = 'active',
+  requestStatus = null,
+}) {
+  const hasStatusBadge = !!statusLabel;
 
   return (
-    <Pressable style={styles.card} onPress={onPress}>
-      <ImageBackground source={imageSource} style={styles.image} imageStyle={styles.imageRounded}>
-        <View style={styles.badgesRow}>
-          <View style={[styles.pill, styles.locationPill]}>
-            <MapPinIcon size={18} color={COLORS.textPrimary} weight="regular" />
-            <Text style={styles.pillText}>{plot.location}</Text>
-          </View>
-          <View style={[styles.pill, styles.ratingPill]}>
-            <StarIcon size={16} color={COLORS.textPrimary} weight="regular" />
-            <Text style={styles.pillText}>{plot.rating}</Text>
-          </View>
+    <>
+      {requestStatus ? (
+        <View style={styles.requestStatusWrap}>
+          <RequestStatusBadge status={requestStatus} />
         </View>
-        <Pressable style={styles.heartButton}>
-          <HeartIcon size={19} color={COLORS.textInverse} weight="regular" />
-        </Pressable>
-      </ImageBackground>
+      ) : null}
 
-      <View style={styles.headerRow}>
-        <Text style={styles.title} numberOfLines={1}>
-          {plot.title}
+      <View style={styles.locationBadge}>
+        <MapPinIcon size={13} color={COLORS.textPrimary} weight="regular" />
+        <Text style={styles.locationText} numberOfLines={1}>
+          {location || 'Locatie onbekend'}
         </Text>
-        <Text style={styles.size}>{plot.size}</Text>
       </View>
 
-      <View style={styles.metaRow}>
-        {plot.chips.map((chip, index) => (
-          <View
-            key={`${plot.id}-${chip}`}
-            style={[
-              styles.metaItem,
-              index === 1 && styles.metaItemCenter,
-              index === 2 && styles.metaItemEnd,
-            ]}
-          >
-            {index === 2 ? (
-              <MapTrifoldIcon size={18} color={COLORS.textPrimary} weight="regular" />
-            ) : index === 1 ? (
-              <ShovelIcon size={18} color={COLORS.textPrimary} weight="regular" />
-            ) : (
-              <DropIcon size={18} color={COLORS.textPrimary} weight="regular" />
-            )}
-            <Text style={styles.metaText}>{chip}</Text>
-            {index < plot.chips.length - 1 ? <View style={styles.metaDivider} /> : null}
+      {hasStatusBadge ? (
+        <View style={[styles.statusWrap, statusTone === 'hidden' && styles.statusWrapHidden]}>
+          <Text style={[styles.statusText, statusTone === 'hidden' && styles.statusTextHidden]}>
+            {statusLabel}
+          </Text>
+        </View>
+      ) : showFavoriteButton ? (
+        <View style={styles.heartWrap}>
+          <FavoriteHeartButton
+            isFavorited={isFavorited}
+            onToggle={onToggleFavorite}
+          />
+        </View>
+      ) : null}
+    </>
+  );
+}
+
+export default function PlotCard({
+  plot,
+  onPress,
+  isFavorited = false,
+  onToggleFavorite,
+  showFavoriteButton = true,
+  statusLabel,
+  statusTone = 'active',
+  requestStatus = null,
+  cardWidth = PLOT_CARD.cardWidth,
+}) {
+  const [imageError, setImageError] = useState(false);
+  const imageSource = typeof plot.image === 'string' ? { uri: plot.image } : plot.image;
+  const hasImage = plot.image != null && plot.image !== '';
+  const canShowImage = hasImage && !imageError;
+
+  const voorzieningen = plot.voorzieningen || plot.chips || [];
+  const hasOverflow = voorzieningen.length > 3;
+  const visibleVoorzieningen = voorzieningen.slice(0, hasOverflow ? 2 : 3);
+  const overflowCount = voorzieningen.length - visibleVoorzieningen.length;
+
+  const cardLabel = [plot.title, plot.location, plot.size].filter(Boolean).join(', ');
+
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.card, { width: cardWidth }, pressed && styles.cardPressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={cardLabel}
+      accessibilityHint="Tik om perceel details te bekijken"
+    >
+      <View style={styles.imageWrap}>
+        {canShowImage ? (
+          <Image
+            source={imageSource}
+            style={styles.image}
+            resizeMode="cover"
+            accessibilityLabel={`Foto van ${plot.title}`}
+            onError={(e) => {
+              console.warn('Image failed to load:', imageSource, e.nativeEvent);
+              setImageError(true);
+            }}
+          />
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <LeafIcon
+              size={34}
+              color={COLORS.brand}
+              weight="regular"
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            />
+            <Text style={styles.placeholderText}>Foto niet beschikbaar</Text>
           </View>
-        ))}
+        )}
+
+        <PlotCardBadges
+          location={plot.location}
+          isFavorited={isFavorited}
+          onToggleFavorite={onToggleFavorite}
+          showFavoriteButton={showFavoriteButton}
+          statusLabel={statusLabel}
+          statusTone={statusTone}
+          requestStatus={requestStatus}
+        />
+      </View>
+
+      <View style={styles.body}>
+        <View style={styles.titleRow}>
+          <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+            {plot.title}
+          </Text>
+          {plot.size && <Text style={styles.size}>{plot.size}</Text>}
+        </View>
+
+        {voorzieningen.length > 0 && (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.voorzieningenRow}>
+              {visibleVoorzieningen.map((v, index) => (
+                <Fragment key={`${plot.id}-${v}-${index}`}>
+                  {index > 0 && <View style={styles.voorzieningDivider} />}
+                  <View style={styles.voorzieningItem}>
+                    <AmenityIcon label={v} size={15} />
+                    <Text style={styles.voorzieningLabel} numberOfLines={1}>{v}</Text>
+                  </View>
+                </Fragment>
+              ))}
+
+              {overflowCount > 0 && (
+                <>
+                  <View style={styles.voorzieningDivider} />
+                  <View style={styles.voorzieningItem}>
+                    <Text style={styles.voorzieningOverflow}>+{overflowCount}</Text>
+                  </View>
+                </>
+              )}
+            </View>
+          </>
+        )}
       </View>
     </Pressable>
   );
@@ -63,111 +167,156 @@ export default function PlotCard({ plot, onPress }) {
 
 const styles = StyleSheet.create({
   card: {
-    width: SIZES.plotCardWidth,
-    borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.background,
-    padding: LAYOUT.plot.cardPadding,
-    gap: LAYOUT.plot.cardGap,
+    width: PLOT_CARD.cardWidth,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.dividerSoft,
     ...SHADOWS.card,
   },
+  cardPressed: {
+    opacity: 0.88,
+  },
+  imageWrap: {
+    width: '100%',
+    height: PLOT_CARD.imageHeight,
+    backgroundColor: COLORS.surfaceMuted,
+    position: 'relative',
+  },
   image: {
-    height: SIZES.plotCardImageHeight,
-    overflow: 'hidden',
-    padding: LAYOUT.plot.badgeInset,
+    width: '100%',
+    height: '100%',
   },
-  imageRounded: {
-    borderRadius: RADIUS.sm,
-  },
-  badgesRow: {
-    position: 'absolute',
-    left: LAYOUT.plot.badgeInset,
-    right: LAYOUT.plot.badgeInset,
-    bottom: LAYOUT.plot.badgeInset,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
-  pill: {
-    borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.surface,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: LAYOUT.plot.pillGap,
-    paddingHorizontal: LAYOUT.plot.badgeInset,
-    paddingVertical: LAYOUT.plot.metaGap,
-  },
-  locationPill: {
-    minHeight: SIZES.plotBadgeLocationMinHeight,
-  },
-  ratingPill: {
-    minHeight: SIZES.plotBadgeRatingMinHeight,
-  },
-  pillText: {
-    color: COLORS.textPrimary,
-    fontSize: 12.8,
+  placeholderText: {
+    color: COLORS.textSecondary,
+    fontSize: FONT_SIZES.sm,
     lineHeight: 13,
     fontFamily: FONTS.body,
   },
-  heartButton: {
+  locationBadge: {
     position: 'absolute',
-    right: LAYOUT.plot.badgeInset,
-    top: LAYOUT.plot.badgeInset,
-    width: SIZES.plotFavoriteSize,
-    height: SIZES.plotFavoriteSize,
+    bottom: SPACING.md,
+    left: SPACING.md,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.pill,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
+    maxWidth: '72%',
   },
-  headerRow: {
+  locationText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textPrimary,
+  },
+  requestStatusWrap: {
+    position: 'absolute',
+    top: SPACING.md,
+    left: SPACING.md,
+    zIndex: 2,
+  },
+  heartWrap: {
+    position: 'absolute',
+    top: SPACING.md,
+    right: SPACING.md,
+  },
+  statusWrap: {
+    position: 'absolute',
+    top: SPACING.md,
+    right: SPACING.md,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statusWrapHidden: {
+    backgroundColor: COLORS.accentSoft,
+  },
+  statusText: {
+    color: COLORS.brand,
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.xs,
+    textTransform: 'lowercase',
+  },
+  statusTextHidden: {
+    color: COLORS.textPrimary,
+  },
+  body: {
+    backgroundColor: COLORS.surface,
+  },
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.sm,
+    gap: SPACING.sm,
   },
   title: {
-    color: COLORS.textPrimary,
-    fontSize: 16,
-    fontFamily: FONTS.displayMedium,
-    fontWeight: '500',
     flex: 1,
-    marginRight: LAYOUT.plot.titleGap,
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.textPrimary,
   },
   size: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textPrimary,
-    fontSize: 12.8,
-    lineHeight: 13,
-    fontFamily: FONTS.body,
   },
-  metaRow: {
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    paddingTop: LAYOUT.plot.metaGap,
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.dividerSoft,
+    marginHorizontal: SPACING.md,
+  },
+  voorzieningenRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.md,
   },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: LAYOUT.plot.metaGap,
+  voorzieningItem: {
     flex: 1,
-  },
-  metaItemCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
-    flex: 0,
-    width: SIZES.plotCardMetaCenterWidth,
+    gap: 5,
   },
-  metaItemEnd: {
-    justifyContent: 'flex-end',
-  },
-  metaText: {
-    color: COLORS.textPrimary,
-    fontSize: 12.8,
-    lineHeight: 13,
+  voorzieningLabel: {
     fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    flexShrink: 1,
   },
-  metaDivider: {
-    marginLeft: LAYOUT.plot.dividerSpacing,
+  voorzieningDivider: {
     width: 1,
-    height: SIZES.plotMetaDividerHeight,
+    height: 14,
     backgroundColor: COLORS.border,
+  },
+  voorzieningOverflow: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
   },
 });

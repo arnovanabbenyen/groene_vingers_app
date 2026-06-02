@@ -1,41 +1,44 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { DropIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Drop.js';
-import { PlantIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Plant.js';
-import { ShovelIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Shovel.js';
-import { COLORS, FONTS, SPACING } from '../theme/tokens';
+import { DropIcon, PlantIcon, ShovelIcon, RecycleIcon, TreeIcon } from 'phosphor-react-native';
+import { COLORS, FONT_SIZES, FONTS, SPACING } from '../theme/tokens';
 
-const ICONS = {
-  water: DropIcon,
-  material: ShovelIcon,
-  seeds: PlantIcon,
+const ICON_MAP = {
+  Water: DropIcon,
+  Tools: ShovelIcon,
+  Materiaal: ShovelIcon,
+  Zaden: PlantIcon,
+  Compost: RecycleIcon,
+  Bomen: TreeIcon,
 };
 
-function PresenceItem({ icon, label }) {
-  const IconComponent = icon;
+function PresenceItem({ label }) {
+  const IconComponent = ICON_MAP[label] || DropIcon;
 
   return (
-    <View style={styles.item}>
+    <View
+      style={styles.item}
+      accessibilityRole="text"
+      accessibilityLabel={label}
+    >
       <View style={styles.iconCircle}>
-        <IconComponent size={22} color={COLORS.textInverse} weight="regular" />
+        <IconComponent size={22} color={COLORS.textInverse} weight="regular" accessibilityElementsHidden />
       </View>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.label} accessibilityElementsHidden>{label}</Text>
     </View>
   );
 }
 
-export default function ParcelPresenceSection({
-  items = [
-    { icon: ICONS.water, label: 'Water' },
-    { icon: ICONS.material, label: 'Materiaal' },
-    { icon: ICONS.seeds, label: 'Zaden' },
-  ],
-}) {
+export default function ParcelPresenceSection({ voorzieningen = [] }) {
+  if (!voorzieningen || voorzieningen.length === 0) {
+    return null;
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Aanwezig</Text>
       <View style={styles.row}>
-        {items.map((item) => (
-          <PresenceItem key={item.label} icon={item.icon} label={item.label} />
+        {voorzieningen.map((label, index) => (
+          <PresenceItem key={`${label}-${index}`} label={label} />
         ))}
       </View>
     </View>
@@ -48,10 +51,9 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.textPrimary,
-    fontSize: 20,
+    fontSize: FONT_SIZES.xl,
     lineHeight: 22,
     fontFamily: FONTS.displaySemiBold,
-    fontWeight: '900',
   },
   row: {
     flexDirection: 'row',
@@ -72,10 +74,9 @@ const styles = StyleSheet.create({
   },
   label: {
     color: COLORS.textPrimary,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     lineHeight: 16,
     fontFamily: FONTS.bodyMedium,
-    fontWeight: '600',
     textAlign: 'center',
   },
 });

@@ -1,81 +1,99 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { StarIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/Star.js';
-import { COLORS, FONTS, LAYOUT, RADIUS, SIZES } from '../theme/tokens';
+import { StarIcon } from 'phosphor-react-native';
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
 export default function HomePromoCard({ onPressUpgrade }) {
   return (
-    <View style={styles.card}>
-      <View style={styles.badge}>
-        <StarIcon size={22} color={COLORS.accent} weight="regular" />
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      onPress={onPressUpgrade}
+      accessibilityRole="button"
+      accessibilityLabel="Upgrade naar Pro plan"
+      accessibilityHint="Onbeperkt aanvragen sturen en meer matches zien"
+    >
+      <View style={styles.row}>
+        <View style={styles.badge}>
+          <StarIcon size={22} color={COLORS.accent} weight="fill" />
+        </View>
+
+        <View style={styles.textContent}>
+          <View style={styles.textGroup}>
+            <Text style={styles.title}>Ontgrendel meer matches</Text>
+            <Text style={styles.body}>
+              Met Pro stuur je onbeperkt aanvragen en zie je wie jouw profiel bekeken heeft.
+            </Text>
+          </View>
+
+          <View style={styles.buttonWrap}>
+            <Text style={styles.buttonText}>Upgrade naar Pro</Text>
+          </View>
+        </View>
       </View>
-
-      <Text style={styles.title}>Ontgrendel meer matches</Text>
-      <Text style={styles.body}>
-        Met Pro stuur je onbeperkt aanvragen en zie je wie jouw profiel bekeken heeft.
-      </Text>
-
-      <Pressable style={styles.button} onPress={onPressUpgrade}>
-        <Text style={styles.buttonText}>Upgrade naar Pro</Text>
-      </Pressable>
-    </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    height: SIZES.promoCardHeight,
-    borderRadius: RADIUS.sm,
+    borderRadius: RADIUS.md,
     backgroundColor: COLORS.brand,
     overflow: 'hidden',
+    paddingLeft: 9,
+    paddingRight: SPACING.md,
+    paddingVertical: 18,
+  },
+  cardPressed: {
+    opacity: 0.85,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 18,
   },
   badge: {
-    position: 'absolute',
-    left: LAYOUT.promo.badgeLeft,
-    top: LAYOUT.promo.badgeTop,
-    width: SIZES.promoBadgeSize,
-    height: SIZES.promoBadgeSize,
-    borderRadius: SIZES.promoBadgeRadius,
+    width: 38,
+    height: 38,
+    borderRadius: RADIUS.pill,
     backgroundColor: COLORS.brandSoft2,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
+  },
+  textContent: {
+    flex: 1,
+    gap: SPACING.sm,
+  },
+  textGroup: {
+    gap: SPACING.xxs,
   },
   title: {
-    position: 'absolute',
-    left: LAYOUT.promo.titleLeft,
-    top: LAYOUT.promo.titleTop,
-    width: LAYOUT.promo.titleWidth,
     color: COLORS.accent,
-    fontSize: 16,
-    lineHeight: 16,
+    fontSize: FONT_SIZES.lg,
+    lineHeight: 22,
     fontFamily: FONTS.displayMedium,
     fontWeight: '500',
   },
   body: {
-    position: 'absolute',
-    left: LAYOUT.promo.bodyLeft,
-    top: LAYOUT.promo.bodyTop,
-    width: LAYOUT.promo.bodyWidth,
     color: COLORS.textInverse,
-    fontSize: 12.8,
+    fontSize: FONT_SIZES.sm,
     fontFamily: FONTS.body,
     lineHeight: 19,
   },
-  button: {
-    position: 'absolute',
-    left: LAYOUT.promo.buttonLeft,
-    top: LAYOUT.promo.buttonTop,
+  buttonWrap: {
+    alignSelf: 'stretch',
     borderRadius: RADIUS.sm,
     backgroundColor: COLORS.accent,
-    height: SIZES.promoButtonHeight,
-    paddingHorizontal: 16,
+    height: 36,
+    paddingHorizontal: SPACING.md,
     justifyContent: 'center',
     alignItems: 'center',
+    minWidth: 44,
   },
   buttonText: {
     color: COLORS.textPrimary,
-    fontSize: 12.8,
+    fontSize: FONT_SIZES.sm,
     lineHeight: 13,
-    fontFamily: FONTS.body,
-    fontWeight: '400',
+    fontFamily: FONTS.bodyMedium,
+    fontWeight: '500',
   },
 });

@@ -1,88 +1,129 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { ChatsCircleIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/ChatsCircle.js';
-import { HouseIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/House.js';
-import { MapTrifoldIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/MapTrifold.js';
-import { PlusCircleIcon } from '../../node_modules/phosphor-react-native/lib/commonjs/icons/PlusCircle.js';
+import {
+  ChatsCircleIcon,
+  EnvelopeSimpleIcon,
+  HouseIcon,
+  MapTrifoldIcon,
+  PlusCircleIcon,
+} from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
-
-const DEFAULT_PROFILE_IMAGE =
-  'http://localhost:3845/assets/5268695094ed7bc20eac210bd6af6feec43ec8ef.png';
-
-const DEFAULT_ITEMS = [
-  { key: 'start', label: 'Start', icon: 'home' },
-  { key: 'kaart', label: 'Kaart', icon: 'map' },
-  { key: 'loggen', label: 'Loggen', icon: 'plus' },
-  { key: 'berichten', label: 'Berichten', icon: 'chat' },
-  { key: 'profiel', label: 'Profiel', type: 'avatar' },
-];
+import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 
 const NAV_ICON_SIZE = 26;
 
-function NavIcon({ item, isActive, profileImageSource }) {
+const ICON_MAP = {
+  home: HouseIcon,
+  map: MapTrifoldIcon,
+  plus: PlusCircleIcon,
+  chat: ChatsCircleIcon,
+  envelope: EnvelopeSimpleIcon,
+};
+
+const DEFAULT_ITEMS = [
+  { key: 'start',     label: 'Start',     icon: 'home' },
+  { key: 'kaart',     label: 'Kaart',     icon: 'map' },
+  { key: 'loggen',    label: 'Loggen',    icon: 'plus' },
+  { key: 'berichten', label: 'Berichten', icon: 'chat' },
+  { key: 'profiel',   label: 'Profiel',   type: 'avatar' },
+];
+
+const TUINEIGENAAR_ITEMS = [
+  { key: 'start',     label: 'Start',     icon: 'home' },
+  { key: 'verzoeken', label: 'Verzoeken', icon: 'envelope' },
+  { key: 'perceel',   label: 'Perceel',   icon: 'plus' },
+  { key: 'berichten', label: 'Berichten', icon: 'chat' },
+  { key: 'profiel',   label: 'Profiel',   type: 'avatar' },
+];
+
+function NavIcon({ item, isActive, profileImageSource, profileInitials }) {
+  const color = isActive ? COLORS.brand : COLORS.textSecondary;
+
   if (item.type === 'avatar') {
-    const source = typeof profileImageSource === 'string'
-      ? { uri: profileImageSource }
-      : profileImageSource;
-    return <Image source={source} style={styles.avatar} />;
+    if (profileImageSource) {
+      const source = typeof profileImageSource === 'string'
+        ? { uri: profileImageSource }
+        : profileImageSource;
+      return (
+        <Image
+          source={source}
+          style={[styles.avatar, isActive && styles.avatarActive]}
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+        />
+      );
+    }
+    return (
+      <View
+        style={[styles.avatar, styles.avatarPlaceholder, isActive && styles.avatarActive]}
+        accessibilityElementsHidden
+        importantForAccessibility="no"
+      >
+        <Text style={styles.avatarInitialsText}>{profileInitials || '?'}</Text>
+      </View>
+    );
   }
 
-  const color = isActive ? COLORS.brand : COLORS.textPrimary;
+  const Icon = ICON_MAP[item.icon] ?? ChatsCircleIcon;
+  return (
+    <Icon
+      size={NAV_ICON_SIZE}
+      color={color}
+      weight={isActive ? 'fill' : 'regular'}
+      accessibilityElementsHidden
+    />
+  );
+}
 
-  if (item.icon === 'home') {
-    return <HouseIcon size={NAV_ICON_SIZE} color={color} weight={isActive ? 'fill' : 'regular'} />;
-  }
-
-  if (item.icon === 'map') {
-    return <MapTrifoldIcon size={NAV_ICON_SIZE} color={color} weight={isActive ? 'fill' : 'regular'} />;
-  }
-
-  if (item.icon === 'plus') {
-    return <PlusCircleIcon size={NAV_ICON_SIZE} color={color} weight={isActive ? 'fill' : 'regular'} />;
-  }
-
-  return <ChatsCircleIcon size={NAV_ICON_SIZE} color={color} weight={isActive ? 'fill' : 'regular'} />;
+function Badge({ count }) {
+  return (
+    <View style={styles.badge} accessibilityElementsHidden importantForAccessibility="no">
+      <Text style={styles.badgeText}>{count > 9 ? '9+' : String(count)}</Text>
+    </View>
+  );
 }
 
 export default function BottomNav({
-  items = DEFAULT_ITEMS,
+  items,
   activeKey = 'start',
   onTabPress,
-  profileImageUri = DEFAULT_PROFILE_IMAGE,
   profileImageSource,
+  profileInitials,
   style,
+  role = 'tuinzoeker',
+  badgeCounts = {},
 }) {
   const insets = useSafeAreaInsets();
-  const resolvedProfileImageSource = profileImageSource ?? profileImageUri;
+  const navItems = items ?? (role === 'tuineigenaar' ? TUINEIGENAAR_ITEMS : DEFAULT_ITEMS);
 
   return (
-    <View style={[styles.container, { paddingBottom: Math.max(14, insets.bottom + 8) }, style]}>
-      {items.map((item) => {
+    <View
+      style={[styles.container, { paddingBottom: Math.max(14, insets.bottom + 8) }, style]}
+      accessibilityRole="tablist"
+    >
+      {navItems.map((item) => {
         const isActive = item.key === activeKey;
+        const badgeCount = item.type === 'avatar' ? 0 : Number(badgeCounts?.[item.key] || 0);
+        const a11yLabel = badgeCount > 0
+          ? `${item.label}, ${badgeCount} nieuwe`
+          : item.label;
 
         return (
           <Pressable
             key={item.key}
             style={styles.tabItem}
             onPress={() => onTabPress?.(item)}
-            hitSlop={6}
+            hitSlop={4}
+            accessibilityRole="tab"
+            accessibilityLabel={a11yLabel}
+            accessibilityState={{ selected: isActive }}
           >
-            <View
-              style={[
-                styles.indicator,
-                {
-                  backgroundColor: isActive ? COLORS.brand : 'transparent',
-                },
-              ]}
-            />
+            <View style={[styles.indicator, isActive && styles.indicatorActive]} />
             <View style={styles.iconLabelWrap}>
-              <NavIcon item={item} isActive={isActive} profileImageSource={resolvedProfileImageSource} />
-              <Text
-                style={[
-                  styles.label,
-                  { color: isActive ? COLORS.brand : COLORS.textPrimary },
-                ]}
-              >
+              <View style={styles.iconWrap}>
+                <NavIcon item={item} isActive={isActive} profileImageSource={profileImageSource} profileInitials={profileInitials} />
+                {badgeCount > 0 && <Badge count={badgeCount} />}
+              </View>
+              <Text style={[styles.label, isActive && styles.labelActive]}>
                 {item.label}
               </Text>
             </View>
@@ -96,7 +137,7 @@ export default function BottomNav({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
     backgroundColor: COLORS.surface,
     paddingTop: SPACING.navTop,
     ...SHADOWS.nav,
@@ -107,8 +148,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   indicator: {
-    width: '100%',
-    height: 2,
+    width: 24,
+    height: 3,
+    borderRadius: RADIUS.pill,
+    backgroundColor: 'transparent',
+  },
+  indicatorActive: {
+    backgroundColor: COLORS.brand,
   },
   iconLabelWrap: {
     marginTop: SPACING.sm,
@@ -116,16 +162,58 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: SPACING.navIconGap,
   },
+  iconWrap: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   label: {
     fontSize: 10,
     fontFamily: FONTS.bodyMedium,
-    fontWeight: '500',
     lineHeight: 11,
     includeFontPadding: false,
+    color: COLORS.textSecondary,
+  },
+  labelActive: {
+    color: COLORS.brand,
   },
   avatar: {
-    width: 23,
-    height: 23,
-    borderRadius: RADIUS.pill / 2,
+    width: NAV_ICON_SIZE,
+    height: NAV_ICON_SIZE,
+    borderRadius: RADIUS.pill,
+  },
+  avatarActive: {
+    borderWidth: 2,
+    borderColor: COLORS.brand,
+  },
+  avatarPlaceholder: {
+    backgroundColor: COLORS.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitialsText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textPrimary,
+    includeFontPadding: false,
+  },
+  badge: {
+    position: 'absolute',
+    top: -5,
+    right: -10,
+    minWidth: 16,
+    height: 16,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: SPACING.xs,
+    backgroundColor: COLORS.negative,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: COLORS.surface,
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 10,
+    lineHeight: 10,
+    includeFontPadding: false,
   },
 });
