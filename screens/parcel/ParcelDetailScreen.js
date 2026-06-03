@@ -641,6 +641,8 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     padding: SPACING.md,
     gap: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
   },
   samenwerkingPersonRow: {
     flexDirection: 'row',
