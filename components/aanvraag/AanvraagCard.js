@@ -107,10 +107,11 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
+    overflow: 'hidden',
     padding: SPACING.md,
     marginBottom: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.brandOverlay,
+    borderColor: COLORS.dividerSoft,
     ...SHADOWS.card,
   },
   cardPressed: {

@@ -52,18 +52,13 @@ export default function AanvraagCarousel({ aanvragen, onView, onAccept }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: COLORS.background,
-    marginHorizontal: -SPACING.screenX,
-    paddingHorizontal: SPACING.screenX,
-  },
+  container: {},
   scroll: {
     marginHorizontal: -SPACING.screenX,
   },
   content: {
     gap: CARD_GAP,
     paddingHorizontal: SPACING.screenX,
-    paddingVertical: SPACING.md,
   },
   card: {
     width: CARD_WIDTH,

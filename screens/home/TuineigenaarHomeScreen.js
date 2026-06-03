@@ -558,7 +558,7 @@ export default function TuineigenaarHomeScreen({
               accessibilityLabel={`Bekijk alle ${aanvragen.length} aanvragen`}
             >
               <Text style={styles.bekijkAllesText}>
-                Bekijk alles ({aanvragen.length})
+                Bekijk alles{aanvragen.length >= 2 ? ` (${aanvragen.length})` : ''}
               </Text>
             </Pressable>
           ) : null}
