@@ -15,6 +15,7 @@ import { supabase } from '../../services/supabase';
 import { endSamenwerking, submitRating } from '../../services/samenwerkingProposal';
 import PerceelSummaryCard from '../../components/aanvraag/PerceelSummaryCard';
 import AuthTextArea from '../../components/auth/AuthTextArea';
+import AuthButton from '../../components/buttons/AuthButton';
 import StarRatingInput from '../../components/rating/StarRatingInput';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 
@@ -154,20 +155,14 @@ export default function EindSamenwerkingScreen({
         </View>
 
         {/* ── Stop button ────────────────────────────────────── */}
-        <Pressable
-          style={[
-            styles.stopButton,
-            mode === 'recipient' && styles.stopButtonRecipient,
-            !isValid && styles.stopButtonDisabled,
-          ]}
+        <AuthButton
+          label={buttonText}
           onPress={handleStop}
+          variant={mode === 'recipient' ? 'primary' : 'secondaryDanger'}
+          loading={isSubmitting}
           disabled={!isValid || isSubmitting}
-          accessibilityRole="button"
           accessibilityLabel={isValid ? buttonText : 'Geef eerst een beoordeling'}
-          accessibilityState={{ disabled: !isValid || isSubmitting }}
-        >
-          <Text style={styles.stopButtonText}>{buttonText}</Text>
-        </Pressable>
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -245,23 +240,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // ── Stop button ───────────────────────────────────────────────
-  stopButton: {
-    backgroundColor: COLORS.negative,
-    borderRadius: RADIUS.xl,
-    height: 53,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stopButtonRecipient: {
-    backgroundColor: COLORS.brand,
-  },
-  stopButtonDisabled: {
-    opacity: 0.45,
-  },
-  stopButtonText: {
-    fontFamily: FONTS.displayMedium,
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.textInverse,
-  },
 });

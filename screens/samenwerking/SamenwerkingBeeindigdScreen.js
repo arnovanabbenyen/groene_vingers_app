@@ -7,6 +7,7 @@ import {
   hasUserRatedSamenwerking,
 } from '../../services/samenwerkingProposal';
 import StarRatingDisplay from '../../components/rating/StarRatingDisplay';
+import AuthButton from '../../components/buttons/AuthButton';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../../components/theme/tokens';
 
 const FALLBACK_AVATAR = require('../../images/tuinzoeker_pfp.png');
@@ -151,12 +152,16 @@ export default function SamenwerkingBeeindigdScreen({
             <Text style={styles.ctaSubheading}>
               Je review is privé en helpt om andere gebruikers te informeren.
             </Text>
-            <Pressable style={styles.primaryButton} onPress={() => onGiveReview?.(data)}>
-              <Text style={styles.primaryButtonText}>Geef je review</Text>
-            </Pressable>
-            <Pressable style={styles.secondaryButton} onPress={onSkipReview}>
-              <Text style={styles.secondaryButtonText}>Niet nu</Text>
-            </Pressable>
+            <AuthButton
+              label="Geef je review"
+              onPress={() => onGiveReview?.(data)}
+              variant="primary"
+            />
+            <AuthButton
+              label="Niet nu"
+              onPress={onSkipReview}
+              variant="secondary"
+            />
           </View>
         )}
       </ScrollView>
@@ -220,16 +225,6 @@ const styles = StyleSheet.create({
   ctaSubheading: {
     fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textSecondary, lineHeight: 18,
   },
-  primaryButton: {
-    backgroundColor: COLORS.brand, borderRadius: RADIUS.xl, paddingVertical: SPACING.md, alignItems: 'center',
-  },
-  primaryButtonText: { fontFamily: FONTS.displayMedium, fontSize: FONT_SIZES.md, color: COLORS.textInverse },
-  secondaryButton: {
-    borderWidth: 1.5, borderColor: COLORS.brand, borderRadius: RADIUS.xl,
-    paddingVertical: SPACING.md, alignItems: 'center',
-  },
-  secondaryButtonText: { fontFamily: FONTS.displayMedium, fontSize: FONT_SIZES.md, color: COLORS.brand },
-
   alreadyRatedCard: {
     backgroundColor: COLORS.surface, borderRadius: RADIUS.md, padding: SPACING.lg,
     alignItems: 'center', gap: SPACING.sm, ...SHADOWS.card,
