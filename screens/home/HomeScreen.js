@@ -31,8 +31,8 @@ import { PLOT_CARD } from '../../components/home/PlotCard';
 
 const AANVRAAG_STATUS_CHIP = {
   pending: { label: 'In behandeling', bg: 'rgba(255,217,94,0.92)', color: COLORS.textPrimary },
-  accepted: { label: 'Geaccepteerd', bg: 'rgba(87,98,56,0.92)', color: COLORS.textInverse },
-  confirmed: { label: 'Samenwerking bevestigd', bg: 'rgba(87,98,56,0.92)', color: COLORS.textInverse },
+  accepted: { label: 'In gesprek', bg: COLORS.surfaceBrand, color: COLORS.brand },
+  confirmed: { label: 'Samenwerking actief', bg: COLORS.brand, color: COLORS.textInverse },
 };
 
 const initialNavState = { type: 'home', payload: null };
