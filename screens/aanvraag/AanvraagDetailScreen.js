@@ -191,7 +191,7 @@ export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplet
             </View>
             <View style={styles.ratingPill}>
               <StarIcon size={16} color={COLORS.accent} weight="fill" accessibilityElementsHidden />
-              <Text style={styles.ratingText}>{sender?.rating ?? 'Nieuw'}</Text>
+              <Text style={styles.ratingText}>{sender?.rating != null ? Number(sender.rating).toFixed(1) : 'Nieuw'}</Text>
             </View>
             <CaretRightIcon size={18} color={COLORS.textMuted} weight="regular" accessibilityElementsHidden />
           </Pressable>
