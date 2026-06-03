@@ -158,6 +158,7 @@ export default function LogboekHomeScreen({
         perceel={selectedPerceel}
         onBack={() => setSelectedPerceel(null)}
         showFavoriteButton
+        hasActiveSamenwerking
       />
     );
   }

@@ -693,6 +693,7 @@ export default function App() {
                 },
               });
             }}
+            hasActiveSamenwerking={!!activeSamenwerking}
           />
         ) : currentScreen === 'opgeslagen' ? (
           <OpgeslagenScreen

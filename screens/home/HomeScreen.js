@@ -200,6 +200,7 @@ export default function HomeScreen({ getInitialTab, requestedTab, badgeCounts = 
         onRequest={() => handleRequestWithGate(navState.payload)}
         isFavorited={isFavorite(navState.payload?.id)}
         onToggleFavorite={() => toggleFavorite(navState.payload?.id)}
+        hasActiveSamenwerking={confirmedSamenwerkingen.length > 0}
         showFavoriteButton
         onCancelAanvraag={handleCancelAanvraag}
       />

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { showConfirm } from '../../components/common/ConfirmDialog';
 import { StatusBar } from 'expo-status-bar';
 import { ChatCircleIcon, ClockClockwiseIcon, EyeIcon, EyeSlashIcon, MapPinIcon, PencilSimpleIcon } from 'phosphor-react-native';
 import Header from '../../components/navigation/Header';
@@ -54,6 +55,7 @@ export default function ParcelDetailScreen({
   onOpenConversation,
   onEndSamenwerking,
   onCancelAanvraag,
+  hasActiveSamenwerking = false,
 }) {
   const insets = useSafeAreaInsets();
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -399,7 +401,19 @@ export default function ParcelDetailScreen({
           ) : (
             <Pressable
               style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
-              onPress={handleAanvraag}
+              onPress={() => {
+                if (hasActiveSamenwerking) {
+                  showConfirm({
+                    title: 'Actieve samenwerking',
+                    message: 'Je hebt al een actieve samenwerking. Beëindig die eerst voordat je een nieuwe aanvraag stuurt.',
+                    confirmLabel: 'Begrepen',
+                    confirmVariant: 'primary',
+                    cancelLabel: null,
+                  });
+                  return;
+                }
+                handleAanvraag();
+              }}
             >
               <Text style={styles.primaryButtonText}>Stuur verzoek</Text>
             </Pressable>
