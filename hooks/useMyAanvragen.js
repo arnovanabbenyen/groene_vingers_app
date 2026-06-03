@@ -6,7 +6,6 @@ export function useMyAanvragen(refreshKey = 0) {
   const [aanvragen, setAanvragen] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [userId, setUserId] = useState(null);
 
   const load = useCallback(async () => {
     if (!supabase) {
@@ -22,7 +21,6 @@ export function useMyAanvragen(refreshKey = 0) {
         setIsLoading(false);
         return;
       }
-      setUserId(uid);
 
       const { data: rawAanvragen, error: aanvragenError } = await supabase
         .from('aanvragen')
@@ -87,20 +85,32 @@ export function useMyAanvragen(refreshKey = 0) {
   // Realtime: refetch when any of the tuinzoeker's aanvragen changes status.
   // This ensures declined/cancelled aanvragen disappear immediately without a restart.
   useEffect(() => {
-    if (!supabase || !userId) return;
+    if (!supabase) return;
+    let mounted = true;
+    let channel = null;
 
-    const channel = supabase
-      .channel(`my_aanvragen:${userId}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'aanvragen',
-        filter: `sender_id=eq.${userId}`,
-      }, () => { load(); })
-      .subscribe();
+    async function setup() {
+      const { data: sessionData } = await supabase.auth.getSession().catch(() => ({ data: null }));
+      const uid = sessionData?.session?.user?.id;
+      if (!uid || !mounted) return;
 
-    return () => { supabase.removeChannel(channel); };
-  }, [userId, load]);
+      channel = supabase
+        .channel(`my_aanvragen:${uid}`)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'aanvragen',
+          filter: `sender_id=eq.${uid}`,
+        }, () => { load(); })
+        .subscribe();
+    }
+
+    setup();
+    return () => {
+      mounted = false;
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [load]);
 
   return { aanvragen, isLoading, error };
 }
