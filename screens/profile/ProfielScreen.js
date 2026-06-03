@@ -565,13 +565,14 @@ export default function ProfielScreen({
                 <Text style={styles.sectionTitle}>Opgeslagen percelen</Text>
                 {savedPercelen.length > 0 && (
                   <Pressable
-                    style={({ pressed }) => [styles.allesBekijkenBtn, pressed && styles.allesBekijkenBtnPressed]}
+                    style={styles.allesBekijkenBtn}
                     onPress={onOpenSavedScreen}
                     accessibilityRole="button"
-                    accessibilityLabel="Alle opgeslagen percelen bekijken"
-                    accessibilityHint="Opent het overzicht van al je opgeslagen percelen"
+                    accessibilityLabel={`Bekijk alle ${savedPercelen.length} opgeslagen percelen`}
                   >
-                    <Text style={styles.allesBekijkenText}>Alles bekijken</Text>
+                    <Text style={styles.allesBekijkenText}>
+                      Bekijk alles{savedPercelen.length >= 2 ? ` (${savedPercelen.length})` : ''}
+                    </Text>
                   </Pressable>
                 )}
               </View>
@@ -878,9 +879,6 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.sm,
     borderWidth: 1.5,
     borderColor: COLORS.brand,
-  },
-  allesBekijkenBtnPressed: {
-    opacity: 0.75,
   },
   allesBekijkenText: {
     fontFamily: FONTS.bodyMedium,
