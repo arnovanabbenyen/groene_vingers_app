@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { HandshakeIcon, LeafIcon, MapPinIcon } from 'phosphor-react-native';
+import { HandshakeIcon, LeafIcon, MapPinIcon, UserIcon } from 'phosphor-react-native';
+
+const FALLBACK_AVATAR = require('../../images/tuinzoeker_pfp.png');
 import AmenityIcon from '../kaart/AmenityIcon';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 
@@ -16,7 +18,7 @@ function getMetaItems(perceel) {
   return voorzieningen.length > 0 ? voorzieningen : chips;
 }
 
-export default function PerceelSummaryCard({ perceel }) {
+export default function PerceelSummaryCard({ perceel, partnerProfile = null, partnerLabel = null }) {
   const [imageError, setImageError] = useState(false);
 
   const heroSource = useMemo(() => {
@@ -65,8 +67,12 @@ export default function PerceelSummaryCard({ perceel }) {
         ) : null}
 
         {samenwerkingTypes.length > 0 ? (
-          <View style={styles.samenwerkingRow}>
-            <HandshakeIcon size={14} color={COLORS.textMuted} weight="regular" accessibilityElementsHidden />
+          <View style={styles.samenwerkingBlock}>
+            <View style={styles.metaDivider} />
+            <View style={styles.samenwerkingLabelRow} accessibilityElementsHidden>
+              <HandshakeIcon size={13} color={COLORS.textMuted} weight="regular" />
+              <Text style={styles.samenwerkingLabel}>Type samenwerking</Text>
+            </View>
             <View style={styles.pillsWrap}>
               {samenwerkingTypes.map((type, i) => (
                 <View key={`${type}-${i}`} style={styles.pill}>
@@ -93,6 +99,30 @@ export default function PerceelSummaryCard({ perceel }) {
             </View>
           </>
         ) : null}
+
+        {partnerProfile ? (() => {
+          const name = [partnerProfile.first_name, partnerProfile.last_name]
+            .filter(Boolean).join(' ').trim() || null;
+          const avatarSource = partnerProfile.avatar_url
+            ? { uri: partnerProfile.avatar_url }
+            : FALLBACK_AVATAR;
+          return (
+            <>
+              <View style={styles.metaDivider} />
+              <View style={styles.partnerRow}>
+                <Image source={avatarSource} style={styles.partnerAvatar} accessibilityElementsHidden />
+                <View style={styles.partnerText}>
+                  {partnerLabel ? (
+                    <Text style={styles.partnerLabel}>{partnerLabel}</Text>
+                  ) : null}
+                  <Text style={styles.partnerName} numberOfLines={1}>
+                    {name || 'Eigenaar'}
+                  </Text>
+                </View>
+              </View>
+            </>
+          );
+        })() : null}
       </View>
     </View>
   );
@@ -173,11 +203,18 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: COLORS.textSecondary,
   },
-  samenwerkingRow: {
+  samenwerkingBlock: {
+    gap: SPACING.xs,
+  },
+  samenwerkingLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.xs,
-    flexWrap: 'wrap',
+  },
+  samenwerkingLabel: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
   },
   pillsWrap: {
     flexDirection: 'row',
@@ -220,5 +257,33 @@ const styles = StyleSheet.create({
     width: 1,
     height: 24,
     backgroundColor: COLORS.dividerSoft,
+  },
+  partnerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingTop: SPACING.xs,
+    paddingBottom: SPACING.xs,
+  },
+  partnerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.surfaceMuted,
+    flexShrink: 0,
+  },
+  partnerText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  partnerLabel: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+  },
+  partnerName: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
   },
 });

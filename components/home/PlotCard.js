@@ -85,11 +85,12 @@ export default function PlotCard({
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, { width: cardWidth }, pressed && styles.cardPressed]}
+      style={({ pressed }) => [styles.card, { width: cardWidth }, pressed && !!onPress && styles.cardPressed]}
       onPress={onPress}
-      accessibilityRole="button"
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : 'none'}
       accessibilityLabel={cardLabel}
-      accessibilityHint="Tik om perceel details te bekijken"
+      accessibilityHint={onPress ? 'Tik om perceel details te bekijken' : undefined}
     >
       <View style={styles.imageWrap}>
         {canShowImage ? (

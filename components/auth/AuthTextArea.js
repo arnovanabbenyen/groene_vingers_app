@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
 const ERROR_BG = '#FBEAEA';
@@ -26,6 +26,8 @@ const AuthTextArea = React.forwardRef(function AuthTextArea(
   },
   ref,
 ) {
+  const [isFocused, setIsFocused] = useState(false);
+
   const handleChange = useCallback(
     (text) => {
       if (!onChangeText) return;
@@ -52,6 +54,7 @@ const AuthTextArea = React.forwardRef(function AuthTextArea(
       <View
         style={[
           styles.inputShell,
+          isFocused && styles.inputShellFocused,
           error && styles.inputShellError,
           !editable && styles.inputShellDisabled,
           { height },
@@ -62,8 +65,8 @@ const AuthTextArea = React.forwardRef(function AuthTextArea(
           ref={ref}
           value={value}
           onChangeText={handleChange}
-          onFocus={onFocus}
-          onBlur={onBlur}
+          onFocus={() => { setIsFocused(true); onFocus?.(); }}
+          onBlur={(e) => { setIsFocused(false); onBlur?.(e); }}
           placeholder={placeholder}
           multiline
           editable={editable}
@@ -107,6 +110,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
+  },
+  inputShellFocused: {
+    borderColor: COLORS.brand,
   },
   inputShellError: {
     borderColor: COLORS.negative,
