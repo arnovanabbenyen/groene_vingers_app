@@ -1,29 +1,33 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { StarIcon } from 'phosphor-react-native';
-
-const STAR_FILLED_COLOR = '#FFB800';
-const STAR_EMPTY_COLOR = '#D9D9D9';
+import { COLORS } from '../theme/tokens';
 
 export default function StarRatingInput({ value = 0, onChange, size = 38 }) {
   return (
     <View
       style={styles.row}
+      accessible
       accessibilityRole="adjustable"
       accessibilityLabel={`Beoordeling: ${value} van 5 sterren`}
-      accessibilityValue={{ min: 0, max: 5, now: value }}
+      accessibilityValue={{ min: 1, max: 5, now: value || 1 }}
+      accessibilityHint="Swipe omhoog of omlaag om de beoordeling aan te passen"
+      onAccessibilityAction={(event) => {
+        if (event.nativeEvent.actionName === 'increment') onChange?.(Math.min(5, (value || 0) + 1));
+        if (event.nativeEvent.actionName === 'decrement') onChange?.(Math.max(1, (value || 1) - 1));
+      }}
     >
       {[1, 2, 3, 4, 5].map((star) => (
         <Pressable
           key={star}
           onPress={() => onChange?.(star)}
-          hitSlop={6}
-          accessibilityRole="button"
-          accessibilityLabel={`${star} ster${star > 1 ? 'ren' : ''}`}
-          accessibilityState={{ selected: star <= value }}
+          hitSlop={8}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={({ pressed }) => pressed && styles.pressed}
         >
           <StarIcon
             size={size}
-            color={star <= value ? STAR_FILLED_COLOR : STAR_EMPTY_COLOR}
+            color={star <= value ? COLORS.star : COLORS.starEmpty}
             weight={star <= value ? 'fill' : 'regular'}
           />
         </Pressable>
@@ -35,7 +39,9 @@ export default function StarRatingInput({ value = 0, onChange, size = 38 }) {
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    justifyContent: 'center',
     gap: 10,
+  },
+  pressed: {
+    opacity: 0.65,
   },
 });

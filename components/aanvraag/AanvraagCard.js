@@ -76,7 +76,7 @@ function AanvraagCard({ aanvraag, onView, style }) {
         <Text style={styles.userName} numberOfLines={1}>{fullName}</Text>
         <View style={styles.ratingPill}>
           <StarIcon size={14} color={COLORS.accent} weight="fill" accessibilityElementsHidden />
-          <Text style={styles.ratingText}>{sender?.rating ?? 'Nieuw'}</Text>
+          <Text style={styles.ratingText}>{sender?.rating != null ? Number(sender.rating).toFixed(1) : 'Nieuw'}</Text>
         </View>
       </View>
 
@@ -107,10 +107,11 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
+    overflow: 'hidden',
     padding: SPACING.md,
     marginBottom: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.brandOverlay,
+    borderColor: COLORS.dividerSoft,
     ...SHADOWS.card,
   },
   cardPressed: {

@@ -24,6 +24,8 @@ export const COLORS = {
   dividerSoft: '#DED8CA',
   negative: '#D53C3E',
   negativeSoft: 'rgba(213,60,62,0.15)',
+  star: '#FFB800',
+  starEmpty: '#D2D5C6',
 };
 
 export const SPACING = {

@@ -18,6 +18,7 @@ import LogEntryCard from '../../components/logboek/LogEntryCard';
 import KaartScreen from '../kaart/KaartScreen';
 import BerichtenOverzichtScreen from '../berichten/BerichtenOverzichtScreen';
 import ConversationDetailScreen from '../berichten/ConversationDetailScreen';
+import ProfielScreen from '../profile/ProfielScreen';
 import ParcelDetailScreen from '../parcel/ParcelDetailScreen';
 import NieuweLogScreen from './NieuweLogScreen';
 import { getLogboekEntries, getWeeklyProgress } from '../../services/logboek';
@@ -42,9 +43,17 @@ export default function LogboekHomeScreen({
   onOpenMonth,
   onOpenOpvolgingen,
   samenwerkingRefreshKey = 0,
+  getInitialTab,
+  requestedTab,
+  onEndSamenwerking,
 }) {
-  const [activeTab, setActiveTab] = useState('start');
+  const [activeTab, setActiveTab] = useState(() => getInitialTab?.() ?? 'start');
+
+  useEffect(() => {
+    if (requestedTab) setActiveTab(requestedTab);
+  }, [requestedTab]);
   const [selectedConversation, setSelectedConversation] = useState(null);
+  const [conversationProfileId, setConversationProfileId] = useState(null);
   const [selectedPerceel, setSelectedPerceel] = useState(null);
   const [profileImageSource, setProfileImageSource] = useState(null);
   const [profileInitials, setProfileInitials] = useState('?');
@@ -72,7 +81,7 @@ export default function LogboekHomeScreen({
 
         const [entriesResult, progressResult, profileResult] = await Promise.all([
           getLogboekEntries(aanvraagId),
-          userId ? getWeeklyProgress(userId) : Promise.resolve({ data: null }),
+          userId ? getWeeklyProgress(userId, aanvraagId) : Promise.resolve({ data: null }),
           userId
             ? supabase.from('profiles').select('avatar_url, first_name, last_name').eq('id', userId).maybeSingle()
             : Promise.resolve({ data: null }),
@@ -112,17 +121,33 @@ export default function LogboekHomeScreen({
 
   const activeConversation = selectedConversation || appSelectedConversation;
   if (activeConversation) {
+    if (conversationProfileId) {
+      return (
+        <ProfielScreen
+          profileUserId={conversationProfileId}
+          onBack={() => setConversationProfileId(null)}
+          onStopSamenwerking={samenwerking && samenwerking.id === activeConversation.aanvraag_id ? () => onEndSamenwerking?.({
+            ...samenwerking,
+            ownerProfile: samenwerking.ownerProfile ?? null,
+            conversationId: activeConversation.id,
+          }) : undefined}
+        />
+      );
+    }
     return (
       <ConversationDetailScreen
         conversation={activeConversation}
         onBack={() => {
+          setConversationProfileId(null);
           setSelectedConversation(null);
           onCloseConversation?.();
         }}
         onConfirmSamenwerking={() => {
+          setConversationProfileId(null);
           setSelectedConversation(null);
           onCloseConversation?.();
         }}
+        onViewProfile={(userId) => { if (userId) setConversationProfileId(userId); }}
       />
     );
   }
@@ -133,6 +158,7 @@ export default function LogboekHomeScreen({
         perceel={selectedPerceel}
         onBack={() => setSelectedPerceel(null)}
         showFavoriteButton
+        hasActiveSamenwerking
       />
     );
   }
@@ -398,6 +424,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.dividerSoft,
     ...SHADOWS.card,
   },
   progressCard: {
@@ -443,6 +471,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.dividerSoft,
     padding: SPACING.md,
     gap: SPACING.sm,
     alignItems: 'flex-start',

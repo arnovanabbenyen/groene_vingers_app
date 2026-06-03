@@ -27,7 +27,7 @@ function toLocalDateKey(date) {
   return `${y}-${m}-${d}`;
 }
 
-export default function LogboekMonthScreen({ onBack, onOpenLogDetail }) {
+export default function LogboekMonthScreen({ onBack, onOpenLogDetail, aanvraagId }) {
   const today = new Date();
   const [viewDate, setViewDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState(null);
@@ -52,7 +52,7 @@ export default function LogboekMonthScreen({ onBack, onOpenLogDetail }) {
         if (!user || !mounted) { if (mounted) setIsLoading(false); return; }
 
         const { logs: monthLogs, loggedDates: dates } =
-          await getLogboekEntriesForMonth(user.id, year, month);
+          await getLogboekEntriesForMonth(user.id, year, month, aanvraagId);
 
         if (mounted) {
           setLogs(monthLogs);

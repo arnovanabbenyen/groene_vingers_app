@@ -35,7 +35,7 @@ import {
   SIZES,
   SPACING,
 } from '../../components/theme/tokens';
-import { DEFAULT_FILTERS, hasActiveFilters, passesFilters } from '../../services/perceelFilters';
+import { DEFAULT_FILTERS, activeFiltersCount, passesFilters } from '../../services/perceelFilters';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const COLLAPSED_HEIGHT = 72;
@@ -256,7 +256,7 @@ export default function KaartScreen({
         onSubmit={handleSearchSubmit}
         onClear={() => { setSearchQuery(''); setSuggestions([]); }}
         onFilterPress={() => setFilterVisible(true)}
-        hasActiveFilters={hasActiveFilters(activeFilters)}
+        activeFiltersCount={activeFiltersCount(activeFilters)}
         paddingTop={insets.top}
       />
 
@@ -285,10 +285,10 @@ export default function KaartScreen({
                 onPress={() => handlePinPress(perceel)}
                 tracksViewChanges={trackingMarkerId === perceel.id}
                 anchor={{ x: 0.5, y: 0.5 }}
-                accessibilityLabel={`${perceel.naam}${requestStatus ? ', aangevraagd' : ''}`}
+                accessibilityLabel={`${perceel.naam}${requestStatus === 'accepted' ? ', geaccepteerd' : requestStatus ? ', aangevraagd' : ''}`}
                 accessibilityRole="button"
               >
-                <MapMarker selected={isSelected} requested={Boolean(requestStatus)} />
+                <MapMarker selected={isSelected} requestStatus={requestStatus ?? null} />
               </Marker>
             );
           })}

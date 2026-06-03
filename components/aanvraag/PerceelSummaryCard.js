@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { LeafIcon, MapPinIcon } from 'phosphor-react-native';
+import { HandshakeIcon, LeafIcon, MapPinIcon, UserIcon } from 'phosphor-react-native';
+
+const FALLBACK_AVATAR = require('../../images/tuinzoeker_pfp.png');
 import AmenityIcon from '../kaart/AmenityIcon';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SPACING } from '../theme/tokens';
 
@@ -16,7 +18,7 @@ function getMetaItems(perceel) {
   return voorzieningen.length > 0 ? voorzieningen : chips;
 }
 
-export default function PerceelSummaryCard({ perceel }) {
+export default function PerceelSummaryCard({ perceel, partnerProfile = null, partnerLabel = null }) {
   const [imageError, setImageError] = useState(false);
 
   const heroSource = useMemo(() => {
@@ -25,15 +27,16 @@ export default function PerceelSummaryCard({ perceel }) {
   }, [perceel?.fotos, perceel?.image]);
 
   const allItems = useMemo(() => getMetaItems(perceel), [perceel]);
-  const hasOverflow = allItems.length > 3;
-  const visibleItems = allItems.slice(0, hasOverflow ? 2 : 3);
-  const overflowCount = allItems.length - visibleItems.length;
 
   const title = perceel?.title || perceel?.naam || 'Perceel';
   const location = perceel?.location || perceel?.plaats || null;
   const size = normalizeSize(perceel?.size || perceel?.grootte);
   const description = perceel?.description || perceel?.beschrijving || null;
   const showImage = Boolean(heroSource) && !imageError;
+  const samenwerkingTypes = useMemo(() => {
+    const raw = perceel?.voorkeur_samenwerking;
+    return Array.isArray(raw) ? raw.filter(Boolean) : [];
+  }, [perceel?.voorkeur_samenwerking]);
 
   return (
     <View style={styles.card} accessibilityLabel={`Perceel: ${title}`}>
@@ -63,30 +66,63 @@ export default function PerceelSummaryCard({ perceel }) {
           <Text style={styles.description} numberOfLines={3}>{description}</Text>
         ) : null}
 
+        {samenwerkingTypes.length > 0 ? (
+          <View style={styles.samenwerkingBlock}>
+            <View style={styles.metaDivider} />
+            <View style={styles.samenwerkingLabelRow} accessibilityElementsHidden>
+              <HandshakeIcon size={13} color={COLORS.textMuted} weight="regular" />
+              <Text style={styles.samenwerkingLabel}>Type samenwerking</Text>
+            </View>
+            <View style={styles.pillsWrap}>
+              {samenwerkingTypes.map((type, i) => (
+                <View key={`${type}-${i}`} style={styles.pill}>
+                  <Text style={styles.pillText}>{type}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
         {allItems.length > 0 ? (
           <>
             <View style={styles.metaDivider} accessibilityElementsHidden />
             <View style={styles.metaRow} accessibilityElementsHidden>
-              {visibleItems.map((item, i) => (
+              {allItems.map((item, i) => (
                 <React.Fragment key={`${item}-${i}`}>
                   {i > 0 ? <View style={styles.divider} /> : null}
                   <View style={styles.metaItemWrap}>
-                    <AmenityIcon label={item} size={15} />
+                    <AmenityIcon label={item} size={18} color={COLORS.brand} />
                     <Text style={styles.metaText} numberOfLines={1}>{item}</Text>
                   </View>
                 </React.Fragment>
               ))}
-              {overflowCount > 0 ? (
-                <>
-                  <View style={styles.divider} />
-                  <View style={styles.metaItemWrap}>
-                    <Text style={styles.metaOverflow}>+{overflowCount}</Text>
-                  </View>
-                </>
-              ) : null}
             </View>
           </>
         ) : null}
+
+        {partnerProfile ? (() => {
+          const name = [partnerProfile.first_name, partnerProfile.last_name]
+            .filter(Boolean).join(' ').trim() || null;
+          const avatarSource = partnerProfile.avatar_url
+            ? { uri: partnerProfile.avatar_url }
+            : FALLBACK_AVATAR;
+          return (
+            <>
+              <View style={styles.metaDivider} />
+              <View style={styles.partnerRow}>
+                <Image source={avatarSource} style={styles.partnerAvatar} accessibilityElementsHidden />
+                <View style={styles.partnerText}>
+                  {partnerLabel ? (
+                    <Text style={styles.partnerLabel}>{partnerLabel}</Text>
+                  ) : null}
+                  <Text style={styles.partnerName} numberOfLines={1}>
+                    {name || 'Eigenaar'}
+                  </Text>
+                </View>
+              </View>
+            </>
+          );
+        })() : null}
       </View>
     </View>
   );
@@ -167,6 +203,35 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: COLORS.textSecondary,
   },
+  samenwerkingBlock: {
+    gap: SPACING.xs,
+  },
+  samenwerkingLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  samenwerkingLabel: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+  },
+  pillsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+  },
+  pill: {
+    backgroundColor: COLORS.surfaceMuted,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+  },
+  pillText: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+  },
   metaDivider: {
     height: 1,
     backgroundColor: COLORS.dividerSoft,
@@ -175,29 +240,50 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingBottom: SPACING.xs,
+    justifyContent: 'space-around',
+    paddingVertical: SPACING.xs,
   },
   metaItemWrap: {
-    flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
+    gap: SPACING.xs,
   },
   metaText: {
     fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-    flexShrink: 1,
-  },
-  metaOverflow: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+    textAlign: 'center',
   },
   divider: {
     width: 1,
-    height: 14,
-    backgroundColor: COLORS.border,
+    height: 24,
+    backgroundColor: COLORS.dividerSoft,
+  },
+  partnerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingTop: SPACING.xs,
+    paddingBottom: SPACING.xs,
+  },
+  partnerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.surfaceMuted,
+    flexShrink: 0,
+  },
+  partnerText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  partnerLabel: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+  },
+  partnerName: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
   },
 });

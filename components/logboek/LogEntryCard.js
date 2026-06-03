@@ -49,6 +49,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.dividerSoft,
     flexDirection: 'row',
     overflow: 'hidden',
     marginBottom: SPACING.sm,

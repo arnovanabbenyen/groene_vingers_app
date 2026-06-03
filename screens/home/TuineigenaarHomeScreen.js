@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { HandshakeIcon, EnvelopeOpenIcon, CalendarIcon, LeafIcon, PlusCircleIcon } from 'phosphor-react-native';
+import { HandshakeIcon, EnvelopeOpenIcon, LeafIcon, PlusCircleIcon } from 'phosphor-react-native';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 import BottomNav from '../../components/navigation/BottomNav';
 import PercelenCarousel from '../../components/perceel/PercelenCarousel';
@@ -49,8 +49,13 @@ export default function TuineigenaarHomeScreen({
   onOpenProfiel,
   onEndSamenwerking,
   getInitialTab,
+  requestedTab,
 }) {
   const [activeTab, setActiveTab] = useState(() => getInitialTab?.() ?? 'start');
+
+  useEffect(() => {
+    if (requestedTab) setActiveTab(requestedTab);
+  }, [requestedTab]);
   const [profileImageSource, setProfileImageSource] = useState(null);
   const [profile, setProfile] = useState(null);
   const [plaats, setPlaats] = useState('');
@@ -225,6 +230,9 @@ export default function TuineigenaarHomeScreen({
 
   function handleSamenwerkingOpenConversation(samenwerking) {
     if (!samenwerking.conversation?.id) return;
+    setPerceelMode(null);
+    setSelectedSamenwerking(null);
+    setSelectedPerceel(null);
     onOpenConversation?.({
       id: samenwerking.conversation.id,
       aanvraag_id: samenwerking.id,
@@ -380,10 +388,17 @@ export default function TuineigenaarHomeScreen({
 
   if (currentScreen === 'conversation-detail' && selectedConversation) {
     if (senderProfileId) {
+      const matchingSamenwerking = samenwerkingen.find(
+        (s) => s.id === selectedConversation.aanvraag_id,
+      );
       return (
         <ProfielScreen
           profileUserId={senderProfileId}
           onBack={() => setSenderProfileId(null)}
+          onStopSamenwerking={matchingSamenwerking ? () => onEndSamenwerking?.({
+            ...matchingSamenwerking,
+            conversationId: matchingSamenwerking.conversation?.id ?? selectedConversation.id,
+          }) : undefined}
         />
       );
     }
@@ -485,11 +500,16 @@ export default function TuineigenaarHomeScreen({
                   if (!perceel) return null;
                   const plot = mapPerceelToPlot(perceel);
                   return (
-                    <PlotCard
-                      key={samenwerking.id}
-                      plot={plot}
-                      onPress={() => handleSamenwerkingPress(samenwerking)}
-                    />
+                    <View key={samenwerking.id} style={styles.samenwerkingCardWrap}>
+                      <PlotCard
+                        plot={plot}
+                        onPress={() => handleSamenwerkingPress(samenwerking)}
+                        showFavoriteButton={false}
+                      />
+                      <View style={styles.samenwerkingChip}>
+                        <Text style={styles.samenwerkingChipText}>Samenwerking actief</Text>
+                      </View>
+                    </View>
                   );
                 })}
               </ScrollView>
@@ -520,14 +540,6 @@ export default function TuineigenaarHomeScreen({
           )}
         </DashboardSection>
 
-        <DashboardSection title="Jouw planning">
-          <DashboardEmptyState
-            icon={CalendarIcon}
-            title="Nog geen planning"
-            body="Hier zie je wanneer je tuinzoekers langskomen. Eerst een samenwerking accepteren."
-          />
-        </DashboardSection>
-
         <DashboardSection
           title="Nieuwe aanvragen"
           action={aanvragen.length > 0 ? (
@@ -538,7 +550,7 @@ export default function TuineigenaarHomeScreen({
               accessibilityLabel={`Bekijk alle ${aanvragen.length} aanvragen`}
             >
               <Text style={styles.bekijkAllesText}>
-                Bekijk alles ({aanvragen.length})
+                Bekijk alles{aanvragen.length >= 2 ? ` (${aanvragen.length})` : ''}
               </Text>
             </Pressable>
           ) : null}
@@ -623,6 +635,25 @@ const styles = StyleSheet.create({
   },
   samenwerkingSection: {
     gap: SPACING.sm,
+  },
+  samenwerkingCardWrap: {
+    position: 'relative',
+  },
+  samenwerkingChip: {
+    position: 'absolute',
+    top: PLOT_CARD.cardPadding + PLOT_CARD.badgeInset,
+    left: PLOT_CARD.cardPadding + PLOT_CARD.badgeInset,
+    backgroundColor: COLORS.brand,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    zIndex: 10,
+  },
+  samenwerkingChipText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.surface,
+    lineHeight: 14,
   },
   samenwerkingScroll: {
     marginHorizontal: -SPACING.screenX,

@@ -51,7 +51,13 @@ import { showConfirm } from './components/common/ConfirmDialog';
 
 export default function App() {
   const [notificationsRefreshKey, setNotificationsRefreshKey] = useState(0);
-  const { unreadCount: unreadNotificationsCount } = useNotifications(notificationsRefreshKey);
+  const {
+    unreadCount: unreadNotificationsCountRaw,
+    notifications,
+    isLoading: isLoadingNotifications,
+    markAsRead: markNotificationAsRead,
+    markAllAsRead: markAllNotificationsAsRead,
+  } = useNotifications(notificationsRefreshKey);
   const { isFavorite, toggleFavorite } = useFavorites();
   const { plan: userPlan } = useUserProfile();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -60,6 +66,7 @@ export default function App() {
   const [verzoekenCount, setVerzoekenCount] = useState(0);
   const [aanvragenRefreshKey, setAanvragenRefreshKey] = useState(0);
   const [currentScreen, setCurrentScreen] = useState('home');
+  const unreadNotificationsCount = currentScreen === 'meldingen' ? 0 : unreadNotificationsCountRaw;
   const [selectedAanvraag, setSelectedAanvraag] = useState(null);
   const [selectedAanvraagSource, setSelectedAanvraagSource] = useState('home');
   const [profileDraft, setProfileDraft] = useState(null);
@@ -73,6 +80,7 @@ export default function App() {
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [conversationsRefreshKey, setConversationsRefreshKey] = useState(0);
   const [selectedConversation, setSelectedConversation] = useState(null);
+  const [homeTabRequest, setHomeTabRequest] = useState(null);
   const [profielRefreshKey, setProfielRefreshKey] = useState(0);
   const [profielBewerkenSource, setProfielBewerkenSource] = useState('profiel');
   const [selectedSavedPerceel, setSelectedSavedPerceel] = useState(null);
@@ -99,6 +107,7 @@ export default function App() {
     setCurrentScreen('home');
     setSelectedAanvraag(null);
     setSelectedAanvraagSource('home');
+    setHomeTabRequest(null);
   }
 
   async function uploadPhoto(bucket, userId, filename, localUri) {
@@ -186,6 +195,13 @@ export default function App() {
   }
 
   useEffect(() => {
+    if (isLoggedIn) {
+      setNotificationsRefreshKey((k) => k + 1);
+      setAanvragenRefreshKey((k) => k + 1);
+    }
+  }, [isLoggedIn]);
+
+  useEffect(() => {
     if (!isLoggedIn || selectedRole !== 'tuineigenaar') {
       setVerzoekenCount(0);
       return;
@@ -216,8 +232,9 @@ export default function App() {
 
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
-          .select('id')
-          .or(`owner_id.eq.${userId},sender_id.eq.${userId}`);
+          .select('id, aanvragen!inner(status)')
+          .or(`owner_id.eq.${userId},sender_id.eq.${userId}`)
+          .not('aanvragen.status', 'in', '("ended","cancelled","declined")');
 
         if (conversationsError) throw conversationsError;
 
@@ -249,6 +266,38 @@ export default function App() {
     };
   }, [isLoggedIn, selectedRole, conversationsRefreshKey]);
 
+  useEffect(() => {
+    if (!isLoggedIn || !supabase) return;
+
+    let channel = null;
+
+    supabase.auth.getUser().then(({ data }) => {
+      const userId = data?.user?.id;
+      if (!userId) return;
+
+      channel = supabase
+        .channel(`messages-unread-watch-${Math.random()}`)
+        .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'messages' },
+          (payload) => {
+            if (payload.new?.sender_id !== userId && !payload.new?.read_at) {
+              setConversationsRefreshKey((k) => k + 1);
+            }
+          }
+        )
+        .on('postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'messages' },
+          (payload) => {
+            if (payload.new?.read_at && payload.new?.sender_id !== userId) {
+              setConversationsRefreshKey((k) => k + 1);
+            }
+          }
+        )
+        .subscribe();
+    });
+
+    return () => { if (channel) supabase.removeChannel(channel); };
+  }, [isLoggedIn]);
 
   function handleViewAanvraag(aanvraag, sourceScreen = 'home') {
     setSelectedAanvraag(aanvraag);
@@ -312,14 +361,110 @@ export default function App() {
   }
 
   function handleOpenConversation(conversation) {
+    setHomeTabRequest(null);
     setSelectedConversation(conversation);
     setCurrentScreen('conversation-detail');
   }
 
   function handleCloseConversation() {
     setSelectedConversation(null);
-    setCurrentScreen('berichten');
+    setCurrentScreen('home');
+    setHomeTabRequest('berichten');
     setConversationsRefreshKey((current) => current + 1);
+  }
+
+  async function handleNotificationNavigateToAanvraag(aanvraagId) {
+    if (!supabase || !aanvraagId) return;
+    const { data } = await supabase
+      .from('aanvragen')
+      .select('id, sender_id, motivation, availability, start_date, status, type_samenwerking, created_at, perceel:percelen!inner(id, naam, grootte, plaats, voorzieningen, fotos, owner_id)')
+      .eq('id', aanvraagId)
+      .maybeSingle();
+    if (!data) return;
+    if (['accepted', 'declined', 'cancelled'].includes(data.status)) {
+      showToast('Deze aanvraag is niet meer beschikbaar.', 'info');
+      return;
+    }
+    const { data: sender } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, avatar_url')
+      .eq('id', data.sender_id)
+      .maybeSingle();
+    setSelectedAanvraag({ ...data, sender: sender || null });
+    setSelectedAanvraagSource('meldingen');
+    setCurrentScreen('aanvraag-detail');
+  }
+
+  async function enrichAndOpenConversation(conv) {
+    if (!conv) return;
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+    const otherUserId = conv.owner_id === userId ? conv.sender_id : conv.owner_id;
+    let otherUser = null;
+    if (otherUserId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, avatar_url')
+        .eq('id', otherUserId)
+        .maybeSingle();
+      otherUser = profile || null;
+    }
+    setHomeTabRequest(null);
+    setSelectedConversation({ ...conv, otherUser });
+    setCurrentScreen('conversation-detail');
+  }
+
+  async function handleNotificationNavigateToAanvraagConversation(aanvraagId) {
+    if (!supabase || !aanvraagId) return;
+    const { data: aanvraag } = await supabase
+      .from('aanvragen')
+      .select('status')
+      .eq('id', aanvraagId)
+      .maybeSingle();
+    if (['cancelled', 'declined', 'ended'].includes(aanvraag?.status)) {
+      showToast('Dit gesprek is niet meer beschikbaar.', 'info');
+      return;
+    }
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('id, aanvraag_id, owner_id, sender_id, created_at, last_message_at')
+      .eq('aanvraag_id', aanvraagId)
+      .maybeSingle();
+    await enrichAndOpenConversation(conv);
+  }
+
+  async function handleNotificationNavigateToConversation(conversationId) {
+    if (!supabase || !conversationId) return;
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('id, aanvraag_id, owner_id, sender_id, created_at, last_message_at')
+      .eq('id', conversationId)
+      .maybeSingle();
+    if (!conv) return;
+    if (conv.aanvraag_id) {
+      const { data: aanvraag } = await supabase
+        .from('aanvragen')
+        .select('status')
+        .eq('id', conv.aanvraag_id)
+        .maybeSingle();
+      if (['cancelled', 'declined', 'ended'].includes(aanvraag?.status)) {
+        showToast('Dit gesprek is niet meer beschikbaar.', 'info');
+        return;
+      }
+    }
+    await enrichAndOpenConversation(conv);
+  }
+
+  async function handleNotificationNavigateToAanvraagPerceel(aanvraagId) {
+    if (!supabase || !aanvraagId) return;
+    const { data } = await supabase
+      .from('aanvragen')
+      .select('percelen(id, owner_id, naam, beschrijving, grootte, adres, plaats, fotos, voorzieningen, voorkeur_samenwerking, approximate_lat, approximate_lng, lat, lng, extra_info, status, created_at)')
+      .eq('id', aanvraagId)
+      .maybeSingle();
+    if (!data?.percelen) return;
+    setSelectedProfielPerceel(data.percelen);
+    setCurrentScreen('profiel-perceel-detail');
   }
 
 
@@ -508,6 +653,7 @@ export default function App() {
         setCurrentScreen('home');
         setSelectedAanvraag(null);
         setSelectedAanvraagSource('home');
+        setHomeTabRequest(null);
       }
     });
 
@@ -593,6 +739,7 @@ export default function App() {
                 },
               });
             }}
+            hasActiveSamenwerking={!!activeSamenwerking}
           />
         ) : currentScreen === 'opgeslagen' ? (
           <OpgeslagenScreen
@@ -669,32 +816,33 @@ export default function App() {
             onTabPress={(item) => {
               if (item.key === 'profiel') return;
               homeInitialTabRef.current = item.key;
+              setHomeTabRequest(null);
               setCurrentScreen('home');
             }}
             profileImageSource={null}
-            badgeCounts={{ berichten: unreadMessagesCount }}
+            badgeCounts={{ verzoeken: verzoekenCount, berichten: unreadMessagesCount }}
             unreadNotificationsCount={unreadNotificationsCount}
             onOpenSamenwerking={(s) => { setDetailSamenwerking(s); setCurrentScreen('samenwerking-detail'); }}
+            onSamenwerkingPerceelPress={(s) => {
+              setSelectedSamenwerking(s);
+              setCurrentScreen('profiel-samenwerking-perceel-detail');
+            }}
           />
         ) : currentScreen === 'meldingen' ? (
           <MeldingenScreen
             role={selectedRole}
+            notifications={notifications}
+            isLoading={isLoadingNotifications}
+            markAsRead={markNotificationAsRead}
+            markAllAsRead={markAllNotificationsAsRead}
             onBack={() => {
+              setHomeTabRequest(null);
               setCurrentScreen('home');
-              setNotificationsRefreshKey((k) => k + 1);
             }}
-            onNavigateToHome={() => {
-              setCurrentScreen('home');
-              setNotificationsRefreshKey((k) => k + 1);
-            }}
-            onNavigateToAanvraag={() => {
-              setCurrentScreen('home');
-              setNotificationsRefreshKey((k) => k + 1);
-            }}
-            onNavigateToConversation={() => {
-              setCurrentScreen('home');
-              setNotificationsRefreshKey((k) => k + 1);
-            }}
+            onNavigateToAanvraag={handleNotificationNavigateToAanvraag}
+            onNavigateToAanvraagConversation={handleNotificationNavigateToAanvraagConversation}
+            onNavigateToAanvraagPerceel={handleNotificationNavigateToAanvraagPerceel}
+            onNavigateToConversation={handleNotificationNavigateToConversation}
             onNavigateToBeeindigd={(aanvraagId) => {
               setBeeindigdAanvraagId(aanvraagId);
               setCurrentScreen('samenwerking-beeindigd');
@@ -702,21 +850,24 @@ export default function App() {
           />
         ) : currentScreen === 'log-month' ? (
           <LogboekMonthScreen
-            onBack={() => setCurrentScreen('home')}
+            onBack={() => { setHomeTabRequest(null); setCurrentScreen('home'); }}
             onOpenLogDetail={(logId) => {
               setSelectedLogId(logId);
               setCurrentScreen('log-detail');
             }}
+            aanvraagId={activeSamenwerking?.id}
           />
         ) : currentScreen === 'log-detail' && selectedLogId ? (
           <LogDetailScreen
             logId={selectedLogId}
             onBack={() => {
               setSelectedLogId(null);
+              setHomeTabRequest(null);
               setCurrentScreen('home');
             }}
             onDeleted={() => {
               setSelectedLogId(null);
+              setHomeTabRequest(null);
               setSamenwerkingRefreshKey((k) => k + 1);
               setCurrentScreen('home');
             }}
@@ -728,7 +879,7 @@ export default function App() {
           <OpvolgingenScreen
             aanvraagId={activeSamenwerking?.id}
             refreshKey={opvolgingRefreshKey}
-            onBack={() => setCurrentScreen('home')}
+            onBack={() => { setHomeTabRequest(null); setCurrentScreen('home'); }}
             onNieuweOpvolging={() => setCurrentScreen('nieuwe-opvolging')}
           />
         ) : currentScreen === 'nieuwe-opvolging' ? (
@@ -742,8 +893,9 @@ export default function App() {
           />
         ) : currentScreen === 'weekly-goal' ? (
           <WeeklyGoalScreen
-            onBack={() => setCurrentScreen(weeklyGoalSource)}
+            onBack={() => { setHomeTabRequest(null); setCurrentScreen(weeklyGoalSource); }}
             onSaved={() => {
+              setHomeTabRequest(null);
               setSamenwerkingRefreshKey((k) => k + 1);
               setCurrentScreen(weeklyGoalSource);
             }}
@@ -869,6 +1021,35 @@ export default function App() {
               });
             }}
           />
+        ) : currentScreen === 'profiel-samenwerking-perceel-detail' && selectedSamenwerking ? (
+          <ParcelDetailScreen
+            perceel={selectedSamenwerking.percelen || {}}
+            onBack={() => {
+              setSelectedSamenwerking(null);
+              setCurrentScreen('profiel');
+            }}
+            samenwerking={selectedSamenwerking}
+            onOpenConversation={(s) => {
+              const conv = s?.conversation;
+              if (conv?.id) {
+                handleOpenConversation({
+                  id: conv.id,
+                  aanvraag_id: s.id,
+                  owner_id: s.percelen?.owner_id,
+                  sender_id: s.sender_id,
+                  otherUser: s.ownerProfile || null,
+                });
+              }
+            }}
+            onEndSamenwerking={(s) => {
+              setSelectedSamenwerking({
+                ...s,
+                conversationId: s.conversation?.id,
+              });
+              setEndingMode('initiator');
+              setCurrentScreen('eind-samenwerking');
+            }}
+          />
         ) : selectedRole === 'tuineigenaar' ? (
           <TuineigenaarHomeScreen
             getInitialTab={() => { const t = homeInitialTabRef.current; homeInitialTabRef.current = 'start'; return t; }}
@@ -887,6 +1068,7 @@ export default function App() {
             unreadNotificationsCount={unreadNotificationsCount}
             onOpenNotifications={() => setCurrentScreen('meldingen')}
             onOpenProfiel={() => setCurrentScreen('profiel')}
+            requestedTab={homeTabRequest}
             onEndSamenwerking={(samenwerking) => {
               setSelectedSamenwerking(samenwerking);
               setEndingMode('initiator');
@@ -897,6 +1079,7 @@ export default function App() {
           <LogboekHomeScreen
             samenwerking={activeSamenwerking}
             samenwerkingRefreshKey={samenwerkingRefreshKey}
+            getInitialTab={() => { const t = homeInitialTabRef.current; homeInitialTabRef.current = 'start'; return t; }}
             badgeCounts={{ berichten: unreadMessagesCount }}
             onOpenConversation={handleOpenConversation}
             selectedConversation={selectedConversation}
@@ -910,10 +1093,17 @@ export default function App() {
             onOpenLogDetail={(logId) => { setSelectedLogId(logId); setCurrentScreen('log-detail'); }}
             onOpenMonth={() => setCurrentScreen('log-month')}
             onOpenOpvolgingen={() => setCurrentScreen('opvolgingen')}
+            requestedTab={homeTabRequest}
+            onEndSamenwerking={(enriched) => {
+              setSelectedSamenwerking(enriched);
+              setEndingMode('initiator');
+              setCurrentScreen('eind-samenwerking');
+            }}
           />
         ) : (
           <HomeScreen
             getInitialTab={() => { const t = homeInitialTabRef.current; homeInitialTabRef.current = 'start'; return t; }}
+            requestedTab={homeTabRequest}
             onLogout={handleLogout}
             badgeCounts={{ berichten: unreadMessagesCount }}
             onOpenConversation={handleOpenConversation}
@@ -921,7 +1111,7 @@ export default function App() {
             onCloseConversation={handleCloseConversation}
             onConfirmSamenwerking={() => setSamenwerkingRefreshKey((k) => k + 1)}
             unreadNotificationsCount={unreadNotificationsCount}
-            onOpenNotifications={() => setCurrentScreen('meldingen')}
+            onOpenNotifications={() => { setHomeTabRequest(null); setCurrentScreen('meldingen'); }}
             onOpenProfiel={() => setCurrentScreen('profiel')}
             onOpenSaved={() => { setOpgeslagenSource('home'); setCurrentScreen('opgeslagen'); }}
           />

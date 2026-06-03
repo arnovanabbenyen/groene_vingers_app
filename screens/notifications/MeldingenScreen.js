@@ -4,16 +4,8 @@ import { BellSlashIcon, SealCheckIcon } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Header from '../../components/navigation/Header';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
-import { useNotifications } from '../../hooks/useNotifications';
 import EmptyState from '../../components/common/EmptyState';
 
-const AANVRAAG_TYPES = [
-  'aanvraag_received',
-  'aanvraag_accepted',
-  'aanvraag_declined',
-  'aanvraag_confirmed',
-  'aanvraag_cancelled',
-];
 
 function formatRelative(timestamp) {
   if (!timestamp) return '';
@@ -126,28 +118,44 @@ function NotificationRow({ notification, onPress, showDivider }) {
 export default function MeldingenScreen({
   onBack,
   onNavigateToAanvraag,
+  onNavigateToAanvraagConversation,
+  onNavigateToAanvraagPerceel,
   onNavigateToConversation,
   onNavigateToBeeindigd,
+  notifications = [],
+  isLoading = false,
+  markAsRead,
+  markAllAsRead,
 }) {
   const insets = useSafeAreaInsets();
-  const { notifications, isLoading, markAsRead, markAllAsRead } = useNotifications();
 
-  useEffect(() => {
-    markAllAsRead();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   async function handlePress(notification) {
     if (!notification.read_at) {
       await markAsRead(notification.id);
     }
 
-    if (AANVRAAG_TYPES.includes(notification.type) && notification.related_id) {
-      onNavigateToAanvraag?.(notification.related_id);
-    } else if (notification.type === 'message_received' && notification.related_id) {
-      onNavigateToConversation?.(notification.related_id);
-    } else if (notification.type === 'samenwerking_ended' && notification.related_id) {
-      onNavigateToBeeindigd?.(notification.related_id);
+    const id = notification.related_id;
+    if (!id) return;
+
+    switch (notification.type) {
+      case 'aanvraag_received':
+        onNavigateToAanvraag?.(id);
+        break;
+      case 'aanvraag_accepted':
+      case 'samenwerking_proposed':
+        onNavigateToAanvraagConversation?.(id);
+        break;
+      case 'aanvraag_confirmed':
+        onNavigateToAanvraagPerceel?.(id);
+        break;
+      case 'message_received':
+        onNavigateToConversation?.(id);
+        break;
+      case 'samenwerking_ended':
+        onNavigateToBeeindigd?.(id);
+        break;
+      // aanvraag_declined, aanvraag_cancelled: geen navigatie
     }
   }
 

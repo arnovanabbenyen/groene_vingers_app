@@ -1,4 +1,4 @@
-import { useMemo, useReducer, useState } from 'react';
+import { useEffect, useMemo, useReducer, useState } from 'react';
 import { useFavorites } from '../../hooks/useFavorites';
 import { usePercelen } from '../../hooks/usePercelen';
 import { useMyAanvragen } from '../../hooks/useMyAanvragen';
@@ -31,8 +31,8 @@ import { PLOT_CARD } from '../../components/home/PlotCard';
 
 const AANVRAAG_STATUS_CHIP = {
   pending: { label: 'In behandeling', bg: 'rgba(255,217,94,0.92)', color: COLORS.textPrimary },
-  accepted: { label: 'Geaccepteerd', bg: 'rgba(87,98,56,0.92)', color: COLORS.textInverse },
-  confirmed: { label: 'Samenwerking bevestigd', bg: 'rgba(87,98,56,0.92)', color: COLORS.textInverse },
+  accepted: { label: 'In gesprek', bg: COLORS.surfaceBrand, color: COLORS.brand },
+  confirmed: { label: 'Samenwerking actief', bg: COLORS.brand, color: COLORS.textInverse },
 };
 
 const initialNavState = { type: 'home', payload: null };
@@ -66,9 +66,13 @@ function navReducer(state, action) {
   }
 }
 
-export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConversation, selectedConversation: appSelectedConversation = null, onCloseConversation, onConfirmSamenwerking, unreadNotificationsCount = 0, onOpenNotifications, onOpenProfiel, onOpenSaved, onEndSamenwerking }) {
+export default function HomeScreen({ getInitialTab, requestedTab, badgeCounts = {}, onOpenConversation, selectedConversation: appSelectedConversation = null, onCloseConversation, onConfirmSamenwerking, unreadNotificationsCount = 0, onOpenNotifications, onOpenProfiel, onOpenSaved, onEndSamenwerking }) {
   const [activeTab, setActiveTab] = useState(() => getInitialTab?.() ?? 'start');
   const [selectedConversation, setSelectedConversation] = useState(null);
+
+  useEffect(() => {
+    if (requestedTab) setActiveTab(requestedTab);
+  }, [requestedTab]);
   const [conversationProfileId, setConversationProfileId] = useState(null);
   const [activeDot, setActiveDot] = useState(0);
   const [activeDotAanvragen, setActiveDotAanvragen] = useState(0);
@@ -196,6 +200,7 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
         onRequest={() => handleRequestWithGate(navState.payload)}
         isFavorited={isFavorite(navState.payload?.id)}
         onToggleFavorite={() => toggleFavorite(navState.payload?.id)}
+        hasActiveSamenwerking={confirmedSamenwerkingen.length > 0}
         showFavoriteButton
         onCancelAanvraag={handleCancelAanvraag}
       />
@@ -223,6 +228,9 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
   const activeConversation = selectedConversation || appSelectedConversation;
   if (activeConversation) {
     if (conversationProfileId) {
+      const matchingSamenwerking = confirmedSamenwerkingen.find(
+        (s) => s.id === activeConversation.aanvraag_id,
+      );
       return (
         <ProfielScreen
           profileUserId={conversationProfileId}
@@ -231,6 +239,11 @@ export default function HomeScreen({ getInitialTab, badgeCounts = {}, onOpenConv
             setConversationProfileId(null);
             navDispatch({ type: 'OPEN_PLOT', plot: mapPerceelToPlot(perceel) });
           }}
+          onStopSamenwerking={matchingSamenwerking ? () => onEndSamenwerking?.({
+            ...matchingSamenwerking,
+            ownerProfile: matchingSamenwerking.owner ?? null,
+            conversationId: activeConversation.id,
+          }) : undefined}
         />
       );
     }

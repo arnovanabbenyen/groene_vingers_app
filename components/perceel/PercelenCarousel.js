@@ -14,7 +14,7 @@ function PerceelAmenityIcon({ label }) {
   return <HouseIcon size={14} color={COLORS.textPrimary} weight="regular" />;
 }
 
-function PerceelCarouselCard({ perceel, onPress }) {
+function PerceelCarouselCard({ perceel, onPress, ownerRating = null }) {
   const [imageError, setImageError] = useState(false);
   const firstPhoto = Array.isArray(perceel?.fotos) ? perceel.fotos[0] : null;
   const location = perceel?.plaats || 'Locatie nog niet beschikbaar';
@@ -53,10 +53,12 @@ function PerceelCarouselCard({ perceel, onPress }) {
             <MapPinIcon size={14} color={COLORS.textPrimary} weight="regular" />
             <Text style={styles.perceelLocationText}>{location}</Text>
           </View>
-          <View style={styles.perceelRatingPill}>
-            <StarIcon size={14} color={COLORS.accent} weight="fill" />
-            <Text style={styles.perceelRatingText}>4,5</Text>
-          </View>
+          {ownerRating != null ? (
+            <View style={styles.perceelRatingPill} accessible accessibilityLabel={`Beoordeling: ${ownerRating.toFixed(1)} van 5`}>
+              <StarIcon size={14} color={COLORS.star} weight="fill" accessibilityElementsHidden />
+              <Text style={styles.perceelRatingText}>{ownerRating.toFixed(1)}</Text>
+            </View>
+          ) : null}
         </View>
       </View>
 

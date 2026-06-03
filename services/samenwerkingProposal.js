@@ -51,7 +51,7 @@ export async function getEndedSamenwerking(aanvraagId) {
       id, status, sender_id, perceel_id,
       samenwerking_ended_at, samenwerking_ended_by, samenwerking_ended_reason,
       confirmed_at, type_samenwerking,
-      percelen(id, naam, plaats, fotos, owner_id)
+      percelen(id, naam, plaats, fotos, owner_id, voorzieningen, voorkeur_samenwerking, grootte, beschrijving)
     `)
     .eq('id', aanvraagId)
     .maybeSingle();

@@ -307,7 +307,9 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
           </SectionCard>
         )}
 
-        {/* Acties */}
+      </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.md) }]}>
         {isEditing ? (
           <AuthButton
             label="Wijzigingen opslaan"
@@ -327,7 +329,7 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
             />
             <AuthButton
               label="Verwijderen"
-              variant="tertiary"
+              variant="secondaryDanger"
               icon={TrashIcon}
               onPress={handleDelete}
               loading={isDeleting}
@@ -336,7 +338,7 @@ export default function LogDetailScreen({ logId, onBack, onDeleted, onUpdated })
             />
           </View>
         )}
-      </ScrollView>
+      </View>
 
       {/* Volledig scherm fotogalerij */}
       {previewIndex !== null && (
@@ -410,8 +412,13 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.lg,
-    paddingBottom: SPACING.xl,
+    paddingBottom: SPACING.md,
     gap: SPACING.md,
+  },
+  footer: {
+    paddingHorizontal: SPACING.screenX,
+    paddingTop: SPACING.md,
+    backgroundColor: COLORS.background,
   },
   displayText: {
     fontFamily: FONTS.body,

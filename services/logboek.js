@@ -13,7 +13,24 @@ export async function getActiveSamenwerking(userId) {
     .limit(1)
     .maybeSingle();
 
-  return { data: data || null, error: error || null };
+  if (error || !data) return { data: data || null, error: error || null };
+
+  const ownerId = data.percelen?.owner_id;
+  const [ownerResult, convResult] = await Promise.all([
+    ownerId
+      ? supabase.from('profiles').select('id, first_name, last_name, avatar_url').eq('id', ownerId).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase.from('conversations').select('id, aanvraag_id').eq('aanvraag_id', data.id).maybeSingle(),
+  ]);
+
+  return {
+    data: {
+      ...data,
+      ownerProfile: ownerResult.data || null,
+      conversation: convResult.data || null,
+    },
+    error: null,
+  };
 }
 
 export async function getLogboekEntries(aanvraagId, limit = 20) {
@@ -29,11 +46,12 @@ export async function getLogboekEntries(aanvraagId, limit = 20) {
   return { data: data || [], error: error || null };
 }
 
-export async function getWeeklyProgress(userId) {
+export async function getWeeklyProgress(userId, aanvraagId) {
   if (!supabase || !userId) return { data: null, error: null };
 
   const { data, error } = await supabase.rpc('get_weekly_log_progress', {
     p_user_id: userId,
+    p_aanvraag_id: aanvraagId ?? null,
   });
 
   const row = Array.isArray(data) ? data[0] : data;
@@ -81,7 +99,7 @@ export async function deleteLogboekEntry(entryId) {
   return { success: true };
 }
 
-export async function getLogboekEntriesForMonth(userId, year, month) {
+export async function getLogboekEntriesForMonth(userId, year, month, aanvraagId) {
   if (!supabase || !userId) return { logs: [], loggedDates: [] };
 
   // Build YYYY-MM-DD date strings for range (safer for date-typed column)
@@ -93,13 +111,17 @@ export async function getLogboekEntriesForMonth(userId, year, month) {
   const monthStart = `${year}-${mm}-01`;
   const monthEnd = `${nextYear}-${mmNext}-01`;
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('logboek_entries')
     .select('id, aanvraag_id, author_id, description, fotos, logged_at, created_at')
     .eq('author_id', userId)
     .gte('logged_at', monthStart)
     .lt('logged_at', monthEnd)
     .order('logged_at', { ascending: false });
+
+  if (aanvraagId) query = query.eq('aanvraag_id', aanvraagId);
+
+  const { data, error } = await query;
 
   if (error) {
     console.warn('Month logs fetch error', error);

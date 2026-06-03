@@ -24,6 +24,8 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
 
   const today = new Date();
   const motivationRef = useRef(null);
+  const scrollRef = useRef(null);
+  const motivationY = useRef(0);
 
   const [motivation, setMotivation] = useState('');
   const [availability, setAvailability] = useState([]);
@@ -123,6 +125,7 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
+          ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
@@ -130,21 +133,28 @@ export default function AanvraagDoenScreen({ onBack, onContinue, perceel }) {
         >
           <PerceelSummaryCard perceel={perceel} />
 
-          <SectionCard>
-            <SectionHeader icon={PencilSimpleIcon} title="Motivatie" />
-            <AuthTextArea
-              ref={motivationRef}
-              value={motivation}
-              onChangeText={setMotivation}
-              placeholder="Schrijf hier waarom je geïnteresseerd bent in dit perceel..."
-              height={160}
-              maxLength={300}
-              error={!!errors.motivation}
-              accessibilityLabel="Motivatie"
-              accessibilityHint="Schrijf waarom je geïnteresseerd bent in dit perceel"
-            />
-            {errors.motivation ? <FieldError message={errors.motivation} /> : null}
-          </SectionCard>
+          <View onLayout={(e) => { motivationY.current = e.nativeEvent.layout.y; }}>
+            <SectionCard>
+              <SectionHeader icon={PencilSimpleIcon} title="Motivatie" />
+              <AuthTextArea
+                ref={motivationRef}
+                value={motivation}
+                onChangeText={setMotivation}
+                onFocus={() => {
+                  setTimeout(() => {
+                    scrollRef.current?.scrollTo({ y: motivationY.current, animated: true });
+                  }, 150);
+                }}
+                placeholder="Schrijf hier waarom je geïnteresseerd bent in dit perceel..."
+                height={160}
+                maxLength={300}
+                error={!!errors.motivation}
+                accessibilityLabel="Motivatie"
+                accessibilityHint="Schrijf waarom je geïnteresseerd bent in dit perceel"
+              />
+              {errors.motivation ? <FieldError message={errors.motivation} /> : null}
+            </SectionCard>
+          </View>
 
           <SectionCard>
             <SectionHeader icon={CalendarBlankIcon} title="Beschikbaarheid" />

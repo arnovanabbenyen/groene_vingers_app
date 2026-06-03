@@ -5,8 +5,8 @@ import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../theme/tokens';
 
 let _show = null;
 
-export function showConfirm({ title, message, confirmLabel = 'Bevestigen', cancelLabel = 'Annuleren', onConfirm, onCancel }) {
-  _show?.({ title, message, confirmLabel, cancelLabel, onConfirm, onCancel });
+export function showConfirm({ title, message, confirmLabel = 'Bevestigen', cancelLabel = 'Annuleren', confirmVariant = 'danger', onConfirm, onCancel }) {
+  _show?.({ title, message, confirmLabel, cancelLabel, confirmVariant, onConfirm, onCancel });
 }
 
 export function ConfirmDialogProvider({ children }) {
@@ -51,16 +51,22 @@ export function ConfirmDialogProvider({ children }) {
               <Text style={styles.title}>{dialog?.title}</Text>
               {dialog?.message ? <Text style={styles.message}>{dialog.message}</Text> : null}
               <View style={styles.buttons}>
+                {dialog?.cancelLabel ? (
+                  <Pressable
+                    style={({ pressed }) => [styles.cancelButton, pressed && styles.buttonPressed]}
+                    onPress={() => dismiss(dialog?.onCancel)}
+                    accessibilityRole="button"
+                    accessibilityLabel={dialog?.cancelLabel}
+                  >
+                    <Text style={styles.cancelText}>{dialog?.cancelLabel}</Text>
+                  </Pressable>
+                ) : null}
                 <Pressable
-                  style={({ pressed }) => [styles.cancelButton, pressed && styles.buttonPressed]}
-                  onPress={() => dismiss(dialog?.onCancel)}
-                  accessibilityRole="button"
-                  accessibilityLabel={dialog?.cancelLabel}
-                >
-                  <Text style={styles.cancelText}>{dialog?.cancelLabel}</Text>
-                </Pressable>
-                <Pressable
-                  style={({ pressed }) => [styles.confirmButton, pressed && styles.buttonPressed]}
+                  style={({ pressed }) => [
+                    styles.confirmButton,
+                    dialog?.confirmVariant === 'primary' && styles.confirmButtonPrimary,
+                    pressed && styles.buttonPressed,
+                  ]}
                   onPress={() => dismiss(dialog?.onConfirm)}
                   accessibilityRole="button"
                   accessibilityLabel={dialog?.confirmLabel}
@@ -128,6 +134,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.negative,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  confirmButtonPrimary: {
+    backgroundColor: COLORS.brand,
   },
   buttonPressed: {
     opacity: 0.75,

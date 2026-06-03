@@ -9,9 +9,9 @@ const TONE_STYLES = {
     borderColor: COLORS.accent,
   },
   accepted: {
-    backgroundColor: COLORS.accent,
-    textColor: COLORS.textPrimary,
-    borderColor: COLORS.accent,
+    backgroundColor: COLORS.brand,
+    textColor: COLORS.textInverse,
+    borderColor: COLORS.brand,
   },
   confirmed: {
     backgroundColor: COLORS.accent,

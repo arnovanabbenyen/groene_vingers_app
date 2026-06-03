@@ -213,7 +213,7 @@ export default function BerichtenOverzichtScreen({
             <EmptyState
               icon={ChatCircleIcon}
               title="Nog geen berichten"
-              body="Wanneer je een aanvraag accepteert, kun je hier chatten met de aanvrager."
+              body="Hier verschijnen gesprekken zodra een aanvraag is geaccepteerd."
             />
           ) : (
             <EmptyState
