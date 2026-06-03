@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { isConversationVisible } from '../utils/conversationFilters';
 
+const HIDDEN_STATUSES = new Set(['ended', 'cancelled', 'declined']);
+
 export function useConversations(refreshKey = 0) {
   const [conversations, setConversations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -147,6 +149,25 @@ export function useConversations(refreshKey = 0) {
       mounted = false;
     };
   }, [refreshKey]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('aanvragen-status-watch')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'aanvragen' },
+        (payload) => {
+          if (HIDDEN_STATUSES.has(payload.new?.status)) {
+            setConversations((prev) =>
+              prev.filter((c) => c.aanvraag_id !== payload.new.id)
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   return { conversations, isLoading, error, setConversations };
 }
