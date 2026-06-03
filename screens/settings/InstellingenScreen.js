@@ -120,14 +120,16 @@ export default function InstellingenScreen({
         returnUrl: Linking.createURL(''),
       });
 
-      if (!session?.url) {
-        throw new Error('Stripe kon de abonnementspagina niet openen.');
-      }
+      if (!session?.url) throw new Error('no_url');
 
       await Linking.openURL(session.url);
     } catch (error) {
       console.warn('Failed to open billing portal', error);
-      Alert.alert('Abonnement', error.message || 'Probeer het opnieuw.');
+      Alert.alert(
+        'Abonnement beheren',
+        'Het beheren van je abonnement is momenteel nog niet beschikbaar in de app. Dit wordt later toegevoegd.',
+        [{ text: 'Begrepen' }],
+      );
     } finally {
       setIsOpeningBillingPortal(false);
     }
