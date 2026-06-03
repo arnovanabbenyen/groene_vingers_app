@@ -652,6 +652,8 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
                 placeholderTextColor={COLORS.textMuted}
                 multiline
                 maxHeight={100}
+                autoCorrect
+                autoCapitalize="sentences"
                 accessibilityLabel="Typ je bericht"
               />
             </View>
