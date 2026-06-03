@@ -124,7 +124,7 @@ export default function FilterScreen({
   }, [visible]);
 
   function resetFilters() {
-    setFilters({ ...DEFAULT_FILTERS });
+    onApply({ ...DEFAULT_FILTERS });
   }
 
   function toggleVoorzienig(label) {

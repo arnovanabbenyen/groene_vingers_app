@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { FunnelIcon, MagnifyingGlassIcon, XIcon } from 'phosphor-react-native';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SHADOWS, SIZES, SPACING } from '../theme/tokens';
 
@@ -9,7 +9,7 @@ export default function KaartHeader({
   onSubmit,
   onClear,
   onFilterPress,
-  hasActiveFilters = false,
+  activeFiltersCount = 0,
   paddingTop = 0,
 }) {
   return (
@@ -52,10 +52,14 @@ export default function KaartHeader({
             hitSlop={8}
             onPress={onFilterPress}
             accessibilityRole="button"
-            accessibilityLabel={hasActiveFilters ? 'Filters actief — aanpassen' : 'Filters openen'}
+            accessibilityLabel={activeFiltersCount > 0 ? `Filters actief, ${activeFiltersCount} — aanpassen` : 'Filters openen'}
           >
             <FunnelIcon size={20} color={COLORS.textInverse} weight="regular" />
-            {hasActiveFilters && <View style={styles.filterDot} />}
+            {activeFiltersCount > 0 && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
+              </View>
+            )}
           </Pressable>
         </View>
       </View>
@@ -103,13 +107,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filterBtnPressed: { opacity: 0.7 },
-  filterDot: {
+  filterBadge: {
     position: 'absolute',
-    top: 9,
-    right: 9,
-    width: SIZES.dot,
-    height: SIZES.dot,
-    borderRadius: RADIUS.pill,
+    top: -4,
+    right: -4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
     backgroundColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: COLORS.brand,
+  },
+  filterBadgeText: {
+    color: COLORS.textPrimary,
+    fontSize: 9,
+    fontFamily: FONTS.bodyMedium,
+    lineHeight: 11,
   },
 });

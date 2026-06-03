@@ -75,3 +75,12 @@ export function hasActiveFilters(filters) {
     filters.samenwerking.length > 0
   );
 }
+
+export function activeFiltersCount(filters) {
+  let count = 0;
+  if (filters.maxAfstand < 15) count++;
+  if (filters.voorzieningen.length > 0) count++;
+  if (filters.grootte && filters.grootte !== 'any') count++;
+  if (filters.samenwerking.length > 0) count++;
+  return count;
+}
