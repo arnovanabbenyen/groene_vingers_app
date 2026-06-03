@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { HandshakeIcon, EnvelopeOpenIcon, CalendarIcon, LeafIcon, PlusCircleIcon } from 'phosphor-react-native';
+import { HandshakeIcon, EnvelopeOpenIcon, LeafIcon, PlusCircleIcon } from 'phosphor-react-native';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SIZES, SPACING } from '../../components/theme/tokens';
 import BottomNav from '../../components/navigation/BottomNav';
 import PercelenCarousel from '../../components/perceel/PercelenCarousel';
@@ -538,14 +538,6 @@ export default function TuineigenaarHomeScreen({
               ) : null}
             </>
           )}
-        </DashboardSection>
-
-        <DashboardSection title="Jouw planning">
-          <DashboardEmptyState
-            icon={CalendarIcon}
-            title="Nog geen planning"
-            body="Hier zie je wanneer je tuinzoekers langskomen. Eerst een samenwerking accepteren."
-          />
         </DashboardSection>
 
         <DashboardSection
