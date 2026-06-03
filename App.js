@@ -218,8 +218,9 @@ export default function App() {
 
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
-          .select('id')
-          .or(`owner_id.eq.${userId},sender_id.eq.${userId}`);
+          .select('id, aanvragen!inner(status)')
+          .or(`owner_id.eq.${userId},sender_id.eq.${userId}`)
+          .not('aanvragen.status', 'in', '("ended","cancelled","declined")');
 
         if (conversationsError) throw conversationsError;
 
