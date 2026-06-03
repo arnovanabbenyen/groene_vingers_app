@@ -836,7 +836,6 @@ export default function App() {
             markAsRead={markNotificationAsRead}
             markAllAsRead={markAllNotificationsAsRead}
             onBack={() => {
-              markAllNotificationsAsRead();
               setHomeTabRequest(null);
               setCurrentScreen('home');
             }}
