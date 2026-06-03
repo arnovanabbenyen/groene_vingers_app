@@ -17,14 +17,24 @@ export function usePercelen(refreshKey = 0) {
       }
 
       try {
-        const { data, error: fetchError } = await supabase
-          .from('percelen')
-          .select('id, naam, beschrijving, grootte, plaats, fotos, voorzieningen, extra_info, owner_id, adres, approximate_lat, approximate_lng, voorkeur_samenwerking')
-          .eq('status', 'active');
+        const [{ data, error: fetchError }, { data: confirmedAanvragen }] = await Promise.all([
+          supabase
+            .from('percelen')
+            .select('id, naam, beschrijving, grootte, plaats, fotos, voorzieningen, extra_info, owner_id, adres, approximate_lat, approximate_lng, voorkeur_samenwerking')
+            .eq('status', 'active'),
+          supabase
+            .from('aanvragen')
+            .select('perceel_id')
+            .eq('status', 'confirmed'),
+        ]);
 
         if (fetchError) throw fetchError;
 
-        const mapped = (data || []).map(mapPerceelToPlot).filter(Boolean);
+        const confirmedIds = new Set((confirmedAanvragen || []).map((a) => a.perceel_id));
+        const mapped = (data || [])
+          .filter((p) => !confirmedIds.has(p.id))
+          .map(mapPerceelToPlot)
+          .filter(Boolean);
         if (mounted) { setPercelen(mapped); setIsLoading(false); }
       } catch (err) {
         console.warn('Failed to load percelen', err);

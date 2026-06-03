@@ -50,6 +50,7 @@ import { showToast } from './components/common/Toast';
 import { showConfirm } from './components/common/ConfirmDialog';
 
 export default function App() {
+  const [currentUserId, setCurrentUserId] = useState(null);
   const [notificationsRefreshKey, setNotificationsRefreshKey] = useState(0);
   const {
     unreadCount: unreadNotificationsCountRaw,
@@ -57,7 +58,7 @@ export default function App() {
     isLoading: isLoadingNotifications,
     markAsRead: markNotificationAsRead,
     markAllAsRead: markAllNotificationsAsRead,
-  } = useNotifications(notificationsRefreshKey);
+  } = useNotifications(currentUserId, notificationsRefreshKey);
   const { isFavorite, toggleFavorite } = useFavorites();
   const { plan: userPlan } = useUserProfile();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -88,7 +89,6 @@ export default function App() {
   const [selectedSamenwerking, setSelectedSamenwerking] = useState(null);
   const [samenwerkingRefreshKey, setSamenwerkingRefreshKey] = useState(0);
   const [selectedLogId, setSelectedLogId] = useState(null);
-  const [currentUserId, setCurrentUserId] = useState(null);
   const [endingMode, setEndingMode] = useState('initiator');
   const [beeindigdAanvraagId, setBeeindigdAanvraagId] = useState(null);
   const [detailSamenwerking, setDetailSamenwerking] = useState(null);
@@ -126,7 +126,8 @@ export default function App() {
     const publicUrl = urlData?.publicUrl;
     if (publicUrl) {
       const field = filename === 'cover' ? 'cover_url' : 'avatar_url';
-      await supabase.from('profiles').update({ [field]: publicUrl }).eq('id', userId);
+      const { error: updateError } = await supabase.from('profiles').update({ [field]: publicUrl }).eq('id', userId);
+      if (updateError) throw updateError;
     }
   }
 
@@ -196,7 +197,6 @@ export default function App() {
 
   useEffect(() => {
     if (isLoggedIn) {
-      setNotificationsRefreshKey((k) => k + 1);
       setAanvragenRefreshKey((k) => k + 1);
     }
   }, [isLoggedIn]);
@@ -587,7 +587,9 @@ export default function App() {
     restoreSession();
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN') {
+      // INITIAL_SESSION fires on cold start with an existing session.
+      // Handle it identically to SIGNED_IN so deferred photos are uploaded on startup.
+      if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)) {
         const user = session?.user;
         const role = user?.user_metadata?.role;
         if (role) setSelectedRole(role);
@@ -613,16 +615,16 @@ export default function App() {
 
             if (!activeSession) {
               console.warn('Pending photos: session never propagated for user', user.id);
-              // Don't clear pending — try again on next SIGNED_IN
               return;
             }
 
             // Session is now active and matches the user. Safe to upload.
-            let uploadSucceeded = false;
+            let avatarSucceeded = !pending.profilePhotoUri;
+            let coverSucceeded = !pending.coverPhotoUri;
             if (pending.profilePhotoUri) {
               try {
                 await uploadPhoto('profile-pfp', user.id, 'avatar', pending.profilePhotoUri);
-                uploadSucceeded = true;
+                avatarSucceeded = true;
                 console.log('Deferred avatar uploaded successfully');
               } catch (err) {
                 console.warn('Deferred avatar upload failed:', err.message);
@@ -631,18 +633,18 @@ export default function App() {
             if (pending.coverPhotoUri) {
               try {
                 await uploadPhoto('profile-covers', user.id, 'cover', pending.coverPhotoUri);
-                uploadSucceeded = true;
+                coverSucceeded = true;
                 console.log('Deferred cover uploaded successfully');
               } catch (err) {
                 console.warn('Deferred cover upload failed:', err.message);
               }
             }
 
-            // Only clear if at least one upload succeeded — keeps pending for retry on next login.
-            if (uploadSucceeded || (!pending.profilePhotoUri && !pending.coverPhotoUri)) {
+            // Clear only when both needed uploads have completed successfully.
+            if (avatarSucceeded && coverSucceeded) {
               await clearPendingPhotos();
             } else {
-              console.warn('Pending photos: all uploads failed, keeping in AsyncStorage for retry');
+              console.warn('Pending photos: some uploads failed, keeping in AsyncStorage for retry');
             }
           }
         }
@@ -738,6 +740,12 @@ export default function App() {
                   }
                 },
               });
+            }}
+            onOpenConversation={handleOpenConversation}
+            onEndSamenwerking={(samenwerking) => {
+              setSelectedSamenwerking(samenwerking);
+              setEndingMode('initiator');
+              setCurrentScreen('eind-samenwerking');
             }}
             hasActiveSamenwerking={!!activeSamenwerking}
           />

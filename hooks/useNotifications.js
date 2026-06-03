@@ -1,25 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 
-export function useNotifications(refreshKey = 0) {
+export function useNotifications(userId, refreshKey = 0) {
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const fetchNotifications = useCallback(async () => {
-    if (!supabase) {
+    if (!supabase || !userId) {
       setIsLoading(false);
+      setNotifications([]);
       return;
     }
 
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData?.user?.id;
-      if (!userId) {
-        setIsLoading(false);
-        return;
-      }
-
       const { data: rows, error: notifError } = await supabase
         .from('notifications')
         .select('id, type, title, body, related_id, related_type, actor_id, created_at, read_at')
@@ -57,7 +51,7 @@ export function useNotifications(refreshKey = 0) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   // Initial fetch + refresh-key re-fetch
   useEffect(() => {
@@ -65,33 +59,24 @@ export function useNotifications(refreshKey = 0) {
   }, [fetchNotifications, refreshKey]);
 
   // Realtime: re-fetch on any INSERT for this user
+  // Depends on userId so the subscription is (re)created when the user logs in.
   useEffect(() => {
-    if (!supabase) return;
-    let mounted = true;
-    let channel = null;
+    if (!supabase || !userId) return;
 
-    async function setup() {
-      const { data: userData } = await supabase.auth.getUser().catch(() => ({ data: null }));
-      const userId = userData?.user?.id;
-      if (!userId || !mounted) return;
+    const channel = supabase
+      .channel(`notifications:${userId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${userId}`,
+      }, () => { fetchNotifications(); })
+      .subscribe();
 
-      channel = supabase
-        .channel(`notifications:${userId}`)
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`,
-        }, () => { fetchNotifications(); })
-        .subscribe();
-    }
-
-    setup();
     return () => {
-      mounted = false;
-      if (channel) supabase.removeChannel(channel);
+      supabase.removeChannel(channel);
     };
-  }, [fetchNotifications]);
+  }, [userId, fetchNotifications]);
 
   const unreadCount = notifications.filter((n) => !n.read_at).length;
 

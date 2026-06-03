@@ -32,6 +32,7 @@ const GROOTTE_OPTIONS = [
 function AfstandSlider({ value, onChange }) {
   const trackRef = useRef(null);
   const trackWidthRef = useRef(0);
+  const trackPageXRef = useRef(0);
   const animValue = useRef(new Animated.Value(value)).current;
   const currentValueRef = useRef(value);
 
@@ -43,6 +44,15 @@ function AfstandSlider({ value, onChange }) {
   function percentToValue(pct) {
     const raw = pct * (AFSTAND_MAX - AFSTAND_MIN) + AFSTAND_MIN;
     return Math.round(Math.max(AFSTAND_MIN, Math.min(AFSTAND_MAX, raw)));
+  }
+
+  function applyX(x) {
+    if (trackWidthRef.current <= 0) return;
+    const pct = Math.max(0, Math.min(1, x / trackWidthRef.current));
+    const v = percentToValue(pct);
+    currentValueRef.current = v;
+    animValue.setValue(v);
+    onChange(v);
   }
 
   const thumbLeft = animValue.interpolate({
@@ -62,24 +72,12 @@ function AfstandSlider({ value, onChange }) {
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (e) => {
-        const x = e.nativeEvent.locationX;
-        if (trackWidthRef.current > 0) {
-          const pct = Math.max(0, Math.min(1, x / trackWidthRef.current));
-          const v = percentToValue(pct);
-          currentValueRef.current = v;
-          animValue.setValue(v);
-          onChange(v);
-        }
+        applyX(e.nativeEvent.locationX);
       },
-      onPanResponderMove: (e) => {
-        const x = e.nativeEvent.locationX;
-        if (trackWidthRef.current > 0) {
-          const pct = Math.max(0, Math.min(1, x / trackWidthRef.current));
-          const v = percentToValue(pct);
-          currentValueRef.current = v;
-          animValue.setValue(v);
-          onChange(v);
-        }
+      // Use gestureState.moveX (absolute screen X) minus the track's page X
+      // so the thumb tracks the finger accurately during drags.
+      onPanResponderMove: (_, gestureState) => {
+        applyX(gestureState.moveX - trackPageXRef.current);
       },
       onPanResponderRelease: () => {
         onChange(currentValueRef.current);
@@ -92,7 +90,12 @@ function AfstandSlider({ value, onChange }) {
       <View
         ref={trackRef}
         style={slider.track}
-        onLayout={(e) => { trackWidthRef.current = e.nativeEvent.layout.width; }}
+        onLayout={() => {
+          trackRef.current?.measure((_x, _y, width, _h, pageX) => {
+            trackWidthRef.current = width;
+            trackPageXRef.current = pageX;
+          });
+        }}
         {...panResponder.panHandlers}
       >
         <Animated.View style={[slider.fill, { width: fillWidth }]} />
