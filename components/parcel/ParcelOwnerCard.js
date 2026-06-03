@@ -112,6 +112,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     padding: SPACING.md,
     gap: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.dividerSoft,
     ...SHADOWS.card,
   },
   cardPressed: {
