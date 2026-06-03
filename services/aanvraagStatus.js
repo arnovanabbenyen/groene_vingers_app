@@ -34,14 +34,14 @@ export const AANVRAAG_STATUS_META = {
     accessibleLabel: 'Je hebt een aanvraag verstuurd',
   },
   [AANVRAAG_STATUS.ACCEPTED]: {
-    label: 'Geaccepteerd',
+    label: 'In gesprek',
     tone: 'accepted',
-    accessibleLabel: 'Je aanvraag is geaccepteerd',
+    accessibleLabel: 'Je aanvraag is geaccepteerd, jullie zijn in gesprek',
   },
   [AANVRAAG_STATUS.CONFIRMED]: {
-    label: 'Bevestigd',
+    label: 'Samenwerking actief',
     tone: 'confirmed',
-    accessibleLabel: 'De samenwerking is bevestigd',
+    accessibleLabel: 'De samenwerking is actief',
   },
 };
 

@@ -4,19 +4,19 @@ import { getAanvraagStatusMeta, isActiveAanvraagStatus } from '../../services/aa
 
 const TONE_STYLES = {
   pending: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: 'rgba(255,217,94,0.92)',
     textColor: COLORS.textPrimary,
-    borderColor: COLORS.accent,
+    borderColor: 'rgba(255,217,94,0.92)',
   },
   accepted: {
-    backgroundColor: COLORS.brand,
-    textColor: COLORS.textInverse,
-    borderColor: COLORS.brand,
+    backgroundColor: COLORS.surfaceBrand,
+    textColor: COLORS.brand,
+    borderColor: COLORS.surfaceBrand,
   },
   confirmed: {
-    backgroundColor: COLORS.accent,
-    textColor: COLORS.textPrimary,
-    borderColor: COLORS.accent,
+    backgroundColor: COLORS.brand,
+    textColor: COLORS.surface,
+    borderColor: COLORS.brand,
   },
 };
 
