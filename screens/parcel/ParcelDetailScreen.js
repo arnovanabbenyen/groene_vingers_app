@@ -198,6 +198,11 @@ export default function ParcelDetailScreen({
         profileUserId={ownerId}
         onBack={() => setShowOwnerProfile(false)}
         onOtherPerceelPress={(p) => { setShowOwnerProfile(false); setOwnerPerceelDetail(p); }}
+        onStopSamenwerking={samenwerking ? () => onEndSamenwerking?.({
+          ...samenwerking,
+          ownerProfile: ownerProfile ?? null,
+          conversationId: confirmedConversation?.id,
+        }) : undefined}
       />
     );
   }
