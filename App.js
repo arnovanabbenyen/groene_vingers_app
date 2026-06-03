@@ -805,6 +805,7 @@ export default function App() {
               setSelectedLogId(logId);
               setCurrentScreen('log-detail');
             }}
+            aanvraagId={activeSamenwerking?.id}
           />
         ) : currentScreen === 'log-detail' && selectedLogId ? (
           <LogDetailScreen

@@ -81,7 +81,7 @@ export default function LogboekHomeScreen({
 
         const [entriesResult, progressResult, profileResult] = await Promise.all([
           getLogboekEntries(aanvraagId),
-          userId ? getWeeklyProgress(userId) : Promise.resolve({ data: null }),
+          userId ? getWeeklyProgress(userId, aanvraagId) : Promise.resolve({ data: null }),
           userId
             ? supabase.from('profiles').select('avatar_url, first_name, last_name').eq('id', userId).maybeSingle()
             : Promise.resolve({ data: null }),
