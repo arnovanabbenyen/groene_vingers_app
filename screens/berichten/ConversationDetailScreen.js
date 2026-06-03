@@ -196,6 +196,14 @@ export default function ConversationDetailScreen({ conversation, onBack, onConfi
             if (current.some((m) => m.id === payload.new.id)) return current;
             return [...current, payload.new];
           });
+          const type = payload.new?.type;
+          if (
+            type === 'system_samenwerking_proposed' ||
+            type === 'system_samenwerking_cancelled' ||
+            type === 'system_samenwerking_confirmed'
+          ) {
+            loadAanvraag();
+          }
         }
       )
       .subscribe();
