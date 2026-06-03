@@ -7,6 +7,7 @@ export function usePendingAanvragen(refreshKey = 0) {
   const [aanvragen, setAanvragen] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [internalKey, setInternalKey] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -118,7 +119,19 @@ export function usePendingAanvragen(refreshKey = 0) {
     return () => {
       mounted = false;
     };
-  }, [refreshKey]);
+  }, [refreshKey, internalKey]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`pending-aanvragen-watch-${Math.random()}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'aanvragen' },
+        () => { setInternalKey((k) => k + 1); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   return { aanvragen, isLoading, error, setAanvragen };
 }

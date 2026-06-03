@@ -152,7 +152,7 @@ export function useConversations(refreshKey = 0) {
 
   useEffect(() => {
     const channel = supabase
-      .channel('aanvragen-status-watch')
+      .channel(`aanvragen-status-watch-${Math.random()}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'aanvragen' },

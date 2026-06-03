@@ -4,7 +4,6 @@ import { BellSlashIcon, SealCheckIcon } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Header from '../../components/navigation/Header';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
-import { useNotifications } from '../../hooks/useNotifications';
 import EmptyState from '../../components/common/EmptyState';
 
 
@@ -123,14 +122,13 @@ export default function MeldingenScreen({
   onNavigateToAanvraagPerceel,
   onNavigateToConversation,
   onNavigateToBeeindigd,
+  notifications = [],
+  isLoading = false,
+  markAsRead,
+  markAllAsRead,
 }) {
   const insets = useSafeAreaInsets();
-  const { notifications, isLoading, markAsRead, markAllAsRead } = useNotifications();
 
-  useEffect(() => {
-    markAllAsRead();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   async function handlePress(notification) {
     if (!notification.read_at) {

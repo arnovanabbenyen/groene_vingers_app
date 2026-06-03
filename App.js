@@ -51,7 +51,13 @@ import { showConfirm } from './components/common/ConfirmDialog';
 
 export default function App() {
   const [notificationsRefreshKey, setNotificationsRefreshKey] = useState(0);
-  const { unreadCount: unreadNotificationsCount } = useNotifications(notificationsRefreshKey);
+  const {
+    unreadCount: unreadNotificationsCountRaw,
+    notifications,
+    isLoading: isLoadingNotifications,
+    markAsRead: markNotificationAsRead,
+    markAllAsRead: markAllNotificationsAsRead,
+  } = useNotifications(notificationsRefreshKey);
   const { isFavorite, toggleFavorite } = useFavorites();
   const { plan: userPlan } = useUserProfile();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -60,6 +66,7 @@ export default function App() {
   const [verzoekenCount, setVerzoekenCount] = useState(0);
   const [aanvragenRefreshKey, setAanvragenRefreshKey] = useState(0);
   const [currentScreen, setCurrentScreen] = useState('home');
+  const unreadNotificationsCount = currentScreen === 'meldingen' ? 0 : unreadNotificationsCountRaw;
   const [selectedAanvraag, setSelectedAanvraag] = useState(null);
   const [selectedAanvraagSource, setSelectedAanvraagSource] = useState('home');
   const [profileDraft, setProfileDraft] = useState(null);
@@ -188,6 +195,13 @@ export default function App() {
   }
 
   useEffect(() => {
+    if (isLoggedIn) {
+      setNotificationsRefreshKey((k) => k + 1);
+      setAanvragenRefreshKey((k) => k + 1);
+    }
+  }, [isLoggedIn]);
+
+  useEffect(() => {
     if (!isLoggedIn || selectedRole !== 'tuineigenaar') {
       setVerzoekenCount(0);
       return;
@@ -252,6 +266,38 @@ export default function App() {
     };
   }, [isLoggedIn, selectedRole, conversationsRefreshKey]);
 
+  useEffect(() => {
+    if (!isLoggedIn || !supabase) return;
+
+    let channel = null;
+
+    supabase.auth.getUser().then(({ data }) => {
+      const userId = data?.user?.id;
+      if (!userId) return;
+
+      channel = supabase
+        .channel(`messages-unread-watch-${Math.random()}`)
+        .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'messages' },
+          (payload) => {
+            if (payload.new?.sender_id !== userId && !payload.new?.read_at) {
+              setConversationsRefreshKey((k) => k + 1);
+            }
+          }
+        )
+        .on('postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'messages' },
+          (payload) => {
+            if (payload.new?.read_at && payload.new?.sender_id !== userId) {
+              setConversationsRefreshKey((k) => k + 1);
+            }
+          }
+        )
+        .subscribe();
+    });
+
+    return () => { if (channel) supabase.removeChannel(channel); };
+  }, [isLoggedIn]);
 
   function handleViewAanvraag(aanvraag, sourceScreen = 'home') {
     setSelectedAanvraag(aanvraag);
@@ -774,7 +820,7 @@ export default function App() {
               setCurrentScreen('home');
             }}
             profileImageSource={null}
-            badgeCounts={{ berichten: unreadMessagesCount }}
+            badgeCounts={{ verzoeken: verzoekenCount, berichten: unreadMessagesCount }}
             unreadNotificationsCount={unreadNotificationsCount}
             onOpenSamenwerking={(s) => { setDetailSamenwerking(s); setCurrentScreen('samenwerking-detail'); }}
             onSamenwerkingPerceelPress={(s) => {
@@ -785,10 +831,14 @@ export default function App() {
         ) : currentScreen === 'meldingen' ? (
           <MeldingenScreen
             role={selectedRole}
+            notifications={notifications}
+            isLoading={isLoadingNotifications}
+            markAsRead={markNotificationAsRead}
+            markAllAsRead={markAllNotificationsAsRead}
             onBack={() => {
+              markAllNotificationsAsRead();
               setHomeTabRequest(null);
               setCurrentScreen('home');
-              setNotificationsRefreshKey((k) => k + 1);
             }}
             onNavigateToAanvraag={handleNotificationNavigateToAanvraag}
             onNavigateToAanvraagConversation={handleNotificationNavigateToAanvraagConversation}
