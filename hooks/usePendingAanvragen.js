@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { AANVRAAG_STATUS } from '../services/aanvraagStatus';
+import { getUserAverageRating } from '../services/samenwerkingProposal';
 
 export function usePendingAanvragen(refreshKey = 0) {
   const [aanvragen, setAanvragen] = useState([]);
@@ -65,25 +66,30 @@ export function usePendingAanvragen(refreshKey = 0) {
         const senderIds = [...new Set(aanvragenData.map((a) => a.sender_id).filter(Boolean))];
 
         let senderProfilesById = {};
+        let ratingById = {};
         if (senderIds.length > 0) {
-          const { data: senderProfiles, error: profilesError } = await supabase
-            .from('profiles')
-            .select('id, first_name, last_name, avatar_url')
-            .in('id', senderIds);
+          const [profilesResult, ...ratingResults] = await Promise.all([
+            supabase.from('profiles').select('id, first_name, last_name, avatar_url').in('id', senderIds),
+            ...senderIds.map((id) => getUserAverageRating(id).then((r) => [id, r])),
+          ]);
 
-          if (profilesError) {
-            console.warn('Failed to load sender profiles', profilesError);
+          if (profilesResult.error) {
+            console.warn('Failed to load sender profiles', profilesResult.error);
           } else {
-            senderProfilesById = (senderProfiles || []).reduce((accumulator, senderProfile) => {
-              accumulator[senderProfile.id] = senderProfile;
-              return accumulator;
+            senderProfilesById = (profilesResult.data || []).reduce((acc, p) => {
+              acc[p.id] = p;
+              return acc;
             }, {});
           }
+
+          ratingById = Object.fromEntries(ratingResults);
         }
 
         const enriched = aanvragenData.map((aanvraag) => ({
           ...aanvraag,
-          sender: senderProfilesById[aanvraag.sender_id] || null,
+          sender: senderProfilesById[aanvraag.sender_id]
+            ? { ...senderProfilesById[aanvraag.sender_id], rating: ratingById[aanvraag.sender_id]?.average ?? null }
+            : null,
         }));
 
         if (mounted) {

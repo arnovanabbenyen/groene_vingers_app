@@ -10,6 +10,7 @@ import ParcelOwnerCard from '../../components/parcel/ParcelOwnerCard';
 import ParcelLocationMap from '../../components/parcel/ParcelLocationMap';
 import ProfielScreen from '../profile/ProfielScreen';
 import { supabase } from '../../services/supabase';
+import { getUserAverageRating } from '../../services/samenwerkingProposal';
 import { useFavorites } from '../../hooks/useFavorites';
 import { COLORS, FONT_SIZES, FONTS, RADIUS, SPACING } from '../../components/theme/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -57,6 +58,7 @@ export default function ParcelDetailScreen({
   const insets = useSafeAreaInsets();
   const { isFavorite, toggleFavorite } = useFavorites();
   const [ownerProfile, setOwnerProfile] = useState(null);
+  const [ownerRating, setOwnerRating] = useState(null);
   const [existingAanvraag, setExistingAanvraag] = useState(null);
   const [confirmedConversation, setConfirmedConversation] = useState(null);
   const [showOwnerProfile, setShowOwnerProfile] = useState(false);
@@ -88,21 +90,24 @@ export default function ParcelDetailScreen({
     async function loadOwner() {
       if (!ownerId || !supabase) return;
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, bio, avatar_url, created_at')
-        .eq('id', ownerId)
-        .maybeSingle();
+      const [{ data, error }, ratingData] = await Promise.all([
+        supabase.from('profiles').select('id, first_name, last_name, bio, avatar_url, created_at').eq('id', ownerId).maybeSingle(),
+        getUserAverageRating(ownerId),
+      ]);
 
       if (error) {
         console.warn('Could not load owner profile', error);
         return;
       }
 
-      if (mounted) setOwnerProfile(data || null);
+      if (mounted) {
+        setOwnerProfile(data || null);
+        setOwnerRating(ratingData?.average ?? null);
+      }
     }
 
     setOwnerProfile(null);
+    setOwnerRating(null);
     loadOwner();
     return () => {
       mounted = false;
@@ -296,7 +301,7 @@ export default function ParcelDetailScreen({
           <ParcelOwnerCard
             ownerProfile={ownerProfile}
             joinYear={ownerJoinYear}
-            rating={perceel.rating ?? perceel.score ?? null}
+            rating={ownerRating}
             onPress={ownerId ? () => setShowOwnerProfile(true) : undefined}
           />
         </View>
