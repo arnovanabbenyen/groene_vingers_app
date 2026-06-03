@@ -118,8 +118,8 @@ export default function LoginScreen({ onCreateAccount, onLoginSuccess, onForgotP
               onChangeText={(v) => { setPassword(v); clearError(); }}
               placeholder="••••••••••"
               secureTextEntry
-              autoComplete="password"
-              textContentType="password"
+              autoComplete="off"
+              textContentType="none"
               error={fieldErrors.password}
               icon={<LockKey size={18} color={COLORS.border} weight="regular" />}
               returnKeyType="done"
