@@ -50,6 +50,7 @@ import { showToast } from './components/common/Toast';
 import { showConfirm } from './components/common/ConfirmDialog';
 
 export default function App() {
+  const [currentUserId, setCurrentUserId] = useState(null);
   const [notificationsRefreshKey, setNotificationsRefreshKey] = useState(0);
   const {
     unreadCount: unreadNotificationsCountRaw,
@@ -57,7 +58,7 @@ export default function App() {
     isLoading: isLoadingNotifications,
     markAsRead: markNotificationAsRead,
     markAllAsRead: markAllNotificationsAsRead,
-  } = useNotifications(notificationsRefreshKey);
+  } = useNotifications(currentUserId, notificationsRefreshKey);
   const { isFavorite, toggleFavorite } = useFavorites();
   const { plan: userPlan } = useUserProfile();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -88,7 +89,6 @@ export default function App() {
   const [selectedSamenwerking, setSelectedSamenwerking] = useState(null);
   const [samenwerkingRefreshKey, setSamenwerkingRefreshKey] = useState(0);
   const [selectedLogId, setSelectedLogId] = useState(null);
-  const [currentUserId, setCurrentUserId] = useState(null);
   const [endingMode, setEndingMode] = useState('initiator');
   const [beeindigdAanvraagId, setBeeindigdAanvraagId] = useState(null);
   const [detailSamenwerking, setDetailSamenwerking] = useState(null);
@@ -197,7 +197,6 @@ export default function App() {
 
   useEffect(() => {
     if (isLoggedIn) {
-      setNotificationsRefreshKey((k) => k + 1);
       setAanvragenRefreshKey((k) => k + 1);
     }
   }, [isLoggedIn]);
