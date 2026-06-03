@@ -741,6 +741,12 @@ export default function App() {
                 },
               });
             }}
+            onOpenConversation={handleOpenConversation}
+            onEndSamenwerking={(samenwerking) => {
+              setSelectedSamenwerking(samenwerking);
+              setEndingMode('initiator');
+              setCurrentScreen('eind-samenwerking');
+            }}
             hasActiveSamenwerking={!!activeSamenwerking}
           />
         ) : currentScreen === 'opgeslagen' ? (

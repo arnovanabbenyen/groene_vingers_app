@@ -126,7 +126,7 @@ export default function ParcelDetailScreen({
 
       const { data } = await supabase
         .from('aanvragen')
-        .select('id, status')
+        .select('id, status, confirmed_at')
         .eq('perceel_id', perceel.id)
         .eq('sender_id', userId)
         .not('status', 'in', '("declined","cancelled","ended")')
@@ -367,7 +367,25 @@ export default function ParcelDetailScreen({
           existingAanvraag ? (
             existingAanvraag.status === 'confirmed' ? (
               <View style={[styles.samenwerkingSection, { paddingBottom: insets.bottom + SPACING.md }]}>
+                <Text style={styles.sectionTitle}>Actieve samenwerking</Text>
                 <View style={styles.samenwerkingCard}>
+                  <View style={styles.samenwerkingPersonRow}>
+                    <Image
+                      source={ownerProfile?.avatar_url ? { uri: ownerProfile.avatar_url } : FALLBACK_AVATAR}
+                      style={styles.samenwerkingAvatar}
+                      accessibilityElementsHidden
+                    />
+                    <View style={styles.samenwerkingPersonText}>
+                      <Text style={styles.samenwerkingName} numberOfLines={1}>
+                        {[ownerProfile?.first_name, ownerProfile?.last_name].filter(Boolean).join(' ').trim() || 'Tuineigenaar'}
+                      </Text>
+                      {existingAanvraag.confirmed_at ? (
+                        <Text style={styles.samenwerkingDate}>
+                          Gestart op {formatDate(existingAanvraag.confirmed_at)}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
                   <Pressable
                     style={({ pressed }) => [styles.openChatButton, !confirmedConversation && styles.buttonDisabled, pressed && styles.buttonPressed]}
                     onPress={() => confirmedConversation && onOpenConversation?.({ ...confirmedConversation, otherUser: ownerProfile })}
