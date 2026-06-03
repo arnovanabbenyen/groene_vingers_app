@@ -292,7 +292,7 @@ export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplet
         </SectionCard>
       </ScrollView>
 
-      <View style={[styles.actionBar, { paddingBottom: insets.bottom + SPACING.md }]}>
+      <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, SPACING.md) + SPACING.md }]}>
         <AuthButton
           label="Accepteer verzoek"
           onPress={handleAccept}
@@ -305,7 +305,7 @@ export default function AanvraagDetailScreen({ aanvraag, onBack, onActionComplet
         <AuthButton
           label="Weiger verzoek"
           onPress={handleDecline}
-          variant="secondary"
+          variant="secondaryDanger"
           loading={isProcessing && processingAction === 'decline'}
           disabled={isProcessing}
           accessibilityLabel="Weiger aanvraag"
@@ -479,9 +479,7 @@ const styles = StyleSheet.create({
   actionBar: {
     paddingHorizontal: SPACING.screenX,
     paddingTop: SPACING.md,
-    backgroundColor: COLORS.surface,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.dividerSoft,
+    backgroundColor: COLORS.background,
     gap: SPACING.sm,
   },
 });
