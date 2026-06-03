@@ -40,9 +40,11 @@ export default function EindSamenwerkingScreen({
     ? samenwerking.percelen?.owner_id
     : samenwerking.sender_id;
 
-  const partnerProfile = currentUserId && currentUserId === samenwerking.sender_id
+  const isCurrentUserSender = currentUserId && currentUserId === samenwerking.sender_id;
+  const partnerProfile = isCurrentUserSender
     ? (samenwerking.ownerProfile ?? null)
     : (samenwerking.senderProfile ?? null);
+  const partnerLabel = isCurrentUserSender ? 'Eigenaar' : 'Tuinzoeker';
 
   const conversationId = samenwerking.conversation?.id ?? samenwerking.conversationId ?? null;
   const isValid = rating >= 1 && !!ratedId && !!currentUserId;
@@ -124,7 +126,7 @@ export default function EindSamenwerkingScreen({
           <PerceelSummaryCard
             perceel={samenwerking.percelen}
             partnerProfile={partnerProfile}
-            partnerLabel="Eigenaar"
+            partnerLabel={partnerLabel}
           />
         ) : null}
 
